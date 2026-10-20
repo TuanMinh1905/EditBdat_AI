@@ -1,0 +1,33 @@
+# Node modules
+node_modules/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Electron
+dist/
+out/
+
+# Output files
+output/
+
+# OS files
+Thumbs.db
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Environment
+.env
+
+# Gemini agent data
+.agents/.gemini/

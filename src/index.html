@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AE AI Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <!-- Custom Title Bar -->
+  <div class="titlebar" id="titlebar">
+    <div class="titlebar-drag">
+      <div class="titlebar-logo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#grad1)"/>
+          <path d="M2 17L12 22L22 17" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M2 12L12 17L22 12" stroke="url(#grad3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <defs>
+            <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="12"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+            <linearGradient id="grad2" x1="2" y1="17" x2="22" y2="22"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+            <linearGradient id="grad3" x1="2" y1="12" x2="22" y2="17"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+          </defs>
+        </svg>
+        <span>AE AI Tool</span>
+      </div>
+    </div>
+    <div class="titlebar-controls">
+      <button class="tb-btn tb-min" id="btn-minimize" title="Minimize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+      <button class="tb-btn tb-max" id="btn-maximize" title="Maximize">
+        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+      </button>
+      <button class="tb-btn tb-close" id="btn-close" title="Close">
+        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Main App -->
+  <div class="app-container">
+    <!-- Sidebar Navigation -->
+    <nav class="sidebar">
+      <button class="nav-btn active" data-tab="create" title="Tạo Project">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        <span>Tạo mới</span>
+      </button>
+      <button class="nav-btn" data-tab="settings" title="Cài đặt">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+        </svg>
+        <span>Cài đặt</span>
+      </button>
+      <div class="nav-spacer"></div>
+      <div class="backend-indicator" id="backend-status">
+        <div class="status-dot connecting"></div>
+        <span>Đang kết nối...</span>
+      </div>
+    </nav>
+
+    <!-- Create Tab -->
+    <main class="main-content" id="tab-create">
+      <!-- Left Panel: Media Files -->
+      <section class="panel media-panel">
+        <div class="panel-header">
+          <h2>📁 Media Files</h2>
+          <button class="btn-icon" id="btn-add-files" title="Thêm files">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
+        </div>
+
+        <div class="drop-zone" id="drop-zone">
+          <div class="drop-zone-content">
+            <div class="drop-icon">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+            </div>
+            <p class="drop-title">Kéo thả files vào đây</p>
+            <p class="drop-subtitle">hoặc click để chọn</p>
+            <p class="drop-formats">Video, Audio, Ảnh</p>
+          </div>
+        </div>
+
+        <div class="media-list" id="media-list">
+          <!-- Media items will be inserted here -->
+        </div>
+
+        <div class="media-summary" id="media-summary" style="display: none;">
+          <span id="media-count">0 files</span>
+        </div>
+      </section>
+
+      <!-- Right Panel: Prompt & Output -->
+      <section class="panel prompt-panel">
+        <div class="panel-header">
+          <h2>✨ Mô tả hiệu ứng</h2>
+        </div>
+
+        <div class="prompt-area">
+          <textarea
+            id="prompt-input"
+            placeholder="Mô tả cách bạn muốn video được edit...&#10;&#10;Ví dụ: &quot;Ghép 3 video lại, thêm fade transition 1 giây giữa các clip. Video đầu zoom in nhẹ, thêm text 'INTRO' ở giữa màn hình trong 3 giây đầu với font to, màu trắng. Background audio nhạc dùng file nhac.mp3 với volume 60%.&quot;"
+            rows="8"
+          ></textarea>
+          <div class="prompt-footer">
+            <span class="char-count" id="char-count">0 ký tự</span>
+          </div>
+        </div>
+
+        <!-- Quick Presets -->
+        <div class="presets-section">
+          <h3>⚡ Preset nhanh</h3>
+          <div class="preset-tags">
+            <button class="preset-tag" data-preset="Fade transition 1 giây giữa mỗi clip.">Fade Transition</button>
+            <button class="preset-tag" data-preset="Thêm text tiêu đề ở giữa, font to, màu trắng, hiện 3 giây đầu.">Text Intro</button>
+            <button class="preset-tag" data-preset="Zoom in nhẹ cho mỗi clip (Ken Burns effect).">Ken Burns</button>
+            <button class="preset-tag" data-preset="Cross dissolve 0.5 giây giữa các clip, fade in ở đầu và fade out ở cuối.">Smooth Flow</button>
+            <button class="preset-tag" data-preset="Slide transition từ trái sang phải giữa các clip.">Slide</button>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="generate-section">
+          <button class="btn-generate" id="btn-generate" disabled>
+            <div class="btn-generate-content">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+              </svg>
+              <span>Tạo Project .aep</span>
+            </div>
+            <div class="btn-generate-loading" style="display: none;">
+              <div class="spinner"></div>
+              <span>Đang xử lý...</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- Progress -->
+        <div class="progress-section" id="progress-section" style="display: none;">
+          <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
+          <div class="progress-steps">
+            <div class="step" id="step-analyze">
+              <div class="step-dot"></div>
+              <span>Phân tích media</span>
+            </div>
+            <div class="step" id="step-ai">
+              <div class="step-dot"></div>
+              <span>AI sinh timeline</span>
+            </div>
+            <div class="step" id="step-validate">
+              <div class="step-dot"></div>
+              <span>Kiểm tra</span>
+            </div>
+            <div class="step" id="step-jsx">
+              <div class="step-dot"></div>
+              <span>Tạo script</span>
+            </div>
+            <div class="step" id="step-ae">
+              <div class="step-dot"></div>
+              <span>After Effects</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Result -->
+        <div class="output-section" id="output-section" style="display: none;">
+          <div class="output-card success" id="output-card">
+            <div class="output-icon">✅</div>
+            <h3>Project đã tạo thành công!</h3>
+            <p class="output-path" id="output-path"></p>
+            <div class="output-actions">
+              <button class="btn-secondary" id="btn-open-aep">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                Mở file .aep
+              </button>
+              <button class="btn-secondary" id="btn-open-folder">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                Mở thư mục
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Log Console -->
+        <div class="log-section">
+          <div class="log-header" id="log-toggle">
+            <span>📋 Log</span>
+            <svg class="log-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="log-content" id="log-content" style="display: none;">
+            <div class="log-messages" id="log-messages">
+              <div class="log-msg info">Chào mừng bạn đến với AE AI Tool ✨</div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Settings Tab -->
+    <main class="main-content settings-content" id="tab-settings" style="display: none;">
+      <div class="settings-container">
+        <h2>⚙️ Cài đặt</h2>
+
+        <div class="settings-group">
+          <h3>🔑 Google Gemini API</h3>
+          <div class="setting-item">
+            <label for="setting-api-key">API Key</label>
+            <div class="input-with-action">
+              <input type="password" id="setting-api-key" placeholder="Nhập Gemini API Key..." />
+              <button class="btn-icon" id="btn-toggle-key" title="Hiện/ẩn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+            </div>
+            <p class="setting-hint">Lấy API key tại <a href="#" id="link-gemini-api">Google AI Studio</a></p>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>🎨 After Effects</h3>
+          <div class="setting-item">
+            <label for="setting-ae-path">Đường dẫn AfterFX.exe</label>
+            <div class="input-with-action">
+              <input type="text" id="setting-ae-path" placeholder="C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe" />
+              <button class="btn-icon" id="btn-browse-ae" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>📁 Output</h3>
+          <div class="setting-item">
+            <label for="setting-output-dir">Thư mục xuất file</label>
+            <div class="input-with-action">
+              <input type="text" id="setting-output-dir" placeholder="Chọn thư mục..." />
+              <button class="btn-icon" id="btn-browse-output" title="Chọn thư mục">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group">
+          <h3>🎬 Composition mặc định</h3>
+          <div class="setting-row">
+            <div class="setting-item compact">
+              <label for="setting-comp-width">Width</label>
+              <input type="number" id="setting-comp-width" value="1920" />
+            </div>
+            <div class="setting-item compact">
+              <label for="setting-comp-height">Height</label>
+              <input type="number" id="setting-comp-height" value="1080" />
+            </div>
+            <div class="setting-item compact">
+              <label for="setting-comp-fps">FPS</label>
+              <input type="number" id="setting-comp-fps" value="30" />
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button class="btn-primary" id="btn-save-settings">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Lưu cài đặt
+          </button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AE Timeline",
+  "description": "Schema cho timeline được AI sinh ra, dùng để tạo script .jsx cho After Effects",
+  "type": "object",
+  "required": ["composition", "layers"],
+  "properties": {
+    "composition": {
+      "type": "object",
+      "required": ["name", "width", "height", "fps", "duration"],
+      "properties": {
+        "name": { "type": "string", "default": "Main Comp" },
+        "width": { "type": "integer", "minimum": 1, "default": 1920 },
+        "height": { "type": "integer", "minimum": 1, "default": 1080 },
+        "fps": { "type": "number", "minimum": 1, "maximum": 120, "default": 30 },
+        "duration": { "type": "number", "minimum": 0.1, "description": "Tổng thời lượng composition (giây)" },
+        "backgroundColor": {
+          "type": "array",
+          "items": { "type": "number", "minimum": 0, "maximum": 1 },
+          "minItems": 3,
+          "maxItems": 3,
+          "default": [0, 0, 0]
+        }
+      }
+    },
+    "layers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "name"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["footage", "solid", "text", "audio", "adjustment"]
+          },
+          "name": { "type": "string" },
+          "source": {
+            "type": "string",
+            "description": "Tên file nguồn (dùng cho footage và audio)"
+          },
+          "startTime": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0,
+            "description": "Thời điểm layer bắt đầu trong comp (giây)"
+          },
+          "inPoint": {
+            "type": "number",
+            "minimum": 0,
+            "default": 0,
+            "description": "Điểm bắt đầu cắt trong source (giây)"
+          },
+          "outPoint": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Điểm kết thúc cắt trong source (giây)"
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Thời lượng hiển thị của layer (giây)"
+          },
+          "position": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" }
+            }
+          },
+          "anchorPoint": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number" },
+              "y": { "type": "number" }
+            }
+          },
+          "scale": {
+            "type": "object",
+            "properties": {
+              "x": { "type": "number", "default": 100 },
+              "y": { "type": "number", "default": 100 }
+            }
+          },
+          "rotation": { "type": "number", "default": 0 },
+          "opacity": { "type": "number", "minimum": 0, "maximum": 100, "default": 100 },
+          "blendingMode": {
+            "type": "string",
+            "enum": ["normal", "add", "multiply", "screen", "overlay", "softLight", "hardLight", "difference"],
+            "default": "normal"
+          },
+          "text": {
+            "type": "object",
+            "description": "Thuộc tính cho text layer",
+            "properties": {
+              "content": { "type": "string" },
+              "font": { "type": "string", "default": "Arial" },
+              "size": { "type": "number", "default": 72 },
+              "color": {
+                "type": "array",
+                "items": { "type": "number", "minimum": 0, "maximum": 1 },
+                "minItems": 3,
+                "maxItems": 3,
+                "default": [1, 1, 1]
+              },
+              "justification": {
+                "type": "string",
+                "enum": ["left", "center", "right"],
+                "default": "center"
+              },
+              "bold": { "type": "boolean", "default": false },
+              "italic": { "type": "boolean", "default": false }
+            }
+          },
+          "solid": {
+            "type": "object",
+            "description": "Thuộc tính cho solid layer",
+            "properties": {
+              "color": {
+                "type": "array",
+                "items": { "type": "number", "minimum": 0, "maximum": 1 },
+                "minItems": 3,
+                "maxItems": 3
+              },
+              "width": { "type": "integer" },
+              "height": { "type": "integer" }
+            }
+          },
+          "keyframes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["property", "time", "value"],
+              "properties": {
+                "property": {
+                  "type": "string",
+                  "enum": ["position", "positionX", "positionY", "scale", "scaleX", "scaleY", "rotation", "opacity"],
+                  "description": "Thuộc tính cần animate"
+                },
+                "time": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Thời điểm keyframe (giây, tính từ đầu layer)"
+                },
+                "value": {
+                  "description": "Giá trị tại keyframe (number hoặc array [x,y])"
+                },
+                "easing": {
+                  "type": "string",
+                  "enum": ["linear", "easeIn", "easeOut", "easeInOut"],
+                  "default": "easeInOut"
+                }
+              }
+            }
+          },
+          "effects": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["type"],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "gaussianBlur",
+                    "motionBlur",
+                    "brightnessContrast",
+                    "hueSaturation",
+                    "tint",
+                    "glow",
+                    "dropShadow",
+                    "fill"
+                  ]
+                },
+                "params": {
+                  "type": "object",
+                  "description": "Tham số effect, tùy loại"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "transitions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "fromLayerIndex", "toLayerIndex", "duration"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["crossDissolve", "slideLeft", "slideRight", "slideUp", "slideDown", "pushLeft", "pushRight", "wipeLeft", "wipeRight", "zoomIn", "zoomOut"]
+          },
+          "fromLayerIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Index của layer nguồn trong mảng layers"
+          },
+          "toLayerIndex": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Index của layer đích trong mảng layers"
+          },
+          "duration": {
+            "type": "number",
+            "minimum": 0.1,
+            "description": "Thời lượng transition (giây)"
+          }
+        }
+      }
+    }
+  }
+}
