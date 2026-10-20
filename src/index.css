@@ -915,7 +915,6 @@ a:hover { color: #c4b5fd; }
 
 /* --- Settings --- */
 .settings-content {
-  display: flex !important;
   justify-content: center;
   overflow-y: auto;
   padding: var(--space-2xl);
