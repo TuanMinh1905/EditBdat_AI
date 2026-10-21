@@ -84,6 +84,9 @@ const dom = {
   btnExportJsx: $('#btn-export-jsx'),
   btnPreviewTimeline: $('#btn-preview-timeline'),
 
+  // Project name
+  projectNameInput: $('#project-name-input'),
+
   // Timeline modal
   modalTimeline: $('#modal-timeline'),
   modalTimelineClose: $('#modal-timeline-close'),
@@ -160,7 +163,8 @@ function saveSession() {
           ext: f.ext,
           type: f.type
         })),
-        prompt: dom.promptInput.value
+        prompt: dom.promptInput.value,
+        projectName: dom.projectNameInput.value
       });
     } catch (err) {
       console.error('Lỗi lưu session:', err);
@@ -183,6 +187,11 @@ async function loadSession() {
     if (session.prompt) {
       dom.promptInput.value = session.prompt;
       dom.charCount.textContent = `${session.prompt.length} ký tự`;
+    }
+
+    // Restore project name
+    if (session.projectName) {
+      dom.projectNameInput.value = session.projectName;
     }
 
     updateGenerateButton();
@@ -309,11 +318,41 @@ function showProgress() {
 }
 
 // --- Generate Project ---
+// Base output directory - cố định theo yêu cầu user
+const BASE_OUTPUT_DIR = 'C:\\Users\\GP\\Desktop\\Edit Bdat\\Video Demo\\Demo1\\Official';
+
+function getProjectName() {
+  return dom.projectNameInput.value.trim();
+}
+
+function validateProjectName() {
+  const name = getProjectName();
+  if (!name) {
+    dom.projectNameInput.classList.add('input-error');
+    dom.projectNameInput.focus();
+    addLog('⚠️ Vui lòng điền tên thư mục output trước khi tạo!', 'error');
+    setTimeout(() => dom.projectNameInput.classList.remove('input-error'), 2000);
+    return false;
+  }
+  // Strip invalid path chars
+  const invalid = /[\\/:*?"<>|]/g;
+  if (invalid.test(name)) {
+    dom.projectNameInput.classList.add('input-error');
+    addLog('⚠️ Tên thư mục không được chứa ký tự đặc biệt: \\ / : * ? " < > |', 'error');
+    setTimeout(() => dom.projectNameInput.classList.remove('input-error'), 2000);
+    return false;
+  }
+  return true;
+}
+
 async function generateProject() {
   if (state.isGenerating) return;
+  if (!validateProjectName()) return;
 
   const prompt = dom.promptInput.value.trim();
   if (!prompt || state.mediaFiles.length === 0) return;
+
+  const projectName = getProjectName();
 
   state.isGenerating = true;
   dom.btnGenerateContent.style.display = 'none';
@@ -321,7 +360,7 @@ async function generateProject() {
   dom.btnGenerate.disabled = true;
 
   showProgress();
-  addLog('Bắt đầu tạo project...', 'info');
+  addLog(`✨ Bắt đầu tạo project → ${BASE_OUTPUT_DIR}\\${projectName}`, 'info');
 
   try {
     // Step 1: Analyze
@@ -363,7 +402,8 @@ async function generateProject() {
       settings: {
         geminiApiKey: settings.geminiApiKey,
         afterEffectsPath: settings.afterEffectsPath,
-        outputDir: settings.outputDir,
+        outputDir: BASE_OUTPUT_DIR,
+        projectName: projectName,
         compWidth: settings.compWidth || 1920,
         compHeight: settings.compHeight || 1080,
         compFps: settings.compFps || 30
@@ -374,40 +414,31 @@ async function generateProject() {
       throw new Error(result.error);
     }
 
-    // Update progress based on result steps
-    if (result.step === 'ai_done' || result.timeline) {
+    // Update progress based on result
+    if (result.timeline) {
       setStep('ai', 'done');
       setProgress(50);
       addLog('AI đã sinh timeline', 'success');
     }
-
-    if (result.step === 'validated' || result.validated) {
+    if (result.jsx_path) {
       setStep('validate', 'done');
-      setProgress(60);
-      addLog('Timeline hợp lệ', 'success');
-    }
-
-    if (result.step === 'jsx_done' || result.jsx_path) {
       setStep('jsx', 'done');
       setProgress(75);
       addLog(`Script JSX đã tạo: ${result.jsx_path}`, 'success');
     }
-
-    if (result.step === 'ae_done' || result.aep_path) {
+    if (result.aep_path) {
       setStep('ae', 'done');
-      setProgress(100);
       addLog(`Project .aep đã tạo: ${result.aep_path}`, 'success');
     }
 
-    // Ensure all steps are marked done
+    // Ensure all steps done
     setStep('ai', 'done');
     setStep('validate', 'done');
     setStep('jsx', 'done');
     setStep('ae', 'done');
     setProgress(100);
 
-    // Show output
-    showOutput(result.aep_path, result.output_dir, true);
+    showOutput(result.aep_path || result.jsx_path, result.output_dir, true, null, projectName);
 
   } catch (err) {
     addLog(`Lỗi: ${err.message}`, 'error');
@@ -420,23 +451,21 @@ async function generateProject() {
   }
 }
 
-function showOutput(aepPath, outputDir, success, errorMsg) {
+function showOutput(filePath, outputDir, success, errorMsg, projectName) {
   dom.outputSection.style.display = 'block';
   const card = dom.outputCard;
 
   if (success) {
     card.className = 'output-card success';
     card.querySelector('.output-icon').textContent = '✅';
-    card.querySelector('h3').textContent = 'Project đã tạo thành công!';
-    dom.outputPath.textContent = aepPath || '';
+    const label = projectName ? `📂 ${projectName}` : 'Project đã tạo thành công!';
+    card.querySelector('h3').textContent = label;
+    dom.outputPath.textContent = outputDir || filePath || '';
 
-    dom.btnOpenAep.onclick = () => {
-      if (aepPath) window.api.openFile(aepPath);
-    };
-    dom.btnOpenFolder.onclick = () => {
-      if (outputDir) window.api.openOutputFolder(outputDir);
-    };
-    dom.btnOpenAep.style.display = aepPath ? 'inline-flex' : 'none';
+    dom.btnOpenAep.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Mở file';
+    dom.btnOpenAep.onclick = () => { if (filePath) window.api.openFile(filePath); };
+    dom.btnOpenFolder.onclick = () => { if (outputDir) window.api.openOutputFolder(outputDir); };
+    dom.btnOpenAep.style.display = filePath ? 'inline-flex' : 'none';
     dom.btnOpenFolder.style.display = outputDir ? 'inline-flex' : 'none';
   } else {
     card.className = 'output-card error';
@@ -451,16 +480,19 @@ function showOutput(aepPath, outputDir, success, errorMsg) {
 // --- Settings ---
 async function exportJsxOnly() {
   if (state.isGenerating) return;
+  if (!validateProjectName()) return;
+
   const prompt = dom.promptInput.value.trim();
   if (!prompt || state.mediaFiles.length === 0) return;
+
+  const projectName = getProjectName();
 
   state.isGenerating = true;
   dom.btnExportJsx.disabled = true;
   dom.btnExportJsx.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Đang xử lý...';
-  showProgress();
   resetProgress();
   showProgress();
-  addLog('Bắt đầu xuất JSX (không chạy AE)...', 'info');
+  addLog(`📄 Xuất JSX → ${BASE_OUTPUT_DIR}\\${projectName}`, 'info');
 
   try {
     const settings = await window.api.getSettings();
@@ -469,8 +501,8 @@ async function exportJsxOnly() {
       prompt,
       settings: {
         geminiApiKey: settings.geminiApiKey,
-        afterEffectsPath: settings.afterEffectsPath,
-        outputDir: settings.outputDir,
+        outputDir: BASE_OUTPUT_DIR,
+        projectName: projectName,
         compWidth: settings.compWidth || 1920,
         compHeight: settings.compHeight || 1080,
         compFps: settings.compFps || 30
@@ -484,11 +516,8 @@ async function exportJsxOnly() {
     setStep('jsx', 'done');
     setProgress(100);
     addLog(`✅ JSX xuất xong: ${result.jsx_path}`, 'success');
-    showOutput(result.jsx_path, result.output_dir, true);
-    // Override label to reflect jsx-only mode
-    dom.outputCard.querySelector('h3').textContent = 'Script JSX đã xuất!';
-    dom.btnOpenAep.textContent = '📄 Mở file .jsx';
-    dom.btnOpenAep.onclick = () => { if (result.jsx_path) window.api.openFile(result.jsx_path); };
+    showOutput(result.jsx_path, result.output_dir, true, null, projectName);
+    dom.outputCard.querySelector('h3').textContent = `📁 ${projectName} — Script JSX đã xuất!`;
 
   } catch (err) {
     addLog(`Lỗi xuất JSX: ${err.message}`, 'error');
@@ -637,6 +666,12 @@ function initEvents() {
   dom.promptInput.addEventListener('input', () => {
     dom.charCount.textContent = `${dom.promptInput.value.length} ký tự`;
     updateGenerateButton();
+    saveSession();
+  });
+
+  // Project name — save session on change, clear error state
+  dom.projectNameInput.addEventListener('input', () => {
+    dom.projectNameInput.classList.remove('input-error');
     saveSession();
   });
 

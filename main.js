@@ -24,7 +24,7 @@ function loadSettings() {
   return {
     geminiApiKey: '',
     afterEffectsPath: 'C:\\Program Files\\Adobe\\Adobe After Effects 2021\\Support Files\\AfterFX.exe',
-    outputDir: path.join(app.getPath('documents'), 'AE_AI_Output'),
+    outputDir: 'C:\\\\Users\\\\GP\\\\Desktop\\\\Edit Bdat\\\\Video Demo\\\\Demo1\\\\Official',
     compWidth: 1920,
     compHeight: 1080,
     compFps: 30

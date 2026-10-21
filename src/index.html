@@ -128,8 +128,21 @@
           </div>
         </div>
 
-        <!-- Generate Buttons -->
+        <!-- Project Name + Generate Buttons -->
         <div class="generate-section">
+          <div class="project-name-row">
+            <label class="project-name-label" for="project-name-input">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              Tên thư mục output
+            </label>
+            <input
+              type="text"
+              id="project-name-input"
+              class="project-name-input"
+              placeholder="VD: Barca_Oct21, TranDau01..."
+              maxlength="60"
+            />
+          </div>
           <button class="btn-generate" id="btn-generate" disabled>
             <div class="btn-generate-content">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -254,7 +267,7 @@
           <div class="setting-item">
             <label for="setting-output-dir">Thư mục xuất file</label>
             <div class="input-with-action">
-              <input type="text" id="setting-output-dir" placeholder="Chọn thư mục..." />
+              <input type="text" id="setting-output-dir" placeholder="C:\Users\GP\Desktop\Edit Bdat\Video Demo\Demo1\Official" />
               <button class="btn-icon" id="btn-browse-output" title="Chọn thư mục">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
               </button>

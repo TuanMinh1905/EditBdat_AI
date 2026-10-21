@@ -92,6 +92,25 @@ def analyze_media():
         log(f"Lỗi analyze: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def _resolve_output_dir(settings):
+    """Tính output directory thực tế: base_dir/project_name."""
+    base_dir = settings.get('outputDir', '')
+    if not base_dir:
+        base_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'AE_AI_Output')
+
+    project_name = settings.get('projectName', '').strip()
+    if project_name:
+        # Sanitize: chỉ giữ ký tự an toàn cho đường dẫn
+        import re as _re
+        project_name = _re.sub(r'[\\/:*?"<>|]', '_', project_name)
+        final_dir = os.path.join(base_dir, project_name)
+    else:
+        final_dir = base_dir
+
+    os.makedirs(final_dir, exist_ok=True)
+    return final_dir
+
+
 
 @app.route('/api/generate', methods=['POST'])
 def generate_project():
@@ -112,15 +131,14 @@ def generate_project():
             return jsonify({"error": "Chưa cài đặt Gemini API Key. Vào Settings để nhập API key."}), 400
 
         ae_path = settings.get('afterEffectsPath', '')
-        output_dir = settings.get('outputDir', '')
         comp_width = settings.get('compWidth', 1920)
         comp_height = settings.get('compHeight', 1080)
         comp_fps = settings.get('compFps', 30)
 
-        # Ensure output directory exists
-        if not output_dir:
-            output_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'AE_AI_Output')
-        os.makedirs(output_dir, exist_ok=True)
+        # Resolve output directory (base + project subfolder)
+        output_dir = _resolve_output_dir(settings)
+        project_name = settings.get('projectName', '').strip() or 'AE_AI'
+        log(f"Output thư mục: {output_dir}")
 
         # --- Step 1: Analyze media ---
         log("[STEP] analyze : active")
@@ -197,11 +215,9 @@ def generate_project():
         log("Đang tạo script JSX...")
 
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        project_name = f"AE_AI_{timestamp}"
-        jsx_filename = f"{project_name}.jsx"
-        aep_filename = f"{project_name}.aep"
-        jsx_path = os.path.join(output_dir, jsx_filename)
-        aep_path = os.path.join(output_dir, aep_filename)
+        file_base = f"{project_name}_{timestamp}"
+        jsx_path = os.path.join(output_dir, f"{file_base}.jsx")
+        aep_path = os.path.join(output_dir, f"{file_base}.aep")
 
         jsx_content = jsx_generator.generate(
             timeline=timeline_json,
@@ -217,7 +233,7 @@ def generate_project():
         log(f"Script JSX đã lưu: {jsx_path}")
 
         # Save timeline JSON for reference
-        json_path = os.path.join(output_dir, f"{project_name}_timeline.json")
+        json_path = os.path.join(output_dir, f"{file_base}_timeline.json")
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(timeline_json, f, indent=2, ensure_ascii=False)
 
@@ -350,14 +366,14 @@ def export_jsx_only():
         if not api_key:
             return jsonify({"error": "Chưa cài đặt Gemini API Key"}), 400
 
-        output_dir = settings.get('outputDir', '')
         comp_width = settings.get('compWidth', 1920)
         comp_height = settings.get('compHeight', 1080)
         comp_fps = settings.get('compFps', 30)
 
-        if not output_dir:
-            output_dir = os.path.join(os.path.expanduser('~'), 'Documents', 'AE_AI_Output')
-        os.makedirs(output_dir, exist_ok=True)
+        # Resolve output directory (base + project subfolder)
+        output_dir = _resolve_output_dir(settings)
+        project_name = settings.get('projectName', '').strip() or 'AE_AI'
+        log(f"Output thư mục: {output_dir}")
 
         # Analyze media
         log("[PROGRESS] 10")
@@ -408,10 +424,10 @@ def export_jsx_only():
         # Generate JSX
         log("[STEP] jsx : active")
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        project_name = f"AE_AI_{timestamp}"
-        jsx_path = os.path.join(output_dir, f"{project_name}.jsx")
-        aep_path = os.path.join(output_dir, f"{project_name}.aep")
-        json_path = os.path.join(output_dir, f"{project_name}_timeline.json")
+        file_base = f"{project_name}_{timestamp}"
+        jsx_path = os.path.join(output_dir, f"{file_base}.jsx")
+        aep_path = os.path.join(output_dir, f"{file_base}.aep")
+        json_path = os.path.join(output_dir, f"{file_base}_timeline.json")
 
         jsx_content = jsx_generator.generate(
             timeline=timeline_json,
