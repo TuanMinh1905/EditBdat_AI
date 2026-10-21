@@ -78,7 +78,19 @@ const dom = {
   // Window controls
   btnMinimize: $('#btn-minimize'),
   btnMaximize: $('#btn-maximize'),
-  btnClose: $('#btn-close')
+  btnClose: $('#btn-close'),
+
+  // New action buttons
+  btnExportJsx: $('#btn-export-jsx'),
+  btnPreviewTimeline: $('#btn-preview-timeline'),
+
+  // Timeline modal
+  modalTimeline: $('#modal-timeline'),
+  modalTimelineClose: $('#modal-timeline-close'),
+  timelineStats: $('#timeline-stats'),
+  timelineJsonContent: $('#timeline-json-content'),
+  btnCopyJson: $('#btn-copy-json'),
+  btnGenerateFromPreview: $('#btn-generate-from-preview')
 };
 
 // --- Utility ---
@@ -268,7 +280,10 @@ function renderMediaList() {
 function updateGenerateButton() {
   const hasMedia = state.mediaFiles.length > 0;
   const hasPrompt = dom.promptInput.value.trim().length > 0;
-  dom.btnGenerate.disabled = !hasMedia || !hasPrompt || state.isGenerating || !state.backendReady;
+  const canRun = hasMedia && hasPrompt && !state.isGenerating && state.backendReady;
+  dom.btnGenerate.disabled = !canRun;
+  dom.btnExportJsx.disabled = !canRun;
+  dom.btnPreviewTimeline.disabled = !(hasPrompt && state.backendReady && !state.isGenerating);
 }
 
 // --- Progress ---
@@ -434,6 +449,106 @@ function showOutput(aepPath, outputDir, success, errorMsg) {
 }
 
 // --- Settings ---
+async function exportJsxOnly() {
+  if (state.isGenerating) return;
+  const prompt = dom.promptInput.value.trim();
+  if (!prompt || state.mediaFiles.length === 0) return;
+
+  state.isGenerating = true;
+  dom.btnExportJsx.disabled = true;
+  dom.btnExportJsx.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Đang xử lý...';
+  showProgress();
+  resetProgress();
+  showProgress();
+  addLog('Bắt đầu xuất JSX (không chạy AE)...', 'info');
+
+  try {
+    const settings = await window.api.getSettings();
+    const result = await window.api.exportJsxOnly({
+      mediaFiles: state.mediaFiles.map(f => ({ path: f.path, name: f.name, type: f.type, metadata: f.metadata })),
+      prompt,
+      settings: {
+        geminiApiKey: settings.geminiApiKey,
+        afterEffectsPath: settings.afterEffectsPath,
+        outputDir: settings.outputDir,
+        compWidth: settings.compWidth || 1920,
+        compHeight: settings.compHeight || 1080,
+        compFps: settings.compFps || 30
+      }
+    });
+
+    if (result.error) throw new Error(result.error);
+
+    setStep('ai', 'done');
+    setStep('validate', 'done');
+    setStep('jsx', 'done');
+    setProgress(100);
+    addLog(`✅ JSX xuất xong: ${result.jsx_path}`, 'success');
+    showOutput(result.jsx_path, result.output_dir, true);
+    // Override label to reflect jsx-only mode
+    dom.outputCard.querySelector('h3').textContent = 'Script JSX đã xuất!';
+    dom.btnOpenAep.textContent = '📄 Mở file .jsx';
+    dom.btnOpenAep.onclick = () => { if (result.jsx_path) window.api.openFile(result.jsx_path); };
+
+  } catch (err) {
+    addLog(`Lỗi xuất JSX: ${err.message}`, 'error');
+    showOutput(null, null, false, err.message);
+  } finally {
+    state.isGenerating = false;
+    dom.btnExportJsx.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg> Xuất JSX';
+    updateGenerateButton();
+  }
+}
+
+async function previewTimeline() {
+  const prompt = dom.promptInput.value.trim();
+  if (!prompt) return;
+
+  dom.btnPreviewTimeline.disabled = true;
+  dom.btnPreviewTimeline.innerHTML = '<div class="spinner" style="width:14px;height:14px;border-width:2px"></div> Đang gọi AI...';
+  addLog('Đang gọi AI để xem trước timeline...', 'info');
+
+  try {
+    const settings = await window.api.getSettings();
+    const result = await window.api.getTimelinePreview({
+      mediaFiles: state.mediaFiles.map(f => ({ path: f.path, name: f.name, type: f.type, metadata: f.metadata })),
+      prompt,
+      settings: {
+        geminiApiKey: settings.geminiApiKey,
+        compWidth: settings.compWidth || 1920,
+        compHeight: settings.compHeight || 1080,
+        compFps: settings.compFps || 30
+      }
+    });
+
+    if (result.error) throw new Error(result.error);
+
+    const tl = result.timeline;
+    // Show stats
+    const layers = tl.layers || [];
+    const comp = tl.composition || {};
+    dom.timelineStats.innerHTML = [
+      `<span class="stat-chip">⏱ ${comp.duration || 0}s</span>`,
+      `<span class="stat-chip">📐 ${comp.width || 1920}×${comp.height || 1080}</span>`,
+      `<span class="stat-chip">🎞 ${comp.fps || 30}fps</span>`,
+      `<span class="stat-chip">🎚 ${layers.length} layers</span>`,
+      `<span class="stat-chip">🎨 ${layers.filter(l => l.type === 'preset').length} presets</span>`
+    ].join('');
+
+    dom.timelineJsonContent.textContent = JSON.stringify(tl, null, 2);
+    dom.modalTimeline.style.display = 'flex';
+    addLog(`AI đã sinh timeline: ${layers.length} layers, ${comp.duration || 0}s`, 'success');
+
+  } catch (err) {
+    addLog(`Lỗi preview: ${err.message}`, 'error');
+  } finally {
+    dom.btnPreviewTimeline.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Preview JSON';
+    updateGenerateButton();
+  }
+}
+
+// --- Settings ---
+
 async function loadSettings() {
   state.settings = await window.api.getSettings();
   dom.settingApiKey.value = state.settings.geminiApiKey || '';
@@ -542,8 +657,31 @@ function initEvents() {
     });
   });
 
-  // Generate
+  // Generate (full pipeline → AE)
   dom.btnGenerate.addEventListener('click', generateProject);
+
+  // Export JSX only (no AE)
+  dom.btnExportJsx.addEventListener('click', exportJsxOnly);
+
+  // Preview timeline JSON
+  dom.btnPreviewTimeline.addEventListener('click', previewTimeline);
+
+  // Modal controls
+  dom.modalTimelineClose.addEventListener('click', () => {
+    dom.modalTimeline.style.display = 'none';
+  });
+  dom.modalTimeline.addEventListener('click', (e) => {
+    if (e.target === dom.modalTimeline) dom.modalTimeline.style.display = 'none';
+  });
+  dom.btnCopyJson.addEventListener('click', () => {
+    navigator.clipboard.writeText(dom.timelineJsonContent.textContent);
+    dom.btnCopyJson.textContent = '✅ Đã copy!';
+    setTimeout(() => { dom.btnCopyJson.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy JSON'; }, 2000);
+  });
+  dom.btnGenerateFromPreview.addEventListener('click', () => {
+    dom.modalTimeline.style.display = 'none';
+    generateProject();
+  });
 
   // Log toggle
   dom.logToggle.addEventListener('click', () => {
@@ -560,6 +698,12 @@ function initEvents() {
   dom.btnToggleKey.addEventListener('click', () => {
     const input = dom.settingApiKey;
     input.type = input.type === 'password' ? 'text' : 'password';
+  });
+
+  // Browse AE exe (file picker for .exe)
+  dom.btnBrowseAe.addEventListener('click', async () => {
+    const file = await window.api.browseAeExe();
+    if (file) dom.settingAePath.value = file;
   });
 
   dom.btnBrowseOutput.addEventListener('click', async () => {

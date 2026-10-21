@@ -5,6 +5,8 @@ Timeline Validator — Kiểm tra timeline JSON theo schema và logic
 import os
 import json
 
+from preset_catalog import preset_names
+
 # Load schema
 SCHEMA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'schemas', 'timeline.schema.json')
 
@@ -118,9 +120,19 @@ class TimelineValidator:
             errors.append(f"{prefix}: thiếu 'name'")
 
         layer_type = layer.get('type', '')
-        valid_types = ['footage', 'solid', 'text', 'audio', 'adjustment']
+        valid_types = ['footage', 'solid', 'text', 'audio', 'adjustment', 'preset']
         if layer_type not in valid_types:
             errors.append(f"{prefix}: type '{layer_type}' không hợp lệ. Chấp nhận: {valid_types}")
+
+        # Preset validation
+        if layer_type == 'preset':
+            preset = layer.get('preset', '')
+            if preset not in preset_names():
+                errors.append(f"{prefix}: preset '{preset}' không tồn tại. Có: {preset_names()}")
+            if not isinstance(layer.get('params', {}), dict):
+                errors.append(f"{prefix}: 'params' của preset phải là object")
+            if layer.get('duration') is None:
+                warnings.append(f"{prefix}: preset thiếu 'duration', sẽ hiện tới hết comp")
 
         # Source validation for footage and audio
         if layer_type in ['footage', 'audio']:

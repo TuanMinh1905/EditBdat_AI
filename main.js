@@ -215,6 +215,44 @@ ipcMain.handle('select-files', async () => {
   return result.canceled ? [] : result.filePaths;
 });
 
+ipcMain.handle('browse-ae-exe', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'After Effects', extensions: ['exe'] },
+      { name: 'All Files', extensions: ['*'] }
+    ],
+    defaultPath: 'C:\\Program Files\\Adobe'
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('export-jsx-only', async (event, { mediaFiles, prompt, settings }) => {
+  try {
+    const result = await callPython('/api/export-jsx', {
+      media_files: mediaFiles,
+      prompt: prompt,
+      settings: settings
+    });
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('get-timeline-preview', async (event, { mediaFiles, prompt, settings }) => {
+  try {
+    const result = await callPython('/api/preview-timeline', {
+      media_files: mediaFiles,
+      prompt: prompt,
+      settings: settings
+    });
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
 ipcMain.handle('select-directory', async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory', 'createDirectory']

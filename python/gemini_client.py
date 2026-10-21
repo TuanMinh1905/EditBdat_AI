@@ -6,6 +6,8 @@ import json
 import re
 from google.genai import types
 
+from preset_catalog import catalog_prompt
+
 
 # System prompt hướng dẫn AI sinh timeline JSON đúng schema
 SYSTEM_PROMPT = """Bạn là một chuyên gia After Effects. Nhiệm vụ của bạn là tạo một timeline JSON dựa trên:
@@ -25,7 +27,7 @@ Bạn PHẢI trả về JSON hợp lệ theo schema sau (KHÔNG có markdown, KH
   },
   "layers": [
     {
-      "type": "footage" | "solid" | "text" | "audio" | "adjustment",
+      "type": "footage" | "solid" | "text" | "audio" | "adjustment" | "preset",
       "name": "<tên layer>",
       "source": "<tên file nguồn - PHẢI khớp chính xác với tên file trong danh sách media>",
       "startTime": <thời điểm bắt đầu trong comp (giây)>,
@@ -81,9 +83,25 @@ QUY TẮC QUAN TRỌNG:
 6. position mặc định nên là giữa comp: {"x": width/2, "y": height/2}
 7. Đảm bảo tổng duration của composition đủ chứa tất cả layers.
 8. Cho footage video: outPoint không được vượt quá duration thực tế của source file.
-9. Nếu không có chỉ dẫn cụ thể, hãy dùng fade transition 1 giây giữa các clip.
+9. Khi người dùng mô tả "cắt thẳng", dùng cắt thẳng (startTime của cảnh sau = thời điểm kết thúc cảnh trước, KHÔNG thêm transition). Chỉ dùng transition khi prompt yêu cầu.
 10. Trả về CHỈ JSON, không có bất kỳ text nào khác.
 """
+
+# Quy tắc dựng cảnh nâng cao (dùng thư viện preset)
+DIRECTOR_RULES = """
+QUY TẮC DỰNG CẢNH CHUYÊN NGHIỆP (RẤT QUAN TRỌNG):
+A. Với mọi đồ họa (thẻ, chữ lớn, mũi tên, vòng đánh dấu, sân, đội hình, nền lưới): LUÔN dùng layer type "preset". KHÔNG tự vẽ bằng solid/text thô.
+B. Chỉ dùng type "text" cho dòng chữ đơn giản nhất. Tiêu đề, câu hỏi, luận điểm phải dùng preset "text_reveal".
+C. Mỗi cảnh trong prompt người dùng: tạo đủ các lớp theo thứ tự đọc hình (ảnh/footage -> chữ/thẻ -> chuyển động). Cảnh có nhiều nhịp thì dùng nhiều layer preset với delay/startTime khác nhau, KHÔNG cho mọi thứ hiện cùng lúc.
+D. Nền: cảnh dữ liệu/chữ/tiêu đề dùng preset "grid_background" phủ suốt cảnh. Cảnh sơ đồ chiến thuật dùng preset "pitch".
+E. Footage thật: dùng type "footage" với "freeze" khi prompt nói "dừng hình"; "motion" cho ảnh tĩnh; punch-in bằng keyframe scale 100 -> 108.
+F. Giữ nguyên chữ do người dùng yêu cầu (viết hoa, tiếng Việt có dấu). KHÔNG bịa số liệu: nếu thiếu số, chỉ dùng chữ mô tả như người dùng đã nêu.
+G. Âm thanh/tiếng chạm/nhạc: bỏ qua (chưa hỗ trợ), không tạo layer cho chúng.
+H. Thời lượng mỗi cảnh: nếu prompt không nói, ước lượng 3-6 giây; nối tiếp các cảnh theo thứ tự (startTime cảnh sau = startTime + duration cảnh trước). Footage đã có độ dài thật, KHÔNG vượt quá.
+I. Vị trí chữ/thẻ phải nằm trong khung (toạ độ chuẩn hóa 0.08..0.92), không đè lên nhau; hai thẻ cạnh nhau thì pos x khoảng 0.28 và 0.72.
+"""
+
+SYSTEM_PROMPT = SYSTEM_PROMPT + DIRECTOR_RULES + "\n" + catalog_prompt()
 
 
 class GeminiClient:
@@ -99,7 +117,7 @@ class GeminiClient:
         """Khởi tạo Gemini client."""
         from google import genai
         self.client = genai.Client(api_key=self.api_key)
-        self.model_name = "gemini-3.8-flash"
+        self.model_name = "gemini-2.5-flash"
 
     def _make_config(self, temperature=0.2, max_output_tokens=16384):
         """Tạo GenerateContentConfig với ThinkingConfig cho thinking model."""
@@ -136,7 +154,7 @@ class GeminiClient:
                 {"role": "model", "parts": [{"text": "Tôi hiểu. Tôi sẽ sinh timeline JSON theo đúng schema đã cho. Hãy cung cấp media files và prompt."}]},
                 {"role": "user", "parts": [{"text": user_message}]}
             ],
-            config=self._make_config(temperature=0.2, max_output_tokens=16384)
+            config=self._make_config(temperature=0.2, max_output_tokens=32768)
         )
 
         # Parse response — thinking model có thể trả text=None nếu hết token
@@ -166,7 +184,7 @@ Hãy sửa các lỗi trên và trả về JSON hoàn chỉnh đã sửa."""
         response = self.client.models.generate_content(
             model=self.model_name,
             contents=fix_prompt,
-            config=self._make_config(temperature=0.1, max_output_tokens=16384)
+            config=self._make_config(temperature=0.1, max_output_tokens=32768)
         )
 
         raw_text = response.text

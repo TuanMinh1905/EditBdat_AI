@@ -31,12 +31,41 @@
         "properties": {
           "type": {
             "type": "string",
-            "enum": ["footage", "solid", "text", "audio", "adjustment"]
+            "enum": ["footage", "solid", "text", "audio", "adjustment", "preset"]
           },
           "name": { "type": "string" },
           "source": {
             "type": "string",
             "description": "Tên file nguồn (dùng cho footage và audio)"
+          },
+          "preset": {
+            "type": "string",
+            "description": "Tên preset trong python/preset_catalog.py (chỉ dùng khi type = preset)"
+          },
+          "params": {
+            "type": "object",
+            "description": "Tham số của preset. Thời gian trong params tương đối so với startTime của layer"
+          },
+          "fit": {
+            "type": "string",
+            "enum": ["cover", "contain", "none"],
+            "description": "Cách vừa khung cho footage/ảnh"
+          },
+          "freeze": {
+            "type": "object",
+            "description": "Dừng hình: at (giây từ đầu đoạn cắt), hold (giây giữ hình)",
+            "properties": {
+              "at": { "type": "number", "minimum": 0 },
+              "hold": { "type": "number", "minimum": 0 }
+            }
+          },
+          "motion": {
+            "type": "object",
+            "description": "Chuyển động camera tự động cho footage/ảnh",
+            "properties": {
+              "type": { "type": "string", "enum": ["pushIn", "pullOut", "panLeft", "panRight", "driftUp"] },
+              "amount": { "type": "number" }
+            }
           },
           "startTime": {
             "type": "number",

@@ -1,0 +1,64 @@
+{
+  "composition": { "name": "Demo Presets", "width": 1920, "height": 1080, "fps": 30, "duration": 30 },
+  "layers": [
+    { "type": "preset", "preset": "label_tag", "name": "Tag ZONE", "startTime": 15, "duration": 8,
+      "params": { "text": "ÁP LỰC TUYẾN ĐẦU", "pos": [0.5, 0.1], "fill": "accent2", "textColor": "dark", "delay": 0.4 } },
+    { "type": "preset", "preset": "formation", "name": "Doi hinh 4-2-2-2", "startTime": 15, "duration": 8,
+      "params": {
+        "pitch": true, "color": "barcaBlue", "delay": 0.6,
+        "dots": [
+          { "id": "LB", "pos": [0.42, 0.15], "label": "3" },
+          { "id": "LCB", "pos": [0.40, 0.38], "label": "4" },
+          { "id": "RCB", "pos": [0.40, 0.62], "label": "5" },
+          { "id": "RB", "pos": [0.42, 0.85], "label": "2" },
+          { "id": "P1", "pos": [0.55, 0.40], "label": "8" },
+          { "id": "P2", "pos": [0.55, 0.60], "label": "6" },
+          { "id": "A1", "pos": [0.64, 0.30], "label": "10" },
+          { "id": "A2", "pos": [0.64, 0.70], "label": "9" },
+          { "id": "LW", "pos": [0.76, 0.15], "label": "11", "color": "barcaGarnet" },
+          { "id": "RW", "pos": [0.76, 0.85], "label": "7", "color": "barcaGarnet" },
+          { "id": "OP", "pos": [0.88, 0.5], "label": "X", "color": "alert" }
+        ],
+        "moves": [
+          { "id": "LB", "to": [0.55, 0.13], "at": 3.2, "dur": 1.0 },
+          { "id": "RB", "to": [0.55, 0.87], "at": 3.2, "dur": 1.0 }
+        ],
+        "links": [
+          { "from": "LW", "to": "OP", "at": 2.0, "color": "accent2", "dashed": true },
+          { "from": "RW", "to": "OP", "at": 2.4, "color": "accent2", "dashed": true }
+        ],
+        "rings": [ { "id": "LW", "at": 2.0, "color": "accent2" }, { "id": "RW", "at": 2.4, "color": "accent2" } ]
+      } },
+    { "type": "preset", "preset": "zone", "name": "Vung pressing", "startTime": 15, "duration": 8,
+      "params": { "pitch": true, "rect": [0.67, 0.02, 1.0, 0.98], "color": "alert", "opacity": 18, "reveal": "wipe", "delay": 1.0, "label": "PRESSING" } },
+    { "type": "preset", "preset": "pitch", "name": "San", "startTime": 15, "duration": 8, "params": { "pos": [0.5, 0.52], "w": 1560 } },
+    { "type": "preset", "preset": "grid_background", "name": "Nen luoi 3", "startTime": 15, "duration": 8, "params": {} },
+
+    { "type": "preset", "preset": "scoreboard", "name": "Bang ty so", "startTime": 10.5, "duration": 4.5,
+      "params": { "left": "BARCA", "right": "ĐỐI THỦ", "pos": [0.5, 0.45], "changes": [ { "side": "right", "value": 1, "at": 1.8 } ], "caption": "Minh họa câu nói vui" } },
+    { "type": "preset", "preset": "grid_background", "name": "Nen luoi 2b", "startTime": 10.5, "duration": 4.5, "params": {} },
+
+    { "type": "preset", "preset": "data_card", "name": "The C1", "startTime": 4.5, "duration": 6,
+      "params": { "pos": [0.72, 0.5], "w": 640, "h": 340, "title": "C1: HƠN 1 NĂM\nKHÔNG SẠCH LƯỚI", "accent": "alert", "enter": "slideLeft", "delay": 1.6, "scale": 1.06 } },
+    { "type": "preset", "preset": "data_card", "name": "The xG", "startTime": 4.5, "duration": 6,
+      "params": { "pos": [0.28, 0.5], "w": 640, "h": 340, "title": "xG NHẬN VÀO\nTHẤP TẠI LA LIGA", "accent": "accent", "enter": "slideRight", "delay": 0.2 } },
+    { "type": "preset", "preset": "grid_background", "name": "Nen luoi 2", "startTime": 4.5, "duration": 6, "params": {} },
+
+    { "type": "preset", "preset": "text_reveal", "name": "Cau hoi mo dau", "startTime": 0.3, "duration": 4,
+      "params": { "pos": [0.5, 0.5], "bar": true, "lines": [
+        { "text": "TRẬN NÀY...", "size": 110, "style": "slideUp" },
+        { "text": "MẤY BÀN?", "size": 190, "color": "accent2", "style": "pop", "delay": 1.1 }
+      ] } },
+    { "type": "preset", "preset": "grid_background", "name": "Nen luoi 1", "startTime": 0, "duration": 4.5, "params": {} },
+
+    { "type": "preset", "preset": "flow", "name": "Luong IB", "startTime": 23.5, "duration": 6.3,
+      "params": {
+        "pos": [0.5, 0.52],
+        "nodes": [ { "title": "IB", "sub": "Người giới thiệu" }, { "title": "KHÁCH HÀNG", "sub": "Giao dịch tại XM" }, { "title": "XM", "sub": "Đối tác" } ],
+        "labels": [ "GIỚI THIỆU", "GIAO DỊCH" ],
+        "bypass": [ { "from": 2, "to": 0, "label": "HOA HỒNG", "color": "accent2" } ]
+      } },
+    { "type": "preset", "preset": "grid_background", "name": "Nen luoi 4", "startTime": 23.5, "duration": 6.5, "params": {} }
+  ],
+  "transitions": []
+}

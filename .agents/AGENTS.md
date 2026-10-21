@@ -231,6 +231,7 @@ try {
 | 3 | `cache_util_win.cc: Unable to move cache` | Electron GPU cache conflict trên Windows | Thêm `app.commandLine.appendSwitch('disable-gpu-shader-disk-cache')` trong `main.js` |
 | 4 | Python process thoát nhưng port vẫn bị chiếm | Process cũ chưa release port | Cần kill process trên port 5599 trước khi start lại |
 | 5 | `gemini-3.8-flash` trả `text=None`, `finish_reason=MAX_TOKENS` | Thinking model dùng hết output tokens cho thinking, không còn cho response | Dùng `types.GenerateContentConfig` với `ThinkingConfig(thinking_budget=4096)` và tăng `max_output_tokens` lên 16384+ |
+| 6 | AE: `Unable to call "setValueAtTime" - Value is not an array` | `jsx_generator.py` không phân biệt kiểu giá trị (array vs số) cho từng property | Thêm `_format_keyframe_value()` — position/scale cần array, opacity/rotation cần số đơn |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 

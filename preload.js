@@ -12,12 +12,15 @@ contextBridge.exposeInMainWorld('api', {
   // File operations
   selectFiles: () => ipcRenderer.invoke('select-files'),
   selectDirectory: () => ipcRenderer.invoke('select-directory'),
+  browseAeExe: () => ipcRenderer.invoke('browse-ae-exe'),
   openOutputFolder: (path) => ipcRenderer.invoke('open-output-folder', path),
   openFile: (path) => ipcRenderer.invoke('open-file', path),
 
   // Core pipeline
   analyzeMedia: (filePaths) => ipcRenderer.invoke('analyze-media', filePaths),
   generateProject: (data) => ipcRenderer.invoke('generate-project', data),
+  exportJsxOnly: (data) => ipcRenderer.invoke('export-jsx-only', data),
+  getTimelinePreview: (data) => ipcRenderer.invoke('get-timeline-preview', data),
 
   // Window controls
   minimize: () => ipcRenderer.invoke('window-minimize'),
@@ -29,3 +32,4 @@ contextBridge.exposeInMainWorld('api', {
   onPythonLog: (callback) => ipcRenderer.on('python-log', (_, msg) => callback(msg)),
   onPythonError: (callback) => ipcRenderer.on('python-error', (_, msg) => callback(msg))
 });
+
