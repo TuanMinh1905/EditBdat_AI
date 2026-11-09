@@ -622,6 +622,8 @@ function switchTab(tabName) {
   if (tabSplitter) tabSplitter.style.display = tabName === 'clip-splitter' ? 'flex' : 'none';
   const tabPgen = $('#tab-premiere-gen');
   if (tabPgen) tabPgen.style.display = tabName === 'premiere-gen' ? 'flex' : 'none';
+  const tabRules = $('#tab-rules');
+  if (tabRules) tabRules.style.display = tabName === 'rules' ? 'flex' : 'none';
 }
 // --- Event Bindings ---
 function initEvents() {
@@ -1334,3 +1336,131 @@ function initPremiereGen() {
   if (pg.btnOpenXmlDir) pg.btnOpenXmlDir.addEventListener('click', openOutDir);
   if (pg.btnOpenXmlDir2) pg.btnOpenXmlDir2.addEventListener('click', openOutDir);
 }
+
+
+// ============================================================
+// KỸ NĂNG DROPDOWN — Shared state (Tool B + Rules tab)
+// ============================================================
+
+const KY_NANG_DEFAULT = ['Mixed', 'Skill', 'Bàn thắng', 'Kiến tạo', 'Đá Phạt', 'Đá Pen'];
+const KY_NANG_STORAGE_KEY = 'ky_nang_list';
+
+function loadKyNangList() {
+  try {
+    const saved = localStorage.getItem(KY_NANG_STORAGE_KEY);
+    if (saved) return JSON.parse(saved);
+  } catch (e) { /* ignore */ }
+  return [...KY_NANG_DEFAULT];
+}
+
+function saveKyNangList(list) {
+  try { localStorage.setItem(KY_NANG_STORAGE_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+}
+
+function syncKyNangDropdown(list) {
+  const sel = $('#sp-ky-nang');
+  if (!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '';
+  list.forEach(k => {
+    const opt = document.createElement('option');
+    opt.value = k;
+    opt.textContent = k;
+    if (k === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+function renderKyNangTags(list) {
+  const container = $('#rules-ky-nang-list');
+  if (!container) return;
+  container.innerHTML = '';
+  list.forEach((k, idx) => {
+    const tag = document.createElement('span');
+    const isDefault = KY_NANG_DEFAULT.includes(k);
+    tag.className = `rules-ky-nang-tag${isDefault ? '' : ' custom-tag'}`;
+    tag.innerHTML = `${k}${isDefault ? '' : ' <span class="tag-remove" data-idx="' + idx + '">✕</span>'}`;
+    container.appendChild(tag);
+  });
+  // Remove custom tag listeners
+  container.querySelectorAll('.tag-remove').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.dataset.idx);
+      const list = loadKyNangList();
+      list.splice(idx, 1);
+      saveKyNangList(list);
+      syncKyNangDropdown(list);
+      renderKyNangTags(list);
+    });
+  });
+}
+
+function addKyNang(name) {
+  const clean = name.trim();
+  if (!clean) return false;
+  const list = loadKyNangList();
+  if (list.some(k => k.toLowerCase() === clean.toLowerCase())) return false;
+  list.push(clean);
+  saveKyNangList(list);
+  syncKyNangDropdown(list);
+  renderKyNangTags(list);
+  return true;
+}
+
+// ============================================================
+// TOOL B — Nút "＋" thêm kỹ năng mới
+// ============================================================
+
+function initKyNangDropdown() {
+  const list = loadKyNangList();
+  syncKyNangDropdown(list);
+
+  const addBtn = $('#sp-ky-nang-add');
+  if (addBtn) {
+    addBtn.addEventListener('click', () => {
+      const name = prompt('Nhập tên kỹ năng mới:');
+      if (!name) return;
+      if (!addKyNang(name)) {
+        alert(`"${name}" đã có trong danh sách!`);
+      }
+    });
+  }
+}
+
+// ============================================================
+// TAB RULES — initRules()
+// ============================================================
+
+function initRules() {
+  const list = loadKyNangList();
+  renderKyNangTags(list);
+
+  const addBtn = $('#rules-btn-add-ky-nang');
+  const addInput = $('#rules-new-ky-nang');
+
+  function doAdd() {
+    if (!addInput) return;
+    const name = addInput.value.trim();
+    if (!name) return;
+    if (!addKyNang(name)) {
+      addInput.style.borderColor = '#f87171';
+      addInput.title = 'Kỹ năng này đã tồn tại!';
+      setTimeout(() => { addInput.style.borderColor = ''; addInput.title = ''; }, 1500);
+      return;
+    }
+    addInput.value = '';
+  }
+
+  if (addBtn) addBtn.addEventListener('click', doAdd);
+  if (addInput) {
+    addInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') doAdd();
+    });
+  }
+}
+
+// Init ngay khi DOM sẵn sàng
+document.addEventListener('DOMContentLoaded', () => {
+  initKyNangDropdown();
+  initRules();
+});

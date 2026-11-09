@@ -65,6 +65,13 @@
         </svg>
         <span>Gen XML</span>
       </button>
+      <button class="nav-btn" data-tab="rules" title="Quy tắc đặt tên">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        <span>Quy tắc</span>
+      </button>
       <button class="nav-btn" data-tab="settings" title="Cài đặt">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="3"/>
@@ -303,7 +310,17 @@
               </div>
               <div class="sp-field">
                 <label>Kỹ năng</label>
-                <input type="text" id="sp-ky-nang" placeholder="VD: Mixed, Goal, Assist..." value="Mixed" />
+                <div class="ky-nang-wrapper">
+                  <select id="sp-ky-nang" class="ky-nang-select">
+                    <option value="Mixed">Mixed</option>
+                    <option value="Skill">Skill</option>
+                    <option value="Bàn thắng">Bàn thắng</option>
+                    <option value="Kiến tạo">Kiến tạo</option>
+                    <option value="Đá Phạt">Đá Phạt</option>
+                    <option value="Đá Pen">Đá Pen</option>
+                  </select>
+                  <button class="ky-nang-add-btn" id="sp-ky-nang-add" title="Thêm kỹ năng mới">＋</button>
+                </div>
               </div>
             </div>
           </div>
@@ -668,6 +685,121 @@
       </div>
     </div>
   </div>
+
+
+  <!-- ═══════════════════════════════════════════════
+       TAB: QUY TẮC ĐẶT TÊN
+  ════════════════════════════════════════════════ -->
+  <main class="main-content rules-content" id="tab-rules" style="display: none;">
+    <div class="rules-container">
+
+      <div class="rules-header">
+        <h2>📋 Quy tắc đặt tên & Tổ chức Source</h2>
+        <p class="rules-subtitle">Hướng dẫn chuẩn để Tool B và Tool A hoạt động chính xác nhất</p>
+      </div>
+
+      <!-- NAMING CONVENTION -->
+      <div class="rules-card">
+        <div class="rules-card-header">🎬 Quy tắc đặt tên Clip (Tool B → catalog.csv)</div>
+        <div class="rules-card-body">
+          <div class="rules-format-box">
+            <span class="rules-label">Format tên file:</span>
+            <code class="rules-code">{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:003}.mp4</code>
+          </div>
+          <div class="rules-example-row">
+            <span class="rules-label">Ví dụ:</span>
+            <code class="rules-code rules-example">rai_1_Xavi_Spain_Skill_001.mp4</code>
+          </div>
+          <table class="rules-table">
+            <thead>
+              <tr><th>Trường</th><th>Quy tắc</th><th>Ví dụ</th></tr>
+            </thead>
+            <tbody>
+              <tr><td><code>loai</code></td><td>Chọn từ danh sách VALID_LOAI bên dưới</td><td><code>rai_1</code>, <code>training</code></td></tr>
+              <tr><td><code>cau_thu</code></td><td>Tên cầu thủ, không dấu, không khoảng trắng</td><td><code>Xavi</code>, <code>Busquets</code></td></tr>
+              <tr><td><code>doi_bong</code></td><td>Tên đội / thời kỳ, không dấu</td><td><code>Spain</code>, <code>Barcelona</code></td></tr>
+              <tr><td><code>ky_nang</code></td><td>Loại kỹ năng (xem dropdown Tool B)</td><td><code>Mixed</code>, <code>Skill</code>, <code>Bantang</code></td></tr>
+              <tr><td><code>STT</code></td><td>Số thứ tự 3 chữ số, tự động tăng</td><td><code>001</code>, <code>023</code>, <code>131</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- VALID LOAI -->
+      <div class="rules-card">
+        <div class="rules-card-header">📂 Danh sách VALID_LOAI (loại clip hợp lệ)</div>
+        <div class="rules-card-body">
+          <div class="rules-loai-grid">
+            <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
+            <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
+            <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
+            <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
+            <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
+            <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
+            <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
+            <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
+            <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
+            <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
+            <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
+            <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
+            <div class="rules-loai-item"><code>sa_ban</code><span>Sà bàn</span></div>
+            <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KY NANG -->
+      <div class="rules-card">
+        <div class="rules-card-header">⚽ Danh sách Kỹ năng (ky_nang)</div>
+        <div class="rules-card-body">
+          <div class="rules-ky-nang-list" id="rules-ky-nang-list">
+            <!-- Rendered by JS -->
+          </div>
+          <div class="rules-add-row">
+            <input type="text" id="rules-new-ky-nang" placeholder="Thêm kỹ năng mới..." class="rules-add-input" />
+            <button class="rules-add-btn" id="rules-btn-add-ky-nang">＋ Thêm</button>
+          </div>
+          <p class="rules-note">💡 Kỹ năng thêm vào sẽ tự động xuất hiện trong dropdown Tool B</p>
+        </div>
+      </div>
+
+      <!-- FOLDER STRUCTURE -->
+      <div class="rules-card">
+        <div class="rules-card-header">📁 Cấu trúc thư mục Source (khuyến nghị)</div>
+        <div class="rules-card-body">
+          <pre class="rules-tree">D:\Edit SofaZone\Source\
+├── catalog.csv                   ← Tổng hợp tất cả clip
+├── chua_phan_loai\               ← Clip chưa phân loại
+│   └── chua_phan_loai_Xavi_Spain_Mixed_001.mp4
+├── rai_1\                        ← Clip đã phân loại
+│   ├── rai_1_Xavi_Spain_Skill_001.mp4
+│   └── rai_1_Iniesta_Spain_Bantang_001.mp4
+└── training\
+    └── training_Busquets_Barcelona_Mixed_001.mp4</pre>
+          <div class="rules-tip-box">
+            <strong>⚠️ Quan trọng:</strong> Source Root trong Tool A phải trỏ đến thư mục chứa <code>catalog.csv</code> và các thư mục loại clip.
+          </div>
+        </div>
+      </div>
+
+      <!-- WORKFLOW -->
+      <div class="rules-card">
+        <div class="rules-card-header">🔄 Quy trình làm việc chuẩn</div>
+        <div class="rules-card-body">
+          <div class="rules-workflow">
+            <div class="rules-step"><div class="rules-step-num">1</div><div class="rules-step-text"><strong>Tool B — Cắt Clip</strong><br>Chọn video nguồn → Điền Cầu thủ, Đội bóng, Kỹ năng, Loại → Cắt → Sinh catalog.csv</div></div>
+            <div class="rules-step-arrow">↓</div>
+            <div class="rules-step"><div class="rules-step-num">2</div><div class="rules-step-text"><strong>Điền 2 CSV</strong><br><code>1_CSV_Timeline.csv</code> (mốc thời gian + lời thoại) và <code>2_CSV_PhanLoaiSource.csv</code> (loại source cho từng câu)</div></div>
+            <div class="rules-step-arrow">↓</div>
+            <div class="rules-step"><div class="rules-step-num">3</div><div class="rules-step-text"><strong>Tool A — Gen XML</strong><br>Nhập 2 CSV + catalog + Voice + SRT → Gen XML → Import vào Premiere</div></div>
+            <div class="rules-step-arrow">↓</div>
+            <div class="rules-step"><div class="rules-step-num">4</div><div class="rules-step-text"><strong>Premiere</strong><br>Import XML → "Offline All" → Locate file → Timeline đầy đủ</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
 
 </body>
 </html>
