@@ -1803,9 +1803,15 @@ a:hover { color: #c4b5fd; }
 .rules-format-box,
 .rules-example-row {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.rules-examples-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 .rules-label {
   font-size: 12px;
@@ -2033,4 +2039,57 @@ a:hover { color: #c4b5fd; }
   color: var(--accent-primary, #8B5CF6);
   font-size: 20px;
   padding: 2px 0;
+}
+
+
+/* ═══════════════════════════════════════════════════════
+   TAB SCROLL FIX — dung ID selector de beat .main-content
+══════════════════════════════════════════════════════ */
+
+/* Tab Quy Tac */
+#tab-rules {
+  overflow-y: auto !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
+}
+#tab-rules .rules-container {
+  position: static !important;
+  width: 100%;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+  overflow: visible !important;
+}
+
+/* Tab Cat Clip */
+#tab-clip-splitter {
+  overflow-y: auto !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
+}
+#tab-clip-splitter .splitter-container {
+  position: static !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* Tab Gen XML */
+#tab-premiere-gen {
+  overflow-y: auto !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
+}
+#tab-premiere-gen .pgen-container {
+  position: static !important;
+  overflow: visible !important;
+  height: auto !important;
+}
+
+/* Tab Cai Dat */
+#tab-settings {
+  overflow-y: auto !important;
+  flex-direction: column !important;
+  background: var(--bg-primary) !important;
 }
