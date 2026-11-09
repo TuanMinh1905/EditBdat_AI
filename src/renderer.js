@@ -707,21 +707,29 @@ function initEvents() {
   dom.btnPreviewTimeline.addEventListener('click', previewTimeline);
 
   // Modal controls
-  dom.modalTimelineClose.addEventListener('click', () => {
-    dom.modalTimeline.style.display = 'none';
-  });
-  dom.modalTimeline.addEventListener('click', (e) => {
-    if (e.target === dom.modalTimeline) dom.modalTimeline.style.display = 'none';
-  });
-  dom.btnCopyJson.addEventListener('click', () => {
-    navigator.clipboard.writeText(dom.timelineJsonContent.textContent);
-    dom.btnCopyJson.textContent = '✅ Đã copy!';
-    setTimeout(() => { dom.btnCopyJson.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy JSON'; }, 2000);
-  });
-  dom.btnGenerateFromPreview.addEventListener('click', () => {
-    dom.modalTimeline.style.display = 'none';
-    generateProject();
-  });
+  if (dom.modalTimelineClose) {
+    dom.modalTimelineClose.addEventListener('click', () => {
+      dom.modalTimeline.style.display = 'none';
+    });
+  }
+  if (dom.modalTimeline) {
+    dom.modalTimeline.addEventListener('click', (e) => {
+      if (e.target === dom.modalTimeline) dom.modalTimeline.style.display = 'none';
+    });
+  }
+  if (dom.btnCopyJson) {
+    dom.btnCopyJson.addEventListener('click', () => {
+      navigator.clipboard.writeText(dom.timelineJsonContent.textContent);
+      dom.btnCopyJson.textContent = '✅ Đã copy!';
+      setTimeout(() => { dom.btnCopyJson.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg> Copy JSON'; }, 2000);
+    });
+  }
+  if (dom.btnGenerateFromPreview) {
+    dom.btnGenerateFromPreview.addEventListener('click', () => {
+      dom.modalTimeline.style.display = 'none';
+      generateProject();
+    });
+  }
 
   // Log toggle
   dom.logToggle.addEventListener('click', () => {
@@ -793,6 +801,8 @@ async function init() {
   initEvents();
   initClipSplitter();
   initPremiereGen();
+  initKyNangDropdown();
+  initRules();
   await loadSettings();
   await loadSession();
   addLog('Ứng dụng đã sẵn sàng. Hãy thêm media files và nhập prompt.', 'info');
@@ -874,6 +884,10 @@ function initClipSplitter() {
   }
 
   // Chọn video
+  if (spDom.videoPath && spDom.btnBrowseVideo) {
+    spDom.videoPath.style.cursor = 'pointer';
+    spDom.videoPath.addEventListener('click', () => spDom.btnBrowseVideo.click());
+  }
   if (spDom.btnBrowseVideo) {
     spDom.btnBrowseVideo.addEventListener('click', async () => {
       try {
@@ -915,6 +929,10 @@ function initClipSplitter() {
   }
 
   // Chọn thư mục output
+  if (spDom.outputDir && spDom.btnBrowseOut) {
+    spDom.outputDir.style.cursor = 'pointer';
+    spDom.outputDir.addEventListener('click', () => spDom.btnBrowseOut.click());
+  }
   if (spDom.btnBrowseOut) {
     spDom.btnBrowseOut.addEventListener('click', async () => {
       try {
@@ -1189,6 +1207,10 @@ function initPremiereGen() {
   // Helper: bind file picker buttons
   function bindFilePicker(btn, input, stateKey, checkEl, apiFn, label, optional = false) {
     if (!btn) return;
+    if (input) {
+      input.style.cursor = 'pointer';
+      input.addEventListener('click', () => btn.click());
+    }
     btn.addEventListener('click', async () => {
       try {
         const p = await apiFn();
@@ -1458,9 +1480,3 @@ function initRules() {
     });
   }
 }
-
-// Init ngay khi DOM sẵn sàng
-document.addEventListener('DOMContentLoaded', () => {
-  initKyNangDropdown();
-  initRules();
-});

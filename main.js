@@ -151,6 +151,8 @@ function callPython(endpoint, data) {
 }
 
 // --- Window ---
+let backendStatus = null; // null = starting, true = ready, false = failed
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -169,6 +171,12 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'src', 'index.html'));
+
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (backendStatus !== null && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('backend-ready', backendStatus);
+    }
+  });
 
   if (process.argv.includes('--dev')) {
     mainWindow.webContents.openDevTools();
@@ -392,11 +400,13 @@ app.whenReady().then(async () => {
 
   try {
     await startPython();
+    backendStatus = true;
     console.log('Python backend started successfully');
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('backend-ready', true);
     }
   } catch (e) {
+    backendStatus = false;
     console.error('Failed to start Python backend:', e.message);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('backend-ready', false);

@@ -1269,18 +1269,18 @@ a:hover { color: #c4b5fd; }
   overflow: hidden;
   min-height: 0;
   background: var(--bg-primary);
-  position: relative;
 }
 
 .splitter-container {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: 16px;
   padding: 20px;
   overflow-y: auto;
   box-sizing: border-box;
+  align-items: start;
 }
 
 .splitter-left,
@@ -1296,6 +1296,7 @@ a:hover { color: #c4b5fd; }
   border: 1px solid var(--border-subtle, rgba(255,255,255,0.08));
   border-radius: 10px;
   padding: 14px 16px;
+  flex-shrink: 0;
 }
 
 .sp-card-header {
@@ -1634,18 +1635,18 @@ a:hover { color: #c4b5fd; }
   overflow: hidden;
   min-height: 0;
   background: var(--bg-primary);
-  position: relative;
 }
 
 .pgen-container {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 16px;
   padding: 20px;
   overflow-y: auto;
   box-sizing: border-box;
+  align-items: start;
 }
 
 .pgen-left,
@@ -1749,22 +1750,25 @@ a:hover { color: #c4b5fd; }
   overflow: hidden;
   min-height: 0;
   background: var(--bg-primary);
-  position: relative;
 }
 
 .rules-container {
-  position: absolute;
-  inset: 0;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: 20px;
+  padding: 24px 28px 40px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  max-width: 920px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .rules-header {
   margin-bottom: 4px;
+  flex-shrink: 0;
 }
 .rules-header h2 {
   font-size: 20px;
@@ -1783,6 +1787,7 @@ a:hover { color: #c4b5fd; }
   border: 1px solid var(--border-color, #2a2a3e);
   border-radius: 12px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 .rules-card-header {
   background: rgba(139,92,246,0.08);
@@ -2039,57 +2044,4 @@ a:hover { color: #c4b5fd; }
   color: var(--accent-primary, #8B5CF6);
   font-size: 20px;
   padding: 2px 0;
-}
-
-
-/* ═══════════════════════════════════════════════════════
-   TAB SCROLL FIX — dung ID selector de beat .main-content
-══════════════════════════════════════════════════════ */
-
-/* Tab Quy Tac */
-#tab-rules {
-  overflow-y: auto !important;
-  flex-direction: column !important;
-  background: var(--bg-primary) !important;
-}
-#tab-rules .rules-container {
-  position: static !important;
-  width: 100%;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-sizing: border-box;
-  overflow: visible !important;
-}
-
-/* Tab Cat Clip */
-#tab-clip-splitter {
-  overflow-y: auto !important;
-  flex-direction: column !important;
-  background: var(--bg-primary) !important;
-}
-#tab-clip-splitter .splitter-container {
-  position: static !important;
-  overflow: visible !important;
-  height: auto !important;
-}
-
-/* Tab Gen XML */
-#tab-premiere-gen {
-  overflow-y: auto !important;
-  flex-direction: column !important;
-  background: var(--bg-primary) !important;
-}
-#tab-premiere-gen .pgen-container {
-  position: static !important;
-  overflow: visible !important;
-  height: auto !important;
-}
-
-/* Tab Cai Dat */
-#tab-settings {
-  overflow-y: auto !important;
-  flex-direction: column !important;
-  background: var(--bg-primary) !important;
 }

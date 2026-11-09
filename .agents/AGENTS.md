@@ -243,6 +243,9 @@ try {
 | 14 | `edit_file` báo "target not found" dù nhìn có vẻ đúng | Whitespace hoặc escape character không khớp chính xác byte-by-byte | Dùng Python script đọc file → thay thế theo line number → ghi lại. Tránh dùng `edit_file` cho JS/regex phức tạp |
 | 15 | Tab HTML mới thêm vào bị đen/không hiện nội dung | `<main>` tab bị đặt ngoài `.app-container` → không có CSS sizing | Mọi tab mới phải nằm bên trong `<div class="app-container">`, trước `</div>` đóng container đó |
 | 16 | Tab mới thiếu CSS `display: flex; flex-direction: column` | CSS class tab-content mặc định của app dùng flex layout | Mỗi tab content class PHẢI có: `display: flex; flex-direction: column; overflow: hidden;` và inner container có `flex: 1; overflow-y: auto;` |
+| 17 | Các card trong tab bị ép bẹp (cắt mất nội dung bên trong) và không cuộn được | Flex item có `overflow: hidden` nằm trong flex column (`display: flex; flex-direction: column`) bị `flex-shrink: 1` mặc định ép nhỏ lại vừa chiều cao màn hình | Mọi card (`.rules-card`, `.sp-card`) nằm trong flex column container BẮT BUỘC phải có `flex-shrink: 0;` |
+| 18 | Mọi nút bấm ở các tab sau không hoạt động, trạng thái kẹt ở "Đang kết nối..." | Thẻ `<script src="renderer.js"></script>` đặt TRƯỚC phần tử HTML `#modal-timeline` ở cuối `body`, làm `dom.modalTimelineClose` bị `null` → crash `initEvents()` trước khi chạy `initClipSplitter()` | `<script src="renderer.js"></script>` BẮT BUỘC phải nằm ở dòng cuối cùng trước `</body>`, sau tất cả HTML elements và modals |
+| 19 | `NameError: name 'log' is not defined` khi khởi động `python/main.py` | Khởi tạo global instance `ClipSplitter(log=log)` ở dòng 47 TRƯỚC khi định nghĩa hàm `def log(message):` ở dòng 50 | Trong Python, hàm helper (`def log()`) BẮT BUỘC phải được định nghĩa trước mọi lệnh khởi tạo global instance truyền hàm đó làm tham số |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 
@@ -259,10 +262,11 @@ try {
    - Thêm lỗi mới vào mục "Lỗi đã gặp" (nếu có)
    - Thêm quy tắc mới nếu phát hiện pattern quan trọng
 6. **Nếu cần thay đổi Rule → ghi lại trong "Lịch sử thay đổi Rule"** kèm lý do
-7. **Khi thêm tab mới vào UI:**
-   - HTML phải nằm trong `<div class="app-container">` (trước `</div>` đóng container)
-   - CSS tab-content class phải có: `display: flex; flex-direction: column; overflow: hidden;`
-   - Container bên trong phải có: `flex: 1; overflow-y: auto;`
+7. **Khi thêm tab mới hoặc card mới vào UI:**
+   - HTML của tab phải nằm trong `<div class="app-container">` (trước `</div>` đóng container)
+   - CSS tab-content class phải có: `flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;`
+   - Container cuộn bên trong phải có: `flex: 1; min-height: 0; overflow-y: auto;`
+   - **BẮT BUỘC:** Mọi thẻ card con (`.rules-card`, `.sp-card`, v.v.) nằm trong flex column (`flex-direction: column`) phải có `flex-shrink: 0;` (đặc biệt khi card có `overflow: hidden`), nếu không Flexbox sẽ ép dẹt card thay vì cho phép cuộn!
    - Phải thêm case vào hàm `switchTab()` trong `renderer.js`
 8. **Khi thêm API endpoint Flask mới:**
    - Thêm endpoint trong `python/main.py`
@@ -272,6 +276,12 @@ try {
    - Đảm bảo params gửi lên khớp CHÍNH XÁC với tên field Flask endpoint expect
 9. **Khi patch file JS/HTML phức tạp:** Dùng Python script thay vì `edit_file` nếu có escape characters hoặc regex patterns để tránh lỗi "target not found"
 10. **Shared state giữa các UI components:** Dùng `localStorage` để lưu, hàm getter/setter riêng. Ví dụ: `loadKyNangList()` / `saveKyNangList()` / `syncKyNangDropdown()`
+11. **Vị trí `<script>` và Null-Safe DOM Events:**
+    - Trong `src/index.html`, thẻ `<script src="renderer.js"></script>` **BẮT BUỘC** phải đặt ở dòng cuối cùng ngay trước `</body>` (sau tất cả các tab và modal). Không bao giờ chèn HTML mới xuống sau thẻ `<script>`.
+    - Trong `src/renderer.js`, khi gán `.addEventListener()`, luôn kiểm tra phần tử tồn tại (`if (el) el.addEventListener(...)`) để tránh một phần tử `null` làm crash toàn bộ hàm `init()`.
+12. **Thứ tự khởi tạo trong Python (`main.py`):**
+    - Hàm `def log(message):` phải được định nghĩa ngay sau `app = Flask(__name__)`, **trước** bất kỳ dòng khởi tạo global instance nào (`MediaAnalyzer`, `ClipSplitter(log=log)`, v.v.).
+    - Sau khi sửa `python/main.py`, luôn chạy `python -c "import ast; ast.parse(open('python/main.py', encoding='utf-8').read())"` để kiểm tra cú pháp.
 
 ---
 
@@ -283,6 +293,7 @@ try {
 | 2026-11-09 | Thêm `clip_splitter.py` (Công cụ B). Tên clip: `{loai}_{CauThu}_{ThoiKy}_{STT}.mp4`, loại mặc định `chua_phan_loai`, ghi `catalog.csv` (UTF-8 BOM) | Chuẩn bị Source cho Công cụ A sinh file Premiere. Scene detect dùng FFmpeg (ngưỡng mặc định 0.1), không thêm dependency |
 | 2026-10-21 | Thêm session persistence (`session.json`), fix model name `gemini-2.5-flash` → `gemini-3.8-flash`, thêm lỗi #7 | Lưu data input giữa các lần restart app, Google deprecate model cũ |
 | 2026-11-09 | Thêm `premiere_xml_generator.py` (Tool A — Gen Premiere XML). Thêm 5 API endpoints mới. Tích hợp UI đầy đủ cho Tool B + Tool A. Thêm tab "Quy tắc". Thêm Kỹ năng dropdown với custom option. Thêm lỗi #8–#16. Mở rộng mục 8 (Quy tắc AI) thêm rules 7–10 | Hoàn thiện pipeline: Tool B cắt clip → catalog.csv → Tool A gen XML → import Premiere. Fix nhiều bug Premiere XML, Electron khởi động, CSS tab layout, và patch file JS |
+| 2026-11-09 | Thêm lỗi #17, #18, #19 vào bảng Lỗi đã gặp. Mở rộng mục 8 (Quy tắc AI) thêm quy tắc `flex-shrink: 0` cho card trong flex column, quy tắc #11 (vị trí `<script>` & null-safe DOM), và quy tắc #12 (thứ tự định nghĩa `log()` trong `main.py`) | Phòng tránh triệt để lỗi card bị ép dẹt không cuộn được, lỗi `<script>` đặt trước modal làm chết toàn bộ event listeners, và lỗi `NameError: log is not defined` |
 
 ---
 
