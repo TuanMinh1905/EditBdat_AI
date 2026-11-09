@@ -618,8 +618,11 @@ function switchTab(tabName) {
   });
   dom.tabCreate.style.display = tabName === 'create' ? 'flex' : 'none';
   dom.tabSettings.style.display = tabName === 'settings' ? 'flex' : 'none';
+  const tabSplitter = $('#tab-clip-splitter');
+  if (tabSplitter) tabSplitter.style.display = tabName === 'clip-splitter' ? 'flex' : 'none';
+  const tabPgen = $('#tab-premiere-gen');
+  if (tabPgen) tabPgen.style.display = tabName === 'premiere-gen' ? 'flex' : 'none';
 }
-
 // --- Event Bindings ---
 function initEvents() {
   // Window controls
@@ -786,9 +789,548 @@ function initEvents() {
 // --- Init ---
 async function init() {
   initEvents();
+  initClipSplitter();
+  initPremiereGen();
   await loadSettings();
   await loadSession();
   addLog('Ứng dụng đã sẵn sàng. Hãy thêm media files và nhập prompt.', 'info');
 }
 
 init();
+
+// ============================================================
+// TOOL B — CLIP SPLITTER UI
+// ============================================================
+
+function initClipSplitter() {
+  const spState = {
+    videoPath: null,
+    outputDir: null,
+    catalogPath: null,
+    allRows: [],
+    isSplitting: false
+  };
+
+  // --- DOM refs ---
+  const spDom = {
+    videoPath:      $('#sp-video-path'),
+    videoInfo:      $('#sp-video-info'),
+    videoMeta:      $('#sp-video-meta'),
+    btnBrowseVideo: $('#sp-btn-browse-video'),
+    loai:           $('#sp-loai'),
+    cauThu:         $('#sp-cau-thu'),
+    doiBong:        $('#sp-doi-bong'),
+    kyNang:         $('#sp-ky-nang'),
+    outputDir:      $('#sp-output-dir'),
+    btnBrowseOut:   $('#sp-btn-browse-output'),
+    threshold:      $('#sp-threshold'),
+    thresholdVal:   $('#sp-threshold-val'),
+    btnAnalyze:     $('#sp-btn-analyze'),
+    btnSplit:       $('#sp-btn-split'),
+    progressWrap:   $('#sp-progress-wrap'),
+    progressFill:   $('#sp-progress-fill'),
+    progressText:   $('#sp-progress-text'),
+    analyzeResult:  $('#sp-analyze-result'),
+    statsGrid:      $('#sp-stats-grid'),
+    cutResult:      $('#sp-cut-result'),
+    resultSummary:  $('#sp-result-summary'),
+    btnOpenFolder:  $('#sp-btn-open-folder-result'),
+    btnOpenCatalog: $('#sp-btn-open-catalog'),
+    catalogCard:    $('#sp-catalog-card'),
+    catalogCount:   $('#sp-catalog-count'),
+    catalogSearch:  $('#sp-catalog-search'),
+    catalogTbody:   $('#sp-catalog-tbody'),
+    logToggle:      $('#sp-log-toggle'),
+    logMessages:    $('#sp-log-messages'),
+  };
+
+  // Log riêng cho Tool B
+  function spLog(msg, type = 'info') {
+    if (!spDom.logMessages) return;
+    const el = document.createElement('div');
+    el.className = `log-msg ${type}`;
+    const t = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = `[${t}] ${msg}`;
+    spDom.logMessages.appendChild(el);
+    spDom.logMessages.scrollTop = spDom.logMessages.scrollHeight;
+    spDom.logMessages.style.display = 'block';
+  }
+
+  // Slider
+  if (spDom.threshold) {
+    spDom.threshold.addEventListener('input', () => {
+      spDom.thresholdVal.textContent = parseFloat(spDom.threshold.value).toFixed(2);
+    });
+  }
+
+  // Log toggle
+  if (spDom.logToggle) {
+    spDom.logToggle.addEventListener('click', () => {
+      const isHidden = spDom.logMessages.style.display === 'none';
+      spDom.logMessages.style.display = isHidden ? 'block' : 'none';
+    });
+  }
+
+  // Chọn video
+  if (spDom.btnBrowseVideo) {
+    spDom.btnBrowseVideo.addEventListener('click', async () => {
+      try {
+        const p = await window.api.selectVideoFile();
+        if (!p) return;
+        spState.videoPath = p;
+        spDom.videoPath.value = p;
+        // Auto parse filename: loai_CauThu_DoiBong_KyNang.mp4
+        const base = p.replace(/\\/g, '/').split('/').pop().replace(/\.[^.]+$/, '');
+        const parts = base.split('_');
+        if (parts.length >= 4) {
+          // Tìm loai từ danh sách hợp lệ
+          const VALID_LOAI = ['rai_1','rai_2_1','rai_2_2','rai_3','rai_4','phong_van','training',
+            'binh_luan_chay','khan_dai','anh_thong_so','anh_thoi_diem','anh_chung_bao','sa_ban'];
+          // Thử ghép 1, 2, 3 phần đầu làm loai
+          let loaiFound = '';
+          for (let n = 3; n >= 1; n--) {
+            const candidate = parts.slice(0, n).join('_');
+            if (VALID_LOAI.includes(candidate)) { loaiFound = candidate; break; }
+          }
+          if (loaiFound) {
+            spDom.loai.value = loaiFound;
+            const rest = parts.slice(loaiFound.split('_').length);
+            if (rest[0]) spDom.cauThu.value = rest[0];
+            if (rest[1]) spDom.doiBong.value = rest[1];
+            if (rest[2]) spDom.kyNang.value = rest[2];
+            spLog(`Auto-detect: loai=${loaiFound}, cau_thu=${rest[0]||''}, doi_bong=${rest[1]||''}`, 'info');
+          }
+        }
+        // Hiện thông tin nhanh
+        spDom.videoInfo.style.display = 'block';
+        spDom.videoMeta.textContent = `📂 ${base}`;
+        spDom.btnSplit.disabled = !spState.outputDir;
+        spLog(`Đã chọn video: ${base}`, 'info');
+      } catch (err) {
+        spLog(`Lỗi chọn video: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Chọn thư mục output
+  if (spDom.btnBrowseOut) {
+    spDom.btnBrowseOut.addEventListener('click', async () => {
+      try {
+        const d = await window.api.selectDirectory();
+        if (!d) return;
+        spState.outputDir = d;
+        spDom.outputDir.value = d;
+        spDom.btnSplit.disabled = !spState.videoPath;
+        spLog(`Thư mục output: ${d}`, 'info');
+      } catch (err) {
+        spLog(`Lỗi chọn thư mục: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Phân tích (preview)
+  if (spDom.btnAnalyze) {
+    spDom.btnAnalyze.addEventListener('click', async () => {
+      if (!spState.videoPath) {
+        spLog('Chưa chọn video nguồn!', 'error'); return;
+      }
+      spLog('Đang phân tích video...', 'info');
+      spDom.btnAnalyze.disabled = true;
+      try {
+        const threshold = parseFloat(spDom.threshold.value);
+        const result = await window.api.clipSplitterAnalyze({ video_path: spState.videoPath, threshold });
+        if (result.error) throw new Error(result.error);
+
+        // Hiện thống kê
+        spDom.analyzeResult.style.display = 'block';
+        const dur = result.duration_s ? `${Math.floor(result.duration_s/60)}m${Math.floor(result.duration_s%60)}s` : '?';
+        spDom.statsGrid.innerHTML = `
+          <div class="sp-stat-item"><div class="sp-stat-val">${result.scene_count || '?'}</div><div class="sp-stat-label">Scene ước tính</div></div>
+          <div class="sp-stat-item"><div class="sp-stat-val">${dur}</div><div class="sp-stat-label">Thời lượng</div></div>
+          <div class="sp-stat-item"><div class="sp-stat-val">${result.fps || 30}</div><div class="sp-stat-label">FPS</div></div>
+        `;
+        spLog(`Phân tích xong: ~${result.scene_count} scene, ${dur}, ${result.fps}fps`, 'success');
+      } catch (err) {
+        spLog(`Lỗi phân tích: ${err.message}`, 'error');
+      } finally {
+        spDom.btnAnalyze.disabled = false;
+      }
+    });
+  }
+
+  // Cắt clip
+  if (spDom.btnSplit) {
+    spDom.btnSplit.addEventListener('click', async () => {
+      if (!spState.videoPath || !spState.outputDir) {
+        spLog('Cần chọn video và thư mục output!', 'error'); return;
+      }
+      if (spState.isSplitting) return;
+      spState.isSplitting = true;
+
+      // UI loading
+      spDom.btnSplit.querySelector('.btn-generate-content').style.display = 'none';
+      spDom.btnSplit.querySelector('.btn-generate-loading').style.display = 'flex';
+      spDom.progressWrap.style.display = 'block';
+      spDom.progressFill.style.width = '0%';
+      spDom.progressText.textContent = 'Đang cắt clip...';
+
+      let progress = 0;
+      const progressTimer = setInterval(() => {
+        if (progress < 90) {
+          progress += Math.random() * 3;
+          spDom.progressFill.style.width = Math.min(progress, 90) + '%';
+        }
+      }, 800);
+
+      try {
+        const params = {
+          video_path: spState.videoPath,
+          output_root: spState.outputDir,
+          loai: spDom.loai.value,
+          cau_thu: spDom.cauThu.value.trim(),
+          doi_bong: spDom.doiBong.value.trim(),
+          ky_nang: spDom.kyNang.value.trim(),
+          threshold: parseFloat(spDom.threshold.value)
+        };
+        spLog(`Bắt đầu cắt: loai=${params.loai}, threshold=${params.threshold}`, 'info');
+        const result = await window.api.clipSplitterSplit(params);
+
+        clearInterval(progressTimer);
+        if (result.error) throw new Error(result.error);
+
+        spDom.progressFill.style.width = '100%';
+        spDom.progressText.textContent = '✅ Hoàn thành!';
+
+        // Hiện kết quả
+        const clipCount = result.clips_created || 0;
+        spState.catalogPath = result.catalog_path || '';
+        spDom.cutResult.style.display = 'block';
+        spDom.resultSummary.innerHTML = `
+          🎬 Đã cắt <strong>${clipCount} clip</strong><br>
+          📄 Catalog: <code style="font-size:10px">${result.catalog_path || ''}</code><br>
+          📁 Lưu tại: <code style="font-size:10px">${spState.outputDir}</code>
+        `;
+        spLog(`✅ Xong! ${clipCount} clips → ${spState.outputDir}`, 'success');
+
+        // Load catalog
+        if (result.catalog_path) {
+          await loadCatalog(result.catalog_path);
+        }
+      } catch (err) {
+        clearInterval(progressTimer);
+        spDom.progressText.textContent = `❌ Lỗi: ${err.message}`;
+        spLog(`Lỗi cắt: ${err.message}`, 'error');
+      } finally {
+        spState.isSplitting = false;
+        spDom.btnSplit.querySelector('.btn-generate-content').style.display = 'flex';
+        spDom.btnSplit.querySelector('.btn-generate-loading').style.display = 'none';
+      }
+    });
+  }
+
+  // Mở thư mục kết quả
+  if (spDom.btnOpenFolder) {
+    spDom.btnOpenFolder.addEventListener('click', () => {
+      if (spState.outputDir) window.api.openOutputFolder(spState.outputDir);
+    });
+  }
+
+  // Mở catalog
+  if (spDom.btnOpenCatalog) {
+    spDom.btnOpenCatalog.addEventListener('click', () => {
+      if (spState.catalogPath) window.api.openFile(spState.catalogPath);
+    });
+  }
+
+  // Tìm kiếm catalog
+  if (spDom.catalogSearch) {
+    spDom.catalogSearch.addEventListener('input', () => {
+      filterCatalog(spDom.catalogSearch.value.trim().toLowerCase());
+    });
+  }
+
+  // --- Load & hiện catalog ---
+  async function loadCatalog(catalogPath) {
+    try {
+      const result = await window.api.clipSplitterCatalog({ catalog_path: catalogPath });
+      if (result.error) throw new Error(result.error);
+      spState.allRows = result.rows || [];
+      spDom.catalogCard.style.display = 'block';
+      spDom.catalogCount.textContent = `${spState.allRows.length} clips`;
+      renderCatalogTable(spState.allRows);
+      spLog(`Đã load catalog: ${spState.allRows.length} clips`, 'info');
+    } catch (err) {
+      spLog(`Lỗi load catalog: ${err.message}`, 'error');
+    }
+  }
+
+  function filterCatalog(query) {
+    if (!query) { renderCatalogTable(spState.allRows); return; }
+    const filtered = spState.allRows.filter(r =>
+      (r.ten_file||'').toLowerCase().includes(query) ||
+      (r.loai||'').toLowerCase().includes(query) ||
+      (r.cau_thu||'').toLowerCase().includes(query) ||
+      (r.ky_nang||'').toLowerCase().includes(query)
+    );
+    renderCatalogTable(filtered);
+  }
+
+  function renderCatalogTable(rows) {
+    if (!spDom.catalogTbody) return;
+    spDom.catalogTbody.innerHTML = rows.map(r => {
+      const dur = r.duration_s ? parseFloat(r.duration_s).toFixed(1) + 's' : '?';
+      return `<tr>
+        <td title="${r.ten_file||''}">${(r.ten_file||'').substring(0,30)}…</td>
+        <td><span class="sp-loai-badge">${r.loai||''}</span></td>
+        <td>${r.cau_thu||''}</td>
+        <td>${r.ky_nang||''}</td>
+        <td class="sp-dur">${dur}</td>
+      </tr>`;
+    }).join('');
+  }
+}
+
+
+// ============================================================
+// TOOL A — PREMIERE XML GENERATOR UI
+// ============================================================
+
+function initPremiereGen() {
+  const pgState = {
+    timelineCsv: null,
+    sourceCsv: null,
+    catalogCsv: null,
+    voice: null,
+    srt: null,
+    sourceRoot: null,
+    outputDir: null,
+    lastXmlPath: null,
+    isGenerating: false,
+  };
+
+  // --- DOM refs ---
+  const pg = {
+    timelineCsv:    $('#pg-timeline-csv'),
+    sourceCsv:      $('#pg-source-csv'),
+    catalogCsv:     $('#pg-catalog-csv'),
+    voice:          $('#pg-voice'),
+    srt:            $('#pg-srt'),
+    sourceRoot:     $('#pg-source-root'),
+    outputDir:      $('#pg-output-dir'),
+    projectName:    $('#pg-project-name'),
+    btnTimelineCsv: $('#pg-btn-timeline-csv'),
+    btnSourceCsv:   $('#pg-btn-source-csv'),
+    btnCatalogCsv:  $('#pg-btn-catalog-csv'),
+    btnVoice:       $('#pg-btn-voice'),
+    btnSrt:         $('#pg-btn-srt'),
+    btnSourceRoot:  $('#pg-btn-source-root'),
+    btnOutputDir:   $('#pg-btn-output-dir'),
+    btnGenerate:    $('#pg-btn-generate'),
+    resultCard:     $('#pg-result-card'),
+    resultSummary:  $('#pg-result-summary'),
+    missingCard:    $('#pg-missing-card'),
+    missingCount:   $('#pg-missing-count'),
+    missingList:    $('#pg-missing-list'),
+    btnOpenXml:     $('#pg-btn-open-xml'),
+    btnOpenXmlDir:  $('#pg-btn-open-xml-folder'),
+    btnOpenXmlDir2: $('#pg-btn-open-xml-dir'),
+    logToggle:      $('#pg-log-toggle'),
+    logMessages:    $('#pg-log-messages'),
+    // Checklist
+    chkTimeline:    $('#pgc-timeline'),
+    chkSource:      $('#pgc-source'),
+    chkCatalog:     $('#pgc-catalog'),
+    chkVoice:       $('#pgc-voice'),
+    chkSrt:         $('#pgc-srt'),
+    chkSourceRoot:  $('#pgc-source-root'),
+    chkOutput:      $('#pgc-output'),
+  };
+
+  function pgLog(msg, type = 'info') {
+    if (!pg.logMessages) return;
+    const el = document.createElement('div');
+    el.className = `log-msg ${type}`;
+    const t = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    el.textContent = `[${t}] ${msg}`;
+    pg.logMessages.appendChild(el);
+    pg.logMessages.scrollTop = pg.logMessages.scrollHeight;
+    pg.logMessages.style.display = 'block';
+  }
+
+  function updateCheck(el, done, optional = false) {
+    if (!el) return;
+    if (done) {
+      el.classList.add('done'); el.classList.remove('optional');
+      el.textContent = el.textContent.replace('⬜', '✅');
+    } else if (optional) {
+      el.classList.add('optional'); el.classList.remove('done');
+      el.textContent = el.textContent.replace('⬜', '🟣');
+    }
+  }
+
+  function updateGenerateBtn() {
+    if (!pg.btnGenerate) return;
+    const ready = pgState.timelineCsv && pgState.sourceCsv &&
+                  pgState.catalogCsv && pgState.voice &&
+                  pgState.sourceRoot && pgState.outputDir;
+    pg.btnGenerate.disabled = !ready;
+  }
+
+  // Log toggle
+  if (pg.logToggle) {
+    pg.logToggle.addEventListener('click', () => {
+      const isHidden = pg.logMessages.style.display === 'none';
+      pg.logMessages.style.display = isHidden ? 'block' : 'none';
+    });
+  }
+
+  // Helper: bind file picker buttons
+  function bindFilePicker(btn, input, stateKey, checkEl, apiFn, label, optional = false) {
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
+      try {
+        const p = await apiFn();
+        if (!p) return;
+        pgState[stateKey] = p;
+        if (input) input.value = p;
+        if (checkEl) {
+          checkEl.textContent = `✅ ${label}: ${p.replace(/\\/g, '/').split('/').pop()}`;
+          checkEl.classList.add('done');
+        }
+        pgLog(`${label}: ${p.replace(/\\/g, '/').split('/').pop()}`, 'info');
+        updateGenerateBtn();
+      } catch (err) {
+        pgLog(`Lỗi chọn ${label}: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Bind tất cả file pickers
+  bindFilePicker(pg.btnTimelineCsv, pg.timelineCsv, 'timelineCsv', pg.chkTimeline,
+    () => window.api.selectCsvFile(), '1. CSV Timeline');
+  bindFilePicker(pg.btnSourceCsv, pg.sourceCsv, 'sourceCsv', pg.chkSource,
+    () => window.api.selectCsvFile(), '2. CSV Phân Loại');
+  bindFilePicker(pg.btnCatalogCsv, pg.catalogCsv, 'catalogCsv', pg.chkCatalog,
+    () => window.api.selectCsvFile(), '3. Catalog');
+  bindFilePicker(pg.btnVoice, pg.voice, 'voice', pg.chkVoice,
+    () => window.api.selectVoiceFile(), '4. Voice');
+  bindFilePicker(pg.btnSrt, pg.srt, 'srt', pg.chkSrt,
+    () => window.api.selectSrtFile(), '5. SRT', true);
+
+  // Thư mục Source Root
+  if (pg.btnSourceRoot) {
+    pg.btnSourceRoot.addEventListener('click', async () => {
+      try {
+        const d = await window.api.selectDirectory();
+        if (!d) return;
+        pgState.sourceRoot = d;
+        pg.sourceRoot.value = d;
+        pg.chkSourceRoot.textContent = `✅ Thư mục Source: ${d.replace(/\\/g, '/').split('/').pop()}`;
+        pg.chkSourceRoot.classList.add('done');
+        pgLog(`Source root: ${d}`, 'info');
+        updateGenerateBtn();
+      } catch (err) {
+        pgLog(`Lỗi: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Thư mục Output
+  if (pg.btnOutputDir) {
+    pg.btnOutputDir.addEventListener('click', async () => {
+      try {
+        const d = await window.api.selectDirectory();
+        if (!d) return;
+        pgState.outputDir = d;
+        pg.outputDir.value = d;
+        pg.chkOutput.textContent = `✅ Output: ${d.replace(/\\/g, '/').split('/').pop()}`;
+        pg.chkOutput.classList.add('done');
+        pgLog(`Output dir: ${d}`, 'info');
+        updateGenerateBtn();
+      } catch (err) {
+        pgLog(`Lỗi: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Nút Generate
+  if (pg.btnGenerate) {
+    pg.btnGenerate.addEventListener('click', async () => {
+      if (pgState.isGenerating) return;
+      if (!pgState.timelineCsv || !pgState.sourceCsv || !pgState.catalogCsv ||
+          !pgState.voice || !pgState.sourceRoot || !pgState.outputDir) {
+        pgLog('Chưa đủ input! Cần: 2 CSV, Catalog, Voice, Source folder, Output folder.', 'error');
+        return;
+      }
+
+      pgState.isGenerating = true;
+      pg.btnGenerate.querySelector('.btn-generate-content').style.display = 'none';
+      pg.btnGenerate.querySelector('.btn-generate-loading').style.display = 'flex';
+      pg.resultCard.style.display = 'none';
+      pg.missingCard.style.display = 'none';
+
+      try {
+        const projectName = (pg.projectName.value.trim() || 'Premiere_Timeline').replace(/[^a-zA-Z0-9_\-À-ỹ]/g, '_');
+
+        pgLog(`Đang gen XML: ${projectName}.xml ...`, 'info');
+
+        const params = {
+          timeline_csv:    pgState.timelineCsv,
+          source_plan_csv: pgState.sourceCsv,
+          catalog_csv:     pgState.catalogCsv,
+          voice_path:      pgState.voice,
+          source_root:     pgState.sourceRoot,
+          output_dir:      pgState.outputDir,
+          project_name:    projectName,
+          srt_path:        pgState.srt || null,
+        };
+
+        const result = await window.api.premiereGenerateXml(params);
+        if (result.error) throw new Error(result.error);
+
+        pgState.lastXmlPath = result.output_path || (pgState.outputDir + '/' + projectName + '.xml');
+        const totalClips = result.total_clips || 0;
+        const missing = result.missing || [];
+
+        // Hiện kết quả thành công
+        pg.resultCard.style.display = 'block';
+        pg.resultSummary.innerHTML = `
+          🎬 <strong>${totalClips} clip</strong> đã được đặt vào timeline<br>
+          📄 File: <code style="font-size:10px">${pgState.lastXmlPath}</code><br>
+          ${missing.length > 0 ? `⚠️ <span style="color:#fbbf24">${missing.length} câu thiếu source</span>` : '✅ Đủ source cho tất cả câu'}
+        `;
+        pgLog(`✅ Gen xong! ${totalClips} clips, ${missing.length} thiếu source`, 'success');
+
+        // Hiện danh sách thiếu source (nếu có)
+        if (missing.length > 0) {
+          pg.missingCard.style.display = 'block';
+          pg.missingCount.textContent = missing.length;
+          pg.missingList.innerHTML = missing.map(m =>
+            `<div class="pgen-missing-item">⚠️ ${m}</div>`
+          ).join('');
+        }
+
+      } catch (err) {
+        pgLog(`❌ Lỗi gen XML: ${err.message}`, 'error');
+      } finally {
+        pgState.isGenerating = false;
+        pg.btnGenerate.querySelector('.btn-generate-content').style.display = 'flex';
+        pg.btnGenerate.querySelector('.btn-generate-loading').style.display = 'none';
+      }
+    });
+  }
+
+  // Mở file XML
+  if (pg.btnOpenXml) {
+    pg.btnOpenXml.addEventListener('click', () => {
+      if (pgState.lastXmlPath) window.api.openFile(pgState.lastXmlPath);
+    });
+  }
+
+  // Mở thư mục output
+  const openOutDir = () => {
+    if (pgState.outputDir) window.api.openOutputFolder(pgState.outputDir);
+  };
+  if (pg.btnOpenXmlDir) pg.btnOpenXmlDir.addEventListener('click', openOutDir);
+  if (pg.btnOpenXmlDir2) pg.btnOpenXmlDir2.addEventListener('click', openOutDir);
+}

@@ -30,6 +30,18 @@ contextBridge.exposeInMainWorld('api', {
   // Events from main process
   onBackendReady: (callback) => ipcRenderer.on('backend-ready', (_, ready) => callback(ready)),
   onPythonLog: (callback) => ipcRenderer.on('python-log', (_, msg) => callback(msg)),
-  onPythonError: (callback) => ipcRenderer.on('python-error', (_, msg) => callback(msg))
+  onPythonError: (callback) => ipcRenderer.on('python-error', (_, msg) => callback(msg)),
+
+  // Tool B: Clip Splitter
+  selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
+  clipSplitterAnalyze: (params) => ipcRenderer.invoke('clip-splitter-analyze', params),
+  clipSplitterSplit: (params) => ipcRenderer.invoke('clip-splitter-split', params),
+  clipSplitterCatalog: (params) => ipcRenderer.invoke('clip-splitter-catalog', params),
+
+  // Tool A: Premiere XML Generator
+  selectCsvFile: () => ipcRenderer.invoke('select-csv-file'),
+  selectSrtFile: () => ipcRenderer.invoke('select-srt-file'),
+  selectVoiceFile: () => ipcRenderer.invoke('select-voice-file'),
+  premiereGenerateXml: (params) => ipcRenderer.invoke('premiere-generate-xml', params),
 });
 

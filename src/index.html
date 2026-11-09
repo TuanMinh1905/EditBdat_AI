@@ -50,6 +50,21 @@
         </svg>
         <span>Tạo mới</span>
       </button>
+      <button class="nav-btn" data-tab="clip-splitter" title="Cắt Clip (Tool B)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
+          <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
+          <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+        </svg>
+        <span>Cắt Clip</span>
+      </button>
+      <button class="nav-btn" data-tab="premiere-gen" title="Gen Premiere XML (Tool A)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
+          <line x1="12" y1="17" x2="12" y2="21"/><polygon points="10 8 16 11 10 14 10 8"/>
+        </svg>
+        <span>Gen XML</span>
+      </button>
       <button class="nav-btn" data-tab="settings" title="Cài đặt">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="12" cy="12" r="3"/>
@@ -228,6 +243,329 @@
           </div>
         </div>
       </section>
+    </main>
+
+    <!-- Clip Splitter Tab (Tool B) -->
+    <main class="main-content splitter-content" id="tab-clip-splitter" style="display: none;">
+      <div class="splitter-container">
+
+        <!-- ===== CỘT TRÁI: INPUT ===== -->
+        <div class="splitter-left">
+
+          <!-- Video Input -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <span>🎬 Video nguồn</span>
+            </div>
+            <div class="sp-video-row">
+              <input type="text" id="sp-video-path" class="sp-path-input" placeholder="Chọn file video..." readonly />
+              <button class="btn-icon" id="sp-btn-browse-video" title="Chọn video">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+            <div class="sp-video-info" id="sp-video-info" style="display:none;">
+              <span id="sp-video-meta"></span>
+            </div>
+          </div>
+
+          <!-- Thông tin clip -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <span>🏷️ Phân loại clip</span>
+            </div>
+            <div class="sp-form-grid">
+              <div class="sp-field">
+                <label>Loại (loai)</label>
+                <select id="sp-loai">
+                  <option value="chua_phan_loai">chua_phan_loai (mặc định)</option>
+                  <option value="rai_1">rai_1</option>
+                  <option value="rai_2_1">rai_2_1</option>
+                  <option value="rai_2_2">rai_2_2</option>
+                  <option value="rai_3">rai_3</option>
+                  <option value="rai_4">rai_4</option>
+                  <option value="phong_van">phong_van</option>
+                  <option value="training">training</option>
+                  <option value="binh_luan_chay">binh_luan_chay</option>
+                  <option value="khan_dai">khan_dai</option>
+                  <option value="anh_thong_so">anh_thong_so</option>
+                  <option value="anh_thoi_diem">anh_thoi_diem</option>
+                  <option value="anh_chung_bao">anh_chung_bao</option>
+                  <option value="sa_ban">sa_ban</option>
+                </select>
+              </div>
+              <div class="sp-field">
+                <label>Cầu thủ</label>
+                <input type="text" id="sp-cau-thu" placeholder="VD: Xavi, Iniesta..." />
+              </div>
+              <div class="sp-field">
+                <label>Đội bóng / Thời kỳ</label>
+                <input type="text" id="sp-doi-bong" placeholder="VD: Spain, Barcelona..." />
+              </div>
+              <div class="sp-field">
+                <label>Kỹ năng</label>
+                <input type="text" id="sp-ky-nang" placeholder="VD: Mixed, Goal, Assist..." value="Mixed" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Thư mục output -->
+          <div class="sp-card">
+            <div class="sp-card-header"><span>📁 Thư mục lưu clip</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="sp-output-dir" class="sp-path-input" placeholder="Chọn thư mục lưu..." readonly />
+              <button class="btn-icon" id="sp-btn-browse-output" title="Chọn thư mục">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Ngưỡng cắt -->
+          <div class="sp-card">
+            <div class="sp-card-header">
+              <span>⚙️ Ngưỡng scene detect</span>
+              <span class="sp-threshold-val" id="sp-threshold-val">0.10</span>
+            </div>
+            <input type="range" id="sp-threshold" min="0.03" max="0.5" step="0.01" value="0.10" class="sp-slider" />
+            <div class="sp-slider-labels">
+              <span>Nhạy (nhiều clip hơn)</span>
+              <span>Thô (ít clip hơn)</span>
+            </div>
+          </div>
+
+          <!-- Nút hành động -->
+          <div class="sp-actions">
+            <button class="btn-secondary sp-btn" id="sp-btn-analyze">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Phân tích trước
+            </button>
+            <button class="btn-generate sp-btn-primary" id="sp-btn-split" disabled>
+              <div class="btn-generate-content">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                <span>Cắt Clip</span>
+              </div>
+              <div class="btn-generate-loading" style="display:none;">
+                <div class="spinner"></div>
+                <span>Đang cắt...</span>
+              </div>
+            </button>
+          </div>
+
+          <!-- Progress cắt -->
+          <div class="sp-progress-wrap" id="sp-progress-wrap" style="display:none;">
+            <div class="progress-bar">
+              <div class="progress-fill" id="sp-progress-fill" style="width:0%"></div>
+            </div>
+            <div class="sp-progress-text" id="sp-progress-text">Đang xử lý...</div>
+          </div>
+        </div>
+
+        <!-- ===== CỘT PHẢI: KẾT QUẢ ===== -->
+        <div class="splitter-right">
+
+          <!-- Thống kê analyze -->
+          <div class="sp-card" id="sp-analyze-result" style="display:none;">
+            <div class="sp-card-header"><span>📊 Phân tích</span></div>
+            <div class="sp-stats-grid" id="sp-stats-grid"></div>
+            <p class="sp-hint">Nhấn <strong>Cắt Clip</strong> để bắt đầu với ngưỡng hiện tại</p>
+          </div>
+
+          <!-- Kết quả sau khi cắt -->
+          <div class="sp-card sp-result-card" id="sp-cut-result" style="display:none;">
+            <div class="sp-card-header">
+              <span>✅ Đã cắt xong</span>
+              <button class="btn-icon" id="sp-btn-open-folder-result" title="Mở thư mục">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+            </div>
+            <div class="sp-result-summary" id="sp-result-summary"></div>
+            <button class="btn-secondary sp-btn-sm" id="sp-btn-open-catalog">📄 Mở catalog.csv</button>
+          </div>
+
+          <!-- Catalog viewer -->
+          <div class="sp-card sp-catalog-card" id="sp-catalog-card" style="display:none;">
+            <div class="sp-card-header">
+              <span>📋 Catalog clips</span>
+              <span class="sp-badge" id="sp-catalog-count">0 clips</span>
+            </div>
+            <div class="sp-catalog-filter">
+              <input type="text" id="sp-catalog-search" placeholder="Tìm theo tên, loại, cầu thủ..." class="sp-search-input" />
+            </div>
+            <div class="sp-catalog-table-wrap">
+              <table class="sp-catalog-table">
+                <thead>
+                  <tr>
+                    <th>Tên file</th>
+                    <th>Loại</th>
+                    <th>Cầu thủ</th>
+                    <th>Kỹ năng</th>
+                    <th>Thời lượng</th>
+                  </tr>
+                </thead>
+                <tbody id="sp-catalog-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Log -->
+          <div class="sp-card">
+            <div class="sp-card-header log-toggle-header" id="sp-log-toggle">
+              <span>📋 Log</span>
+              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="log-messages sp-log-messages" id="sp-log-messages" style="display:none; max-height:180px; overflow-y:auto;"></div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+
+    <!-- Premiere XML Generator Tab (Tool A) -->
+    <main class="main-content pgen-content" id="tab-premiere-gen" style="display: none;">
+      <div class="pgen-container">
+
+        <!-- ===== CỘT TRÁI: INPUT FILES ===== -->
+        <div class="pgen-left">
+          <div class="sp-card">
+            <div class="sp-card-header"><span>📋 1. CSV Timeline</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-timeline-csv" class="sp-path-input" placeholder="1_CSV_Timeline.csv..." readonly />
+              <button class="btn-icon" id="pg-btn-timeline-csv" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>📊 2. CSV Phân Loại Source</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-source-csv" class="sp-path-input" placeholder="2_CSV_PhanLoaiSource.csv..." readonly />
+              <button class="btn-icon" id="pg-btn-source-csv" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🗂️ 3. Catalog.csv (từ Tool B)</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-catalog-csv" class="sp-path-input" placeholder="catalog.csv..." readonly />
+              <button class="btn-icon" id="pg-btn-catalog-csv" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🎙️ 4. File Voice (MP3/MP4)</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-voice" class="sp-path-input" placeholder="Voice.mp3 / Voice.mp4..." readonly />
+              <button class="btn-icon" id="pg-btn-voice" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>💬 5. File SRT phụ đề (tùy chọn)</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-srt" class="sp-path-input" placeholder="Voice.srt (không bắt buộc)..." readonly />
+              <button class="btn-icon" id="pg-btn-srt" title="Chọn file">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>📁 6. Thư mục Source Element</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-source-root" class="sp-path-input" placeholder="D:\Edit SofaZone\Source..." readonly />
+              <button class="btn-icon" id="pg-btn-source-root" title="Chọn thư mục">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>💾 7. Thư mục lưu XML</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-output-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\fileXML..." readonly />
+              <button class="btn-icon" id="pg-btn-output-dir" title="Chọn thư mục">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🏷️ Tên file XML</span></div>
+            <input type="text" id="pg-project-name" class="sp-path-input" placeholder="VD: Xavi_Iniesta_v1" style="width:100%;box-sizing:border-box;" />
+          </div>
+
+          <!-- Nút Generate -->
+          <button class="btn-generate" id="pg-btn-generate" style="width:100%; margin-top:4px;">
+            <div class="btn-generate-content">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10 8 16 11 10 14 10 8"/></svg>
+              <span>🎬 Gen XML cho Premiere</span>
+            </div>
+            <div class="btn-generate-loading" style="display:none;">
+              <div class="spinner"></div>
+              <span>Đang xử lý...</span>
+            </div>
+          </button>
+        </div>
+
+        <!-- ===== CỘT PHẢI: KẾT QUẢ ===== -->
+        <div class="pgen-right">
+
+          <!-- Checklist trạng thái input -->
+          <div class="sp-card">
+            <div class="sp-card-header"><span>✅ Trạng thái input</span></div>
+            <div class="pgen-checklist" id="pg-checklist">
+              <div class="pgen-check" id="pgc-timeline">⬜ CSV Timeline</div>
+              <div class="pgen-check" id="pgc-source">⬜ CSV Phân Loại</div>
+              <div class="pgen-check" id="pgc-catalog">⬜ Catalog.csv</div>
+              <div class="pgen-check" id="pgc-voice">⬜ File Voice</div>
+              <div class="pgen-check" id="pgc-srt">⬜ File SRT (tùy chọn)</div>
+              <div class="pgen-check" id="pgc-source-root">⬜ Thư mục Source</div>
+              <div class="pgen-check" id="pgc-output">⬜ Thư mục Output</div>
+            </div>
+          </div>
+
+          <!-- Kết quả -->
+          <div class="sp-card sp-result-card" id="pg-result-card" style="display:none;">
+            <div class="sp-card-header">
+              <span>✅ Xuất XML thành công!</span>
+              <button class="btn-icon" id="pg-btn-open-xml-folder" title="Mở thư mục">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+              </button>
+            </div>
+            <div class="sp-result-summary" id="pg-result-summary"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button class="btn-secondary sp-btn-sm" id="pg-btn-open-xml">📄 Mở file XML</button>
+              <button class="btn-secondary sp-btn-sm" id="pg-btn-open-xml-dir">📁 Mở thư mục</button>
+            </div>
+          </div>
+
+          <!-- Cảnh báo thiếu source -->
+          <div class="sp-card" id="pg-missing-card" style="display:none;">
+            <div class="sp-card-header">
+              <span>⚠️ Thiếu source</span>
+              <span class="sp-badge" id="pg-missing-count" style="background:#f59e0b;">0</span>
+            </div>
+            <div class="pgen-missing-list" id="pg-missing-list" style="max-height:200px; overflow-y:auto;"></div>
+            <p style="font-size:11px;color:#a0aec0;margin:8px 0 0;">Các clip này sẽ có marker vàng trong Premiere. Bổ sung source và gen lại.</p>
+          </div>
+
+          <!-- Log -->
+          <div class="sp-card">
+            <div class="sp-card-header log-toggle-header" id="pg-log-toggle">
+              <span>📋 Log</span>
+              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+            <div class="log-messages sp-log-messages" id="pg-log-messages" style="display:none; max-height:200px; overflow-y:auto;"></div>
+          </div>
+
+        </div>
+      </div>
     </main>
 
     <!-- Settings Tab -->

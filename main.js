@@ -1,12 +1,15 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require('electron');
+const electron = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell } = electron;
 const path = require('path');
 const { spawn } = require('child_process');
 const fs = require('fs');
 const http = require('http');
 
-// Suppress GPU cache errors on Windows
-app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
-app.commandLine.appendSwitch('disk-cache-size', '0');
+// Suppress GPU cache errors on Windows (guard in case running outside Electron context)
+if (app && app.commandLine) {
+  app.commandLine.appendSwitch('disable-gpu-shader-disk-cache');
+  app.commandLine.appendSwitch('disk-cache-size', '0');
+}
 
 let mainWindow;
 let pythonProcess = null;
@@ -288,6 +291,88 @@ ipcMain.handle('open-output-folder', async (event, folderPath) => {
 
 ipcMain.handle('open-file', async (event, filePath) => {
   shell.openPath(filePath);
+});
+
+// --- Tool B: Clip Splitter ---
+ipcMain.handle('select-video-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Video', extensions: ['mp4', 'mov', 'avi', 'mkv', 'webm', 'mxf'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('clip-splitter-analyze', async (event, { video_path, threshold }) => {
+  try {
+    const result = await callPython('/api/clip-splitter/analyze', { video_path, threshold });
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('clip-splitter-split', async (event, params) => {
+  try {
+    const result = await callPython('/api/clip-splitter/split', params);
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('clip-splitter-catalog', async (event, { catalog_path }) => {
+  try {
+    const result = await callPython('/api/clip-splitter/catalog', { catalog_path });
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+// --- Tool A: Premiere XML Generator ---
+ipcMain.handle('select-csv-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'CSV Files', extensions: ['csv'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('select-srt-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Subtitle / Audio', extensions: ['srt', 'mp3', 'mp4', 'wav', 'aac'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('select-voice-file', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Audio/Video', extensions: ['mp3', 'mp4', 'wav', 'aac', 'flac', 'mov'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle('premiere-generate-xml', async (event, params) => {
+  try {
+    const result = await callPython('/api/premiere/generate-xml', params);
+    return result;
+  } catch (e) {
+    return { error: e.message };
+  }
 });
 
 // Window controls

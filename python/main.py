@@ -34,6 +34,8 @@ from media_analyzer import MediaAnalyzer
 from gemini_client import GeminiClient
 from timeline_validator import TimelineValidator
 from jsx_generator import JSXGenerator
+from clip_splitter import ClipSplitter
+from premiere_xml_generator import generate_xml
 
 app = Flask(__name__)
 CORS(app)
@@ -42,6 +44,7 @@ CORS(app)
 media_analyzer = MediaAnalyzer()
 validator = TimelineValidator()
 jsx_generator = JSXGenerator()
+clip_splitter = ClipSplitter(log=log)
 
 
 def log(message):
@@ -453,6 +456,202 @@ def export_jsx_only():
 
     except Exception as e:
         log(f"Lỗi export-jsx: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# CONG CU B — Clip Splitter
+# =============================================================================
+
+@app.route('/api/clip-splitter/analyze', methods=['POST'])
+def api_clip_analyze():
+    """
+    Phan tich video, tra ve thong ke so cut va preview cac doan.
+    Body: { "video_path": "...", "threshold": 0.1 }
+    """
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path', '')
+        threshold  = float(data.get('threshold', 0.1))
+
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({"error": f"Khong tim thay video: {video_path}"}), 400
+
+        log(f"[B] Phan tich: {os.path.basename(video_path)}")
+        result = clip_splitter.analyze(video_path, threshold=threshold)
+        return jsonify(result)
+
+    except Exception as e:
+        log(f"Loi clip-analyze: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/clip-splitter/split', methods=['POST'])
+def api_clip_split():
+    """
+    Cat video thanh clip element.
+    Body: {
+        "video_path"  : "D:/...",
+        "out_root"    : "D:/Edit SofaZone/Source",
+        "loai"        : "rai_1",          // null → lay tu ten file
+        "cau_thu"     : "Xavi",           // null → lay tu ten file
+        "doi_bong"    : "Barcelona",      // null → lay tu ten file
+        "ky_nang"     : "Skill",          // null → lay tu ten file
+        "threshold"   : 0.1,
+        "make_thumbs" : true
+    }
+    """
+    try:
+        data = request.get_json()
+        video_path = data.get('video_path', '')
+        out_root   = data.get('out_root', '')
+        threshold  = float(data.get('threshold', 0.1))
+
+        if not video_path or not os.path.exists(video_path):
+            return jsonify({"error": f"Khong tim thay video: {video_path}"}), 400
+        if not out_root:
+            return jsonify({"error": "Thieu out_root"}), 400
+
+        log(f"[B] Bat dau cat: {os.path.basename(video_path)}")
+        log("[STEP] split : active")
+        log("[PROGRESS] 10")
+
+        # Chay split (co the mat vai phut)
+        new_rows = clip_splitter.split(
+            path       = video_path,
+            out_root   = out_root,
+            loai       = data.get('loai') or None,
+            cau_thu    = data.get('cau_thu') or None,
+            doi_bong   = data.get('doi_bong') or None,
+            ky_nang    = data.get('ky_nang') or None,
+            threshold  = threshold,
+            make_thumbs= data.get('make_thumbs', True),
+        )
+
+        log("[STEP] split : done")
+        log("[PROGRESS] 100")
+        catalog_path = os.path.join(out_root, 'catalog.csv')
+        return jsonify({
+            "success"      : True,
+            "total_clips"  : len(new_rows),
+            "catalog_path" : catalog_path,
+            "clips"        : new_rows[:20],  # preview 20 dong dau
+        })
+
+    except Exception as e:
+        log(f"Loi clip-split: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/clip-splitter/reclassify', methods=['POST'])
+def api_clip_reclassify():
+    """
+    Doi loai / ky_nang cho 1 hoac nhieu clip.
+    Body: {
+        "out_root"    : "...",
+        "ten_files"   : ["clip_001.mp4", ...],
+        "new_loai"    : "rai_1",
+        "new_ky_nang" : "Assist"
+    }
+    """
+    try:
+        data = request.get_json()
+        out_root   = data.get('out_root', '')
+        ten_files  = data.get('ten_files', [])
+        new_loai   = data.get('new_loai') or None
+        new_ky_nang = data.get('new_ky_nang') or None
+
+        if not out_root or not ten_files:
+            return jsonify({"error": "Thieu out_root hoac ten_files"}), 400
+
+        results = clip_splitter.batch_reclassify(out_root, ten_files, new_loai, new_ky_nang)
+        return jsonify({"success": True, "updated": len(results), "rows": results})
+
+    except Exception as e:
+        log(f"Loi clip-reclassify: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/clip-splitter/catalog', methods=['POST'])
+def api_clip_catalog():
+    """
+    Doc catalog.csv, tra ve tat ca clip da cat.
+    Body: { "catalog_path": "..." }
+    """
+    try:
+        data = request.get_json()
+        catalog_path = data.get('catalog_path', '')
+        if not catalog_path or not os.path.exists(catalog_path):
+            return jsonify({"rows": []})
+        rows = clip_splitter.read_catalog(catalog_path)
+        return jsonify({"rows": rows, "total": len(rows)})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# CONG CU A — Premiere XML Generator
+# =============================================================================
+
+@app.route('/api/premiere/generate-xml', methods=['POST'])
+def api_premiere_generate():
+    """
+    Sinh file FCP XML de import vao Premiere.
+    Body: {
+        "timeline_csv"   : "D:/.../1_CSV_Timeline.csv",
+        "source_plan_csv": "D:/.../2_CSV_PhanLoaiSource.csv",
+        "catalog_csv"    : "D:/.../Source/catalog.csv",
+        "voice_path"     : "D:/.../Voice.mp3",
+        "source_root"    : "D:/.../Source",
+        "srt_path"       : "D:/.../Voice.srt",    // tuy chon
+        "output_dir"     : "D:/.../fileXML",
+        "project_name"   : "BusiXaviIniesta_ep1"
+    }
+    """
+    try:
+        data = request.get_json()
+
+        required = ['timeline_csv', 'source_plan_csv', 'catalog_csv',
+                    'voice_path', 'source_root', 'output_dir']
+        for field in required:
+            if not data.get(field):
+                return jsonify({"error": f"Thieu truong: {field}"}), 400
+            if field not in ('output_dir', 'source_root') and not os.path.exists(data[field]):
+                return jsonify({"error": f"Khong tim thay file: {data[field]}"}), 400
+
+        project_name = data.get('project_name', 'AE_AI_Premiere')
+        from datetime import datetime as _dt
+        stamp = _dt.now().strftime('%Y%m%d_%H%M%S')
+        output_path = os.path.join(data['output_dir'], f"{project_name}_{stamp}.xml")
+
+        log(f"[A] Bat dau sinh XML: {project_name}")
+        log("[STEP] xml : active")
+        log("[PROGRESS] 10")
+
+        result = generate_xml(
+            timeline_csv    = data['timeline_csv'],
+            source_plan_csv = data['source_plan_csv'],
+            catalog_csv     = data['catalog_csv'],
+            voice_path      = data['voice_path'],
+            source_root     = data['source_root'],
+            output_path     = output_path,
+            srt_path        = data.get('srt_path') or None,
+            log             = log,
+        )
+
+        log("[STEP] xml : done")
+        log("[PROGRESS] 100")
+        return jsonify({
+            "success"     : True,
+            "output_path" : result['output'],
+            "total_clips" : result['total_clips'],
+            "missing"     : result['missing'],
+        })
+
+    except Exception as e:
+        log(f"Loi premiere-generate: {str(e)}")
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 

@@ -117,7 +117,7 @@ class GeminiClient:
         """Khởi tạo Gemini client."""
         from google import genai
         self.client = genai.Client(api_key=self.api_key)
-        self.model_name = "gemini-2.5-flash"
+        self.model_name = "gemini-3.8-flash"
 
     def _make_config(self, temperature=0.2, max_output_tokens=16384):
         """Tạo GenerateContentConfig với ThinkingConfig cho thinking model."""

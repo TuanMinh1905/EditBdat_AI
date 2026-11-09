@@ -43,7 +43,8 @@ Code_AI/
 │   ├── media_analyzer.py      # Phân tích media bằng FFprobe
 │   ├── gemini_client.py       # Gọi Gemini API
 │   ├── timeline_validator.py  # Validate timeline JSON
-│   └── jsx_generator.py       # Sinh script .jsx cho After Effects
+│   ├── jsx_generator.py       # Sinh script .jsx cho After Effects
+│   └── clip_splitter.py       # Công cụ B: cắt highlight thành clip nhỏ + catalog.csv (FFmpeg scene detect)
 ├── schemas/
 │   └── timeline.schema.json   # JSON Schema cho timeline
 ├── templates/                 # Template JSX, preset effects
@@ -232,6 +233,7 @@ try {
 | 4 | Python process thoát nhưng port vẫn bị chiếm | Process cũ chưa release port | Cần kill process trên port 5599 trước khi start lại |
 | 5 | `gemini-3.8-flash` trả `text=None`, `finish_reason=MAX_TOKENS` | Thinking model dùng hết output tokens cho thinking, không còn cho response | Dùng `types.GenerateContentConfig` với `ThinkingConfig(thinking_budget=4096)` và tăng `max_output_tokens` lên 16384+ |
 | 6 | AE: `Unable to call "setValueAtTime" - Value is not an array` | `jsx_generator.py` không phân biệt kiểu giá trị (array vs số) cho từng property | Thêm `_format_keyframe_value()` — position/scale cần array, opacity/rotation cần số đơn |
+| 7 | `404 NOT_FOUND: model models/gemini-2.x-flash is no longer available` | Google thường xuyên deprecate model cũ | Luôn dùng tên model mới nhất trong `gemini_client.py`. Hiện tại: `gemini-3.8-flash`. Kiểm tra AGENTS.md mục Tech Stack trước khi đổi |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 
@@ -256,4 +258,6 @@ try {
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-10-20 | Tạo file Rule ban đầu | Khởi tạo project, định nghĩa cấu trúc và quy tắc |
+| 2026-11-09 | Thêm `clip_splitter.py` (Công cụ B). Tên clip: `{loai}_{CauThu}_{ThoiKy}_{STT}.mp4`, loại mặc định `chua_phan_loai`, ghi `catalog.csv` (UTF-8 BOM) | Chuẩn bị Source cho Công cụ A sinh file Premiere. Scene detect dùng FFmpeg (ngưỡng mặc định 0.1), không thêm dependency |
+| 2026-10-21 | Thêm session persistence (`session.json`), fix model name `gemini-2.5-flash` → `gemini-3.8-flash`, thêm lỗi #7 | Lưu data input giữa các lần restart app, Google deprecate model cũ |
 
