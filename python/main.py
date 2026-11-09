@@ -40,12 +40,6 @@ from premiere_xml_generator import generate_xml
 app = Flask(__name__)
 CORS(app)
 
-# Global instances
-media_analyzer = MediaAnalyzer()
-validator = TimelineValidator()
-jsx_generator = JSXGenerator()
-clip_splitter = ClipSplitter(log=log)
-
 
 def log(message):
     """Print log message that Electron can capture."""
@@ -55,6 +49,13 @@ def log(message):
         # Fallback: strip non-ASCII characters
         safe_msg = message.encode('ascii', errors='replace').decode('ascii')
         print(f"[{datetime.now().strftime('%H:%M:%S')}] {safe_msg}", flush=True)
+
+
+# Global instances — khởi tạo SAU khi log() đã được định nghĩa
+media_analyzer = MediaAnalyzer()
+validator = TimelineValidator()
+jsx_generator = JSXGenerator()
+clip_splitter = ClipSplitter(log=log)
 
 
 @app.route('/api/health', methods=['GET'])

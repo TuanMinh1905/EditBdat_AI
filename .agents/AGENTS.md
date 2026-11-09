@@ -28,28 +28,28 @@
 ```
 Code_AI/
 ├── .agents/
-│   └── AGENTS.md              ← FILE NÀY — Rule chính
-├── package.json               # Electron config
-├── main.js                    # Electron main process
-├── preload.js                 # IPC bridge (contextBridge)
-├── src/                       # ── FRONTEND ──
-│   ├── index.html             # UI chính
-│   ├── index.css              # CSS duy nhất (design system)
-│   ├── renderer.js            # UI logic chính
-│   └── components/            # UI components tách riêng (nếu cần)
-├── python/                    # ── BACKEND ──
-│   ├── requirements.txt       # Python dependencies
-│   ├── main.py                # Flask API server (entry point)
-│   ├── media_analyzer.py      # Phân tích media bằng FFprobe
-│   ├── gemini_client.py       # Gọi Gemini API
-│   ├── timeline_validator.py  # Validate timeline JSON
-│   ├── jsx_generator.py       # Sinh script .jsx cho After Effects
-│   └── clip_splitter.py       # Công cụ B: cắt highlight thành clip nhỏ + catalog.csv (FFmpeg scene detect)
+│   └── AGENTS.md                    ← FILE NÀY — Rule chính
+├── package.json                     # Electron config
+├── main.js                          # Electron main process
+├── preload.js                       # IPC bridge (contextBridge)
+├── src/                             # ── FRONTEND ──
+│   ├── index.html                   # UI chính (5 tab: Tạo mới, Cắt Clip, Gen XML, Quy tắc, Cài đặt)
+│   ├── index.css                    # CSS duy nhất (design system)
+│   └── renderer.js                  # UI logic chính
+├── python/                          # ── BACKEND ──
+│   ├── requirements.txt             # Python dependencies
+│   ├── main.py                      # Flask API server (entry point, port 5599)
+│   ├── media_analyzer.py            # Phân tích media bằng FFprobe
+│   ├── gemini_client.py             # Gọi Gemini API
+│   ├── timeline_validator.py        # Validate timeline JSON
+│   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
+│   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
+│   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro
 ├── schemas/
-│   └── timeline.schema.json   # JSON Schema cho timeline
-├── templates/                 # Template JSX, preset effects
-├── output/                    # Thư mục chứa .jsx và .aep output
-└── doc/                       # Tài liệu, ghi chú
+│   └── timeline.schema.json         # JSON Schema cho timeline
+├── templates/                       # Template JSX, preset effects
+├── output/                          # Thư mục chứa .jsx và .aep output
+└── doc/                             # Tài liệu, ghi chú
 ```
 
 ### Quy tắc thư mục:
@@ -234,6 +234,15 @@ try {
 | 5 | `gemini-3.8-flash` trả `text=None`, `finish_reason=MAX_TOKENS` | Thinking model dùng hết output tokens cho thinking, không còn cho response | Dùng `types.GenerateContentConfig` với `ThinkingConfig(thinking_budget=4096)` và tăng `max_output_tokens` lên 16384+ |
 | 6 | AE: `Unable to call "setValueAtTime" - Value is not an array` | `jsx_generator.py` không phân biệt kiểu giá trị (array vs số) cho từng property | Thêm `_format_keyframe_value()` — position/scale cần array, opacity/rotation cần số đơn |
 | 7 | `404 NOT_FOUND: model models/gemini-2.x-flash is no longer available` | Google thường xuyên deprecate model cũ | Luôn dùng tên model mới nhất trong `gemini_client.py`. Hiện tại: `gemini-3.8-flash`. Kiểm tra AGENTS.md mục Tech Stack trước khi đổi |
+| 8 | Premiere "File Import Failure" khi import XML | `pathurl` trong XML chứa khoảng trắng chưa encode | Dùng `urllib.parse.quote()` với `safe='/:.-_'` để URL-encode path → `D:/Edit%20SofaZone/...` |
+| 9 | Premiere import XML thành công nhưng không thấy sequence trong timeline | `<sequence>` element thiếu `id` attribute | Bắt buộc thêm `id="sequence-1"` vào thẻ `<sequence>` trong FCP XML |
+| 10 | `pick_clips()` trả về 0 clips dù catalog có dữ liệu | Key lookup dùng `'mixed'` không khớp với giá trị thực trong catalog | Dùng `norm()` cho cả key lẫn lookup; index theo `(norm(loai), norm(cau_thu))` |
+| 11 | `app.commandLine` TypeError khi khởi động Electron | `app.commandLine.appendSwitch()` gọi trực tiếp có thể fail nếu electron context chưa sẵn | Bọc bằng guard: `if (app && app.commandLine) { app.commandLine.appendSwitch(...) }` |
+| 12 | `npm start` chạy từ terminal agent bị lỗi / không hiện UI | Electron cần môi trường GUI Windows thật, không chạy được headless | Luôn yêu cầu user tự chạy `npm start` trên terminal máy, không dùng agent terminal |
+| 13 | PowerShell không nhận `&&` để nối lệnh | PowerShell dùng `;` thay vì `&&` như bash | Dùng `cd "path"; npm start` thay vì `cd "path" && npm start` |
+| 14 | `edit_file` báo "target not found" dù nhìn có vẻ đúng | Whitespace hoặc escape character không khớp chính xác byte-by-byte | Dùng Python script đọc file → thay thế theo line number → ghi lại. Tránh dùng `edit_file` cho JS/regex phức tạp |
+| 15 | Tab HTML mới thêm vào bị đen/không hiện nội dung | `<main>` tab bị đặt ngoài `.app-container` → không có CSS sizing | Mọi tab mới phải nằm bên trong `<div class="app-container">`, trước `</div>` đóng container đó |
+| 16 | Tab mới thiếu CSS `display: flex; flex-direction: column` | CSS class tab-content mặc định của app dùng flex layout | Mỗi tab content class PHẢI có: `display: flex; flex-direction: column; overflow: hidden;` và inner container có `flex: 1; overflow-y: auto;` |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 
@@ -250,6 +259,19 @@ try {
    - Thêm lỗi mới vào mục "Lỗi đã gặp" (nếu có)
    - Thêm quy tắc mới nếu phát hiện pattern quan trọng
 6. **Nếu cần thay đổi Rule → ghi lại trong "Lịch sử thay đổi Rule"** kèm lý do
+7. **Khi thêm tab mới vào UI:**
+   - HTML phải nằm trong `<div class="app-container">` (trước `</div>` đóng container)
+   - CSS tab-content class phải có: `display: flex; flex-direction: column; overflow: hidden;`
+   - Container bên trong phải có: `flex: 1; overflow-y: auto;`
+   - Phải thêm case vào hàm `switchTab()` trong `renderer.js`
+8. **Khi thêm API endpoint Flask mới:**
+   - Thêm endpoint trong `python/main.py`
+   - Thêm IPC handler trong `main.js`
+   - Expose trong `preload.js` (contextBridge)
+   - Gọi từ `renderer.js` với `window.api.tênHàm()`
+   - Đảm bảo params gửi lên khớp CHÍNH XÁC với tên field Flask endpoint expect
+9. **Khi patch file JS/HTML phức tạp:** Dùng Python script thay vì `edit_file` nếu có escape characters hoặc regex patterns để tránh lỗi "target not found"
+10. **Shared state giữa các UI components:** Dùng `localStorage` để lưu, hàm getter/setter riêng. Ví dụ: `loadKyNangList()` / `saveKyNangList()` / `syncKyNangDropdown()`
 
 ---
 
@@ -260,4 +282,81 @@ try {
 | 2026-10-20 | Tạo file Rule ban đầu | Khởi tạo project, định nghĩa cấu trúc và quy tắc |
 | 2026-11-09 | Thêm `clip_splitter.py` (Công cụ B). Tên clip: `{loai}_{CauThu}_{ThoiKy}_{STT}.mp4`, loại mặc định `chua_phan_loai`, ghi `catalog.csv` (UTF-8 BOM) | Chuẩn bị Source cho Công cụ A sinh file Premiere. Scene detect dùng FFmpeg (ngưỡng mặc định 0.1), không thêm dependency |
 | 2026-10-21 | Thêm session persistence (`session.json`), fix model name `gemini-2.5-flash` → `gemini-3.8-flash`, thêm lỗi #7 | Lưu data input giữa các lần restart app, Google deprecate model cũ |
+| 2026-11-09 | Thêm `premiere_xml_generator.py` (Tool A — Gen Premiere XML). Thêm 5 API endpoints mới. Tích hợp UI đầy đủ cho Tool B + Tool A. Thêm tab "Quy tắc". Thêm Kỹ năng dropdown với custom option. Thêm lỗi #8–#16. Mở rộng mục 8 (Quy tắc AI) thêm rules 7–10 | Hoàn thiện pipeline: Tool B cắt clip → catalog.csv → Tool A gen XML → import Premiere. Fix nhiều bug Premiere XML, Electron khởi động, CSS tab layout, và patch file JS |
+
+---
+
+## 10. Quy tắc Tool B — Clip Splitter
+
+### Format tên clip:
+```
+{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:03d}.mp4
+```
+Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
+
+### VALID_LOAI (14 loại):
+`rai_1`, `rai_2_1`, `rai_2_2`, `rai_3`, `rai_4`, `phong_van`, `training`, `binh_luan_chay`, `khan_dai`, `anh_thong_so`, `anh_thoi_diem`, `anh_chung_bao`, `sa_ban`, `chua_phan_loai`
+
+### Danh sách Kỹ năng mặc định:
+`Mixed`, `Skill`, `Bàn thắng`, `Kiến tạo`, `Đá Phạt`, `Đá Pen`
+(User có thể thêm custom → lưu vào `localStorage`, đồng bộ với dropdown Tool B và tab Quy tắc)
+
+### Catalog schema (14 cột):
+`ten_file, loai, cau_thu, doi_bong, ky_nang, stt, video_nguon, start_s, end_s, duration_s, start_tc, end_tc, fps, ghi_chu`
+
+### Đường dẫn thực tế (máy user):
+- Source clips: `D:\Edit SofaZone\Source\Phân Loại nè\chua_phan_loai\`
+- Catalog: `D:\Edit SofaZone\Source\catalog.csv`
+- Voice: `D:\Edit SofaZone\Test\Voice_PhuDe\Voice_PhuDe.mp4` + `.srt`
+- Timeline CSV: `D:\Edit SofaZone\Test\1_CSV_Timeline.csv`
+- Source plan CSV: `D:\Edit SofaZone\Test\2_CSV_PhanLoaiSource.csv`
+- XML output: `D:\Edit SofaZone\Test\fileXML\`
+
+---
+
+## 11. Quy tắc Tool A — Premiere XML Generator
+
+### Inputs:
+| Field | Mô tả |
+|---|---|
+| `timeline_csv` | `1_CSV_Timeline.csv` — cột: `doan, cau, y, start, text` |
+| `source_plan_csv` | `2_CSV_PhanLoaiSource.csv` — cột: `doan, cau, y, loai_source, thoi_ky` |
+| `catalog_csv` | Sinh từ Tool B |
+| `voice_path` | File MP4/MP3 voice chính (track A1) |
+| `srt_path` | File SRT phụ đề (tùy chọn) |
+| `source_root` | Thư mục gốc chứa catalog + clip folders |
+| `output_dir` | Thư mục lưu file XML |
+| `project_name` | Tên file XML (không có extension) |
+
+### Output: FCP XML (xmeml v4)
+- Voice trên track A1
+- Clips video trên V1/V2
+- Markers đánh dấu từng đoạn/câu và cảnh thiếu source
+- `pathurl` phải URL-encode: `D:/Edit%20SofaZone/Source/...`
+- `<sequence id="sequence-1">` bắt buộc có `id` attribute
+- FPS = 30, resolution 1920×1080
+
+### Pick clips — 3 mức fallback:
+1. `(norm(loai), norm(cau_thu), norm(ky_nang))` — khớp đầy đủ
+2. `(norm(loai), norm(cau_thu))` — bỏ ky_nang
+3. `(norm(loai),)` — chỉ theo loại
+
+### norm() function:
+`slugify_loose()` → bỏ dấu, bỏ ký tự đặc biệt, lowercase. Dùng cho cả index và lookup để khớp nhất quán.
+
+### API endpoint:
+`POST /api/premiere/generate-xml`
+```json
+{
+  "timeline_csv": "...",
+  "source_plan_csv": "...",
+  "catalog_csv": "...",
+  "voice_path": "...",
+  "source_root": "...",
+  "output_dir": "...",
+  "project_name": "...",
+  "srt_path": "..."
+}
+```
+Response: `{ "output_path": "...", "total_clips": N, "missing": [...] }`
 

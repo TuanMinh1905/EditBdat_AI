@@ -974,9 +974,13 @@ a:hover { color: #c4b5fd; }
 
 /* --- Settings --- */
 .settings-content {
+  flex: 1;
+  display: flex;
   justify-content: center;
   overflow-y: auto;
   padding: var(--space-2xl);
+  min-height: 0;
+  background: var(--bg-primary);
 }
 
 .settings-container {
@@ -1259,18 +1263,23 @@ a:hover { color: #c4b5fd; }
    ============================================================ */
 
 .splitter-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  background: var(--bg-primary);
+  position: relative;
 }
 
 .splitter-container {
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-template-columns: 380px 1fr;
   gap: 16px;
   padding: 20px;
   overflow-y: auto;
-  height: 100%;
   box-sizing: border-box;
 }
 
@@ -1619,18 +1628,23 @@ a:hover { color: #c4b5fd; }
    ============================================================ */
 
 .pgen-content {
+  flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  background: var(--bg-primary);
+  position: relative;
 }
 
 .pgen-container {
+  position: absolute;
+  inset: 0;
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 16px;
   padding: 20px;
   overflow-y: auto;
-  height: 100%;
   box-sizing: border-box;
 }
 
@@ -1729,17 +1743,24 @@ a:hover { color: #c4b5fd; }
    TAB RULES — QUY TẮC ĐẶT TÊN
 ══════════════════════════════════════════════════════ */
 .rules-content {
-  padding: 0;
-  overflow-y: auto;
-  height: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  background: var(--bg-primary);
+  position: relative;
 }
 
 .rules-container {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 860px;
 }
 
 .rules-header {
