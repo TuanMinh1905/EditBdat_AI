@@ -608,7 +608,9 @@ def api_premiere_generate():
         "source_root"    : "D:/.../Source",
         "srt_path"       : "D:/.../Voice.srt",    // tuy chon
         "output_dir"     : "D:/.../fileXML",
-        "project_name"   : "BusiXaviIniesta_ep1"
+        "project_name"   : "BusiXaviIniesta_ep1",
+        "element_dir"    : "D:/.../Element",       // tuy chon - thu muc chua overlay/texture
+        "texture_id"     : "paper_texture"          // tuy chon - element_id cho texture full-video
     }
     """
     try:
@@ -639,16 +641,19 @@ def api_premiere_generate():
             source_root     = data['source_root'],
             output_path     = output_path,
             srt_path        = data.get('srt_path') or None,
+            element_dir     = data.get('element_dir') or None,
+            texture_id      = data.get('texture_id') or None,
             log             = log,
         )
 
         log("[STEP] xml : done")
         log("[PROGRESS] 100")
         return jsonify({
-            "success"     : True,
-            "output_path" : result['output'],
-            "total_clips" : result['total_clips'],
-            "missing"     : result['missing'],
+            "success"        : True,
+            "output_path"    : result['output'],
+            "total_clips"    : result['total_clips'],
+            "total_elements" : result.get('total_elements', 0),
+            "missing"        : result['missing'],
         })
 
     except Exception as e:

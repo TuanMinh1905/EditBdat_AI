@@ -362,6 +362,69 @@ def _make_clip_item(clip_index, file_path, clip_in, clip_out,
     return ci
 
 
+def _load_element_map(element_map_path=None):
+    """Doc element_map.json, tra ve (auto_map, elements_dict)."""
+    if element_map_path and os.path.exists(element_map_path):
+        map_path = element_map_path
+    else:
+        # Mac dinh: templates/element_map.json (cung cap voi project)
+        map_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'templates', 'element_map.json'
+        )
+    if not os.path.exists(map_path):
+        return {}, {}
+    import json
+    with open(map_path, 'r', encoding='utf-8-sig') as f:
+        data = json.load(f)
+    auto_map = data.get('auto_map', {})
+    # Remove _doc keys
+    auto_map = {k: v for k, v in auto_map.items() if not k.startswith('_')}
+    elements = data.get('elements', {})
+    return auto_map, elements
+
+
+def _resolve_element(loai_source, csv_element_value, auto_map, elements, element_dir):
+    """
+    Tra ve list element dicts cho mot cau/y.
+    csv_element_value: gia tri tu cot 'element' trong CSV (co the la None/empty/none/ten_element/nhieu element cach + ).
+    Tra ve: list of dict {path, track, scope, is_image, opacity} hoac [].
+    """
+    # Neu CSV ghi 'none' -> bo qua element
+    csv_val = (csv_element_value or '').strip()
+    if csv_val.lower() == 'none':
+        return []
+
+    # Danh sach element ids can resolve
+    element_ids = []
+    if csv_val:
+        # User chi dinh cu the: co the la nhieu element cach dau '+'
+        element_ids = [e.strip() for e in csv_val.split('+') if e.strip()]
+    else:
+        # Auto-map: tim theo loai_source
+        loai_list = [l.strip() for l in re.split(r'[+,;]', loai_source or '')]
+        for loai in loai_list:
+            mapped = auto_map.get(loai)
+            if mapped:
+                element_ids.append(mapped)
+
+    results = []
+    for eid in element_ids:
+        el_def = elements.get(eid)
+        if el_def is None:
+            continue  # eid la 'none' hoac khong tim thay
+        el_file = os.path.join(element_dir, el_def['file']) if element_dir else ''
+        results.append({
+            'element_id': eid,
+            'path': el_file,
+            'track': el_def.get('track', 'V3'),
+            'scope': el_def.get('scope', 'clip'),
+            'is_image': el_def.get('is_image', True),
+            'opacity': el_def.get('opacity', 100),
+        })
+    return results
+
+
 def generate_xml(
     timeline_csv,
     source_plan_csv,
@@ -370,6 +433,8 @@ def generate_xml(
     source_root,
     output_path,
     srt_path=None,
+    element_dir=None,
+    texture_id=None,
     fps=FPS,
     log=print,
 ):
@@ -382,6 +447,8 @@ def generate_xml(
     - source_root     : thu muc goc chua cac clip (cha cua cac thu muc loai)
     - output_path     : duong dan file .xml xuat ra
     - srt_path        : file .srt (tuy chon, dung de lay timecode chinh xac)
+    - element_dir     : thu muc chua Element/Overlay files (tuy chon)
+    - texture_id      : element_id cho texture full-video tren V4 (tuy chon, vd: 'paper_texture')
     """
     log("[A] Doc cac file dau vao...")
     tl_rows = read_csv(timeline_csv)
@@ -391,6 +458,12 @@ def generate_xml(
 
     cat_idx = build_catalog_index(cat_rows)
     used_set = set()
+
+    # Load element map (neu co element_dir)
+    auto_map, elements = {}, {}
+    if element_dir:
+        auto_map, elements = _load_element_map()
+        log(f"[A] Element dir: {element_dir}, {len(elements)} element definitions loaded")
 
     # Build source plan index: (doan, cau, y) → row
     def norm_y(v):
@@ -487,6 +560,19 @@ def generate_xml(
     ET.SubElement(track_v2, 'enabled').text = 'TRUE'
     ET.SubElement(track_v2, 'locked').text = 'FALSE'
 
+    # Track V3: Element overlays (per-clip) — chi tao khi co element_dir
+    track_v3 = None
+    track_v4 = None
+    if element_dir:
+        track_v3 = ET.SubElement(video_el, 'track')
+        ET.SubElement(track_v3, 'enabled').text = 'TRUE'
+        ET.SubElement(track_v3, 'locked').text = 'FALSE'
+
+        # Track V4: Full-video texture/grain
+        track_v4 = ET.SubElement(video_el, 'track')
+        ET.SubElement(track_v4, 'enabled').text = 'TRUE'
+        ET.SubElement(track_v4, 'locked').text = 'FALSE'
+
     # --- AUDIO ---
     audio_el = ET.SubElement(media, 'audio')
     a_fmt = ET.SubElement(audio_el, 'format')
@@ -529,6 +615,7 @@ def generate_xml(
     # Xu ly tung dong trong timeline CSV
     # ---------------------------------------------------------------------------
     clip_index = 1
+    element_count = 0
     missing = []
 
     prev_doan = None
@@ -571,29 +658,101 @@ def generate_xml(
         if not clips:
             markers_list.append((f_in, f_out, f"[THIEU SOURCE] D{doan}C{cau} — {text[:40]}"))
             missing.append(f"D{doan}C{cau}Y{y}: khong co clip phu hop ({loai_str})")
-            continue
+            # Van dat element overlay du thieu source clips
+        else:
+            cursor = f_in
+            for c_idx, clip in enumerate(clips):
+                tl_start = cursor
+                tl_end   = cursor + clip['duration']
+                track = track_v1 if c_idx == 0 else track_v2
 
-        cursor = f_in
-        for c_idx, clip in enumerate(clips):
-            tl_start = cursor
-            tl_end   = cursor + clip['duration']
-            track = track_v1 if c_idx == 0 else track_v2
+                # dur cua clip goc (neu biet)
+                clip_file_dur = clip['clip_out']
 
-            # dur cua clip goc (neu biet)
-            clip_file_dur = clip['clip_out']
+                ci = _make_clip_item(
+                    clip_index, clip['path'],
+                    clip['clip_in'], clip['clip_out'],
+                    tl_start, tl_end,
+                    is_image=clip['is_image'],
+                    file_duration=clip_file_dur,
+                    fps=fps,
+                    file_registered=file_registered,
+                )
+                track.append(ci)
+                clip_index += 1
+                cursor = tl_end
 
+        # --- Element overlays tren V3 (per-clip) ---
+        if element_dir and track_v3 is not None:
+            csv_element_val = sp.get('element', '').strip()
+            el_items = _resolve_element(loai_str, csv_element_val, auto_map, elements, element_dir)
+            for el in el_items:
+                if el['scope'] != 'clip':
+                    continue  # full-scope xu ly rieng ben duoi
+                el_dur = dur  # cung duration voi cau thoai
+                ci = _make_clip_item(
+                    clip_index, el['path'],
+                    0, el_dur,
+                    f_in, f_out,
+                    is_image=el['is_image'],
+                    file_duration=el_dur,
+                    fps=fps,
+                    file_registered=file_registered,
+                )
+                # Them opacity filter neu can (khong 100%)
+                if el.get('opacity', 100) < 100:
+                    filt = ET.SubElement(ci, 'filter')
+                    filt_effect = ET.SubElement(filt, 'effect')
+                    ET.SubElement(filt_effect, 'name').text = 'Opacity'
+                    ET.SubElement(filt_effect, 'effectid').text = 'opacity'
+                    ET.SubElement(filt_effect, 'effectcategory').text = 'motion'
+                    ET.SubElement(filt_effect, 'effecttype').text = 'motion'
+                    ET.SubElement(filt_effect, 'mediatype').text = 'video'
+                    param = ET.SubElement(filt_effect, 'parameter', authoringApp='PremierePro')
+                    ET.SubElement(param, 'parameterid').text = 'opacity'
+                    ET.SubElement(param, 'name').text = 'Opacity'
+                    ET.SubElement(param, 'value').text = str(el['opacity'])
+                track_v3.append(ci)
+                clip_index += 1
+                element_count += 1
+
+    # --- Full-video texture/grain tren V4 ---
+    if element_dir and track_v4 is not None and texture_id:
+        tex_ids = [t.strip() for t in texture_id.split('+') if t.strip()]
+        for tid in tex_ids:
+            tex_def = elements.get(tid)
+            if tex_def is None:
+                log(f"[A] WARN: texture_id '{tid}' khong tim thay trong element_map")
+                continue
+            tex_path = os.path.join(element_dir, tex_def['file'])
+            tex_is_img = tex_def.get('is_image', True)
+            tex_opacity = tex_def.get('opacity', 15)
             ci = _make_clip_item(
-                clip_index, clip['path'],
-                clip['clip_in'], clip['clip_out'],
-                tl_start, tl_end,
-                is_image=clip['is_image'],
-                file_duration=clip_file_dur,
+                clip_index, tex_path,
+                0, total_frames,
+                0, total_frames,
+                is_image=tex_is_img,
+                file_duration=total_frames,
                 fps=fps,
                 file_registered=file_registered,
             )
-            track.append(ci)
+            # Opacity filter
+            if tex_opacity < 100:
+                filt = ET.SubElement(ci, 'filter')
+                filt_effect = ET.SubElement(filt, 'effect')
+                ET.SubElement(filt_effect, 'name').text = 'Opacity'
+                ET.SubElement(filt_effect, 'effectid').text = 'opacity'
+                ET.SubElement(filt_effect, 'effectcategory').text = 'motion'
+                ET.SubElement(filt_effect, 'effecttype').text = 'motion'
+                ET.SubElement(filt_effect, 'mediatype').text = 'video'
+                param = ET.SubElement(filt_effect, 'parameter', authoringApp='PremierePro')
+                ET.SubElement(param, 'parameterid').text = 'opacity'
+                ET.SubElement(param, 'name').text = 'Opacity'
+                ET.SubElement(param, 'value').text = str(tex_opacity)
+            track_v4.append(ci)
             clip_index += 1
-            cursor = tl_end
+            element_count += 1
+            log(f"[A] Texture '{tid}' ({tex_def['file']}) → V4, opacity={tex_opacity}%")
 
     # --- Markers ---
     markers_el = ET.SubElement(seq, 'markers')
@@ -616,11 +775,13 @@ def generate_xml(
         tree.write(f, encoding='unicode')
 
     log(f"[A] Da ghi XML: {output_path}")
+    if element_count > 0:
+        log(f"[A] Element overlays: {element_count} element(s) da dat vao V3/V4")
     if missing:
         log(f"[A] CANH BAO — {len(missing)} cau thieu source:")
         for m in missing[:10]:
             log(f"    {m}")
-    return {'output': output_path, 'missing': missing, 'total_clips': clip_index - 1}
+    return {'output': output_path, 'missing': missing, 'total_clips': clip_index - 1, 'total_elements': element_count}
 
 
 # ---------------------------------------------------------------------------
@@ -638,6 +799,8 @@ if __name__ == '__main__':
     p.add_argument('--source_root', required=True)
     p.add_argument('--output',    required=True)
     p.add_argument('--srt',       default=None)
+    p.add_argument('--element_dir', default=None)
+    p.add_argument('--texture_id',  default=None)
     args = p.parse_args()
 
     res = generate_xml(
@@ -648,6 +811,8 @@ if __name__ == '__main__':
         source_root=args.source_root,
         output_path=args.output,
         srt_path=args.srt,
+        element_dir=args.element_dir,
+        texture_id=args.texture_id,
         log=print,
     )
-    print(f"Xong: {res['total_clips']} clip, {len(res['missing'])} thieu source")
+    print(f"Xong: {res['total_clips']} clip, {res.get('total_elements', 0)} elements, {len(res['missing'])} thieu source")

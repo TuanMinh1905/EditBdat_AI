@@ -513,6 +513,29 @@
           </div>
 
           <div class="sp-card">
+            <div class="sp-card-header"><span>🎨 8. Thư mục Element (tùy chọn)</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-element-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\Element..." readonly />
+              <button class="btn-icon" id="pg-btn-element-dir" title="Chọn thư mục Element">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🖼️ 9. Texture/Grain Overlay (tùy chọn)</span></div>
+            <select id="pg-texture-select" class="sp-select" style="width:100%;box-sizing:border-box;padding:8px;background:#1a1a2e;color:#e2e8f0;border:1px solid rgba(139,92,246,0.3);border-radius:8px;font-size:13px;">
+              <option value="">(Không dùng texture)</option>
+              <option value="paper_texture">📄 Paper Texture</option>
+              <option value="paper_texture_2">📄 Paper Texture 2</option>
+              <option value="texture_dark">🌑 Texture Dark</option>
+              <option value="texture_2">🎨 Texture 2</option>
+              <option value="film_grain">🎞️ 8mm Film Grain</option>
+              <option value="grid_orange">🟠 Orange Grid Animation</option>
+            </select>
+          </div>
+
+          <div class="sp-card">
             <div class="sp-card-header"><span>🏷️ Tên file XML</span></div>
             <input type="text" id="pg-project-name" class="sp-path-input" placeholder="VD: Xavi_Iniesta_v1" style="width:100%;box-sizing:border-box;" />
           </div>
@@ -544,6 +567,8 @@
               <div class="pgen-check" id="pgc-srt">⬜ File SRT (tùy chọn)</div>
               <div class="pgen-check" id="pgc-source-root">⬜ Thư mục Source</div>
               <div class="pgen-check" id="pgc-output">⬜ Thư mục Output</div>
+              <div class="pgen-check" id="pgc-element">⬜ Element Dir (tùy chọn)</div>
+              <div class="pgen-check" id="pgc-texture">⬜ Texture (tùy chọn)</div>
             </div>
           </div>
 

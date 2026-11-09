@@ -47,7 +47,8 @@ Code_AI/
 │   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
-├── templates/                       # Template JSX, preset effects
+├── templates/                       # Template JSX, preset effects, element map
+│   └── element_map.json             # Mapping element_id → file overlay/texture
 ├── output/                          # Thư mục chứa .jsx và .aep output
 └── doc/                             # Tài liệu, ghi chú
 ```
@@ -294,6 +295,7 @@ try {
 | 2026-10-21 | Thêm session persistence (`session.json`), fix model name `gemini-2.5-flash` → `gemini-3.8-flash`, thêm lỗi #7 | Lưu data input giữa các lần restart app, Google deprecate model cũ |
 | 2026-11-09 | Thêm `premiere_xml_generator.py` (Tool A — Gen Premiere XML). Thêm 5 API endpoints mới. Tích hợp UI đầy đủ cho Tool B + Tool A. Thêm tab "Quy tắc". Thêm Kỹ năng dropdown với custom option. Thêm lỗi #8–#16. Mở rộng mục 8 (Quy tắc AI) thêm rules 7–10 | Hoàn thiện pipeline: Tool B cắt clip → catalog.csv → Tool A gen XML → import Premiere. Fix nhiều bug Premiere XML, Electron khởi động, CSS tab layout, và patch file JS |
 | 2026-11-09 | Thêm lỗi #17, #18, #19 vào bảng Lỗi đã gặp. Mở rộng mục 8 (Quy tắc AI) thêm quy tắc `flex-shrink: 0` cho card trong flex column, quy tắc #11 (vị trí `<script>` & null-safe DOM), và quy tắc #12 (thứ tự định nghĩa `log()` trong `main.py`) | Phòng tránh triệt để lỗi card bị ép dẹt không cuộn được, lỗi `<script>` đặt trước modal làm chết toàn bộ event listeners, và lỗi `NameError: log is not defined` |
+| 2026-11-09 | Thêm tính năng Element/Overlay Auto-placement. Tạo `templates/element_map.json` (20 elements). Sửa `premiere_xml_generator.py`: thêm tracks V3 (per-clip elements), V4 (full-video texture), `_load_element_map()`, `_resolve_element()`, opacity filter. Sửa `main.py`: thêm `element_dir`, `texture_id` params. Sửa UI: thêm 2 fields (Element Dir + Texture dropdown) vào tab Gen XML. | Tự động đặt overlay/texture lên timeline — auto-map theo loại source (`anh_thong_so→stats_table`, `anh_thoi_diem→scout_frame`, `phong_van→tv_retro`) + CSV override via cột `element` |
 
 ---
 
@@ -331,21 +333,39 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
 | Field | Mô tả |
 |---|---|
 | `timeline_csv` | `1_CSV_Timeline.csv` — cột: `doan, cau, y, start, text` |
-| `source_plan_csv` | `2_CSV_PhanLoaiSource.csv` — cột: `doan, cau, y, loai_source, thoi_ky` |
+| `source_plan_csv` | `2_CSV_PhanLoaiSource.csv` — cột: `doan, cau, y, loai_source, thoi_ky` + cột `element` (tùy chọn) |
 | `catalog_csv` | Sinh từ Tool B |
 | `voice_path` | File MP4/MP3 voice chính (track A1) |
 | `srt_path` | File SRT phụ đề (tùy chọn) |
 | `source_root` | Thư mục gốc chứa catalog + clip folders |
 | `output_dir` | Thư mục lưu file XML |
 | `project_name` | Tên file XML (không có extension) |
+| `element_dir` | Thư mục chứa Element/Overlay files (tùy chọn, vd: `D:\Edit SofaZone\Test\Element`) |
+| `texture_id` | ID texture cho full-video overlay trên V4 (tùy chọn, vd: `paper_texture`) |
 
 ### Output: FCP XML (xmeml v4)
 - Voice trên track A1
 - Clips video trên V1/V2
+- Element overlays trên V3 (per-clip: TV frame, stats table, scout frame...)
+- Texture/grain trên V4 (full-video: paper texture, film grain...)
 - Markers đánh dấu từng đoạn/câu và cảnh thiếu source
 - `pathurl` phải URL-encode: `D:/Edit%20SofaZone/Source/...`
 - `<sequence id="sequence-1">` bắt buộc có `id` attribute
 - FPS = 30, resolution 1920×1080
+
+### Element Auto-map (khi CSV không có cột `element`):
+| `loai_source` | Element ID | File |
+|---|---|---|
+| `phong_van` | `tv_retro` | `tv FRAME2.png` |
+| `anh_thong_so` | `stats_table` | `Comparison Table List Infographic Graph.png` |
+| `anh_thoi_diem` | `scout_frame` | `scout frame.png` |
+| `training` | `tv_sony` | `large-vecteezy_...mp4` |
+
+### Element Override (CSV cột `element`):
+- Ghi `element_id` (vd: `tv_retro`, `stats_table_2`) → dùng element cụ thể
+- Ghi `none` → không đặt element cho câu đó
+- Bỏ trống → auto-map theo `loai_source`
+- Dùng `+` để kết hợp: `tv_retro + paper_texture`
 
 ### Pick clips — 3 mức fallback:
 1. `(norm(loai), norm(cau_thu), norm(ky_nang))` — khớp đầy đủ
@@ -366,8 +386,10 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
   "source_root": "...",
   "output_dir": "...",
   "project_name": "...",
-  "srt_path": "..."
+  "srt_path": "...",
+  "element_dir": "...",
+  "texture_id": "paper_texture"
 }
 ```
-Response: `{ "output_path": "...", "total_clips": N, "missing": [...] }`
+Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "missing": [...] }`
 

@@ -1129,6 +1129,8 @@ function initPremiereGen() {
     sourceRoot: null,
     outputDir: null,
     lastXmlPath: null,
+    elementDir: null,
+    textureId: null,
     isGenerating: false,
   };
 
@@ -1168,6 +1170,12 @@ function initPremiereGen() {
     chkSrt:         $('#pgc-srt'),
     chkSourceRoot:  $('#pgc-source-root'),
     chkOutput:      $('#pgc-output'),
+    // Element overlay fields
+    elementDir:     $('#pg-element-dir'),
+    btnElementDir:  $('#pg-btn-element-dir'),
+    textureSelect:  $('#pg-texture-select'),
+    chkElement:     $('#pgc-element'),
+    chkTexture:     $('#pgc-texture'),
   };
 
   function pgLog(msg, type = 'info') {
@@ -1281,6 +1289,47 @@ function initPremiereGen() {
     });
   }
 
+  // Thư mục Element (tùy chọn)
+  if (pg.btnElementDir) {
+    if (pg.elementDir) {
+      pg.elementDir.style.cursor = 'pointer';
+      pg.elementDir.addEventListener('click', () => pg.btnElementDir.click());
+    }
+    pg.btnElementDir.addEventListener('click', async () => {
+      try {
+        const d = await window.api.selectDirectory();
+        if (!d) return;
+        pgState.elementDir = d;
+        if (pg.elementDir) pg.elementDir.value = d;
+        if (pg.chkElement) {
+          pg.chkElement.textContent = `✅ Element: ${d.replace(/\\/g, '/').split('/').pop()}`;
+          pg.chkElement.classList.add('done');
+        }
+        pgLog(`Element dir: ${d}`, 'info');
+      } catch (err) {
+        pgLog(`Lỗi chọn Element dir: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Texture select (tùy chọn)
+  if (pg.textureSelect) {
+    pg.textureSelect.addEventListener('change', () => {
+      pgState.textureId = pg.textureSelect.value || null;
+      if (pg.chkTexture) {
+        if (pgState.textureId) {
+          const label = pg.textureSelect.options[pg.textureSelect.selectedIndex].text;
+          pg.chkTexture.textContent = `✅ Texture: ${label}`;
+          pg.chkTexture.classList.add('done');
+        } else {
+          pg.chkTexture.textContent = '⬜ Texture (tùy chọn)';
+          pg.chkTexture.classList.remove('done');
+        }
+      }
+      pgLog(`Texture: ${pgState.textureId || '(không dùng)'}`, 'info');
+    });
+  }
+
   // Nút Generate
   if (pg.btnGenerate) {
     pg.btnGenerate.addEventListener('click', async () => {
@@ -1311,6 +1360,8 @@ function initPremiereGen() {
           output_dir:      pgState.outputDir,
           project_name:    projectName,
           srt_path:        pgState.srt || null,
+          element_dir:     pgState.elementDir || null,
+          texture_id:      pgState.textureId || null,
         };
 
         const result = await window.api.premiereGenerateXml(params);
@@ -1325,9 +1376,11 @@ function initPremiereGen() {
         pg.resultSummary.innerHTML = `
           🎬 <strong>${totalClips} clip</strong> đã được đặt vào timeline<br>
           📄 File: <code style="font-size:10px">${pgState.lastXmlPath}</code><br>
+          ${totalElements > 0 ? `🎨 <strong>${totalElements} element</strong> overlay (V3/V4)<br>` : ''}
           ${missing.length > 0 ? `⚠️ <span style="color:#fbbf24">${missing.length} câu thiếu source</span>` : '✅ Đủ source cho tất cả câu'}
         `;
-        pgLog(`✅ Gen xong! ${totalClips} clips, ${missing.length} thiếu source`, 'success');
+        const totalElements = result.total_elements || 0;
+        pgLog(`✅ Gen xong! ${totalClips} clips, ${totalElements} elements, ${missing.length} thiếu source`, 'success');
 
         // Hiện danh sách thiếu source (nếu có)
         if (missing.length > 0) {
