@@ -963,13 +963,16 @@ function initClipSplitter() {
 
         // Hiện thống kê
         spDom.analyzeResult.style.display = 'block';
-        const dur = result.duration_s ? `${Math.floor(result.duration_s/60)}m${Math.floor(result.duration_s%60)}s` : '?';
+        const sceneCount = result.stats?.count ?? result.scene_count ?? '?';
+        const durSec = result.meta?.duration ?? result.duration_s ?? 0;
+        const fpsVal = result.meta?.fps ? Math.round(result.meta.fps) : (result.fps || 30);
+        const dur = durSec ? `${Math.floor(durSec/60)}m${Math.floor(durSec%60)}s` : '?';
         spDom.statsGrid.innerHTML = `
-          <div class="sp-stat-item"><div class="sp-stat-val">${result.scene_count || '?'}</div><div class="sp-stat-label">Scene ước tính</div></div>
+          <div class="sp-stat-item"><div class="sp-stat-val">${sceneCount}</div><div class="sp-stat-label">Scene ước tính</div></div>
           <div class="sp-stat-item"><div class="sp-stat-val">${dur}</div><div class="sp-stat-label">Thời lượng</div></div>
-          <div class="sp-stat-item"><div class="sp-stat-val">${result.fps || 30}</div><div class="sp-stat-label">FPS</div></div>
+          <div class="sp-stat-item"><div class="sp-stat-val">${fpsVal}</div><div class="sp-stat-label">FPS</div></div>
         `;
-        spLog(`Phân tích xong: ~${result.scene_count} scene, ${dur}, ${result.fps}fps`, 'success');
+        spLog(`Phân tích xong: ~${sceneCount} clip, thời lượng ${dur}, ${fpsVal}fps (TB ${result.stats?.avg || '?'}s/clip)`, 'success');
       } catch (err) {
         spLog(`Lỗi phân tích: ${err.message}`, 'error');
       } finally {
@@ -1005,6 +1008,7 @@ function initClipSplitter() {
       try {
         const params = {
           video_path: spState.videoPath,
+          out_root: spState.outputDir,
           output_root: spState.outputDir,
           loai: spDom.loai.value,
           cau_thu: spDom.cauThu.value.trim(),
@@ -1022,7 +1026,7 @@ function initClipSplitter() {
         spDom.progressText.textContent = '✅ Hoàn thành!';
 
         // Hiện kết quả
-        const clipCount = result.clips_created || 0;
+        const clipCount = result.total_clips ?? result.clips_created ?? 0;
         spState.catalogPath = result.catalog_path || '';
         spDom.cutResult.style.display = 'block';
         spDom.resultSummary.innerHTML = `
