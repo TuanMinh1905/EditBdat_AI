@@ -1825,22 +1825,48 @@ const DEFAULT_ANIMATION_TYPES = [
   { code: 'auto', group: 'element', label: '✨ Tự động (Auto)', param: '', description: 'Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame)' },
   { code: 'none', group: 'element', label: '🚫 Không phủ (None)', param: '', description: 'Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)' },
   { code: 'tv_retro', group: 'element', label: '📺 Khung Sofa TV', param: 'tv FRAME2.png', description: 'Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn' },
+  { code: 'tv_green_frame', group: 'element', label: '📺 Khung màn hình xanh', param: 'ChatGPT Image 20_46_49 15 thg 8, 2026.png', description: 'Khung màn hình xanh viền đen (TV / Monitor Green Screen)' },
+  { code: 'tv_crt_gemini', group: 'element', label: '📺 TV CRT cổ điển', param: 'Gemini_Generated_Image_xf3xbcxf3xbcxf3x.png', description: 'Khung TV CRT cổ điển trong phòng tối (Green Screen)' },
+  { code: 'tv_sony', group: 'element', label: '📺 TV Sony bàn gỗ', param: 'large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4', description: 'Khung TV Sony cổ điển trên bàn gỗ (Video)' },
+  { code: 'tv_dolly', group: 'element', label: '📺 TV Dolly In', param: 'Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm', description: 'Hiệu ứng TV retro dolly-in (Video)' },
   { code: 'film_grain', group: 'element', label: '🎞️ Phim 8mm hồi ức', param: '8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4', description: 'Khung phim nhựa 8mm cổ điển — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức' },
   { code: 'scout_frame', group: 'element', label: '📋 Hồ sơ Scout', param: 'scout frame.png', description: 'Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)' },
-  { code: 'stats_table', group: 'element', label: '📊 Bảng số liệu', param: 'Comparison Table List Infographic Graph.png', description: 'Khung bảng thống kê / so sánh số liệu' },
-  { code: 'stats_table_1', group: 'element', label: '📊 Bảng mẫu 1', param: 'Comparison Table List Infographic Graph (1).png', description: 'Bảng thống kê mẫu 1' },
-  { code: 'stats_table_2', group: 'element', label: '📊 Bảng mẫu 2', param: 'Comparison Table List Infographic Graph (2).png', description: 'Bảng thống kê mẫu 2' },
-  { code: 'tv_sony', group: 'element', label: '📺 TV Sony bàn gỗ', param: 'large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4', description: 'Khung TV Sony cổ điển trên bàn gỗ' },
-  { code: 'tv_dolly', group: 'element', label: '📺 TV Dolly In', param: 'Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm', description: 'Hiệu ứng TV retro dolly-in' },
-  { code: 'circle_gold', group: 'element', label: '🟡 Vòng tròn vàng', param: '5.png', description: 'Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)' },
-  { code: 'circle_blue', group: 'element', label: '🔵 Vòng tròn xanh', param: 'o.png', description: 'Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)' },
-  { code: 'paper_texture', group: 'element', label: '📜 Giấy cũ 1', param: 'paper texture.png', description: 'Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu' },
-  { code: 'paper_texture_2', group: 'element', label: '📜 Giấy cũ 2', param: 'paper texture 2.png', description: 'Lớp phủ giấy cũ mẫu 2' },
-  { code: 'texture_dark', group: 'element', label: '🌑 Phủ tối (Dark)', param: 'textture.png', description: 'Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương' },
-  { code: 'grid_orange', group: 'element', label: '🟧 Lưới cam', param: 'vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4', description: 'Nền lưới cam chuyển động (grid animation)' }
+  { code: 'stats_table', group: 'element', label: '📊 Bảng / Vòng gốc (Vàng nâu)', param: 'Comparison Table List Infographic Graph.png', description: 'Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)' },
+  { code: 'stats_table_1', group: 'element', label: '📊 Bảng / Vòng mẫu 1 (Xanh đậm)', param: 'Comparison Table List Infographic Graph (1).png', description: 'Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)' },
+  { code: 'stats_table_2', group: 'element', label: '📊 Bảng / Vòng mẫu 2 (Đỏ đậm)', param: 'Comparison Table List Infographic Graph (2).png', description: 'Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)' },
+  { code: 'stats_table_3', group: 'element', label: '📊 Bảng / Vòng mẫu 3 (Đen xám)', param: 'Comparison Table List Infographic Graph (3).png', description: 'Bảng thống kê / vòng tròn mẫu 3 (Đen xám)' },
+  { code: 'stats_table_4', group: 'element', label: '📊 Bảng / Vòng mẫu 4 (Xanh lá)', param: 'Comparison Table List Infographic Graph (4).png', description: 'Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)' },
+  { code: 'stats_table_5', group: 'element', label: '📊 Bảng / Vòng mẫu 5 (Tím)', param: 'Comparison Table List Infographic Graph (5).png', description: 'Bảng thống kê / vòng tròn mẫu 5 (Tím)' },
+  { code: 'circle_gold', group: 'element', label: '🌑 Viền tối góc xanh (5.png)', param: '5.png', description: 'Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu' },
+  { code: 'circle_blue', group: 'element', label: '🔵 Vòng tròn xanh (o.png)', param: 'o.png', description: 'Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)' },
+  { code: 'paper_texture', group: 'element', label: '📜 Giấy cũ 1 (Sáng)', param: 'paper texture.png', description: 'Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu' },
+  { code: 'paper_texture_2', group: 'element', label: '📜 Giấy cũ 2 (Tối)', param: 'paper texture 2.png', description: 'Lớp phủ giấy cũ 2 tối (paper texture 2.png)' },
+  { code: 'texture_dark', group: 'element', label: '🌑 Phủ xám tối (textture.png)', param: 'textture.png', description: 'Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương' },
+  { code: 'texture_2', group: 'element', label: '⬜ Phủ nền sáng (texture2.png)', param: 'texture2.png', description: 'Lớp phủ nền sáng (texture2.png) cho toàn video' },
+  { code: 'grid_orange', group: 'element', label: '🟧 Lưới cam (Video)', param: 'vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4', description: 'Nền lưới cam chuyển động (grid animation video)' },
+  { code: 'intro', group: 'element', label: '🎬 Video Intro (intro.mp4)', param: 'intro.mp4', description: 'Video Intro mở đầu (intro.mp4)' }
 ];
 
 function initSourceSuggester() {
+  function mergeMissingDefaultAnims(list) {
+    if (!Array.isArray(list) || !list.length) return JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES));
+    const existingKeys = new Set(list.map(x => `${x.group || 'element'}_${x.code}`));
+    const merged = list.map(x => {
+      // Nếu dòng mặc định có sẵn file trong Elements nhưng bị dính '__none__' cũ thì mở lại
+      if (x.image === '__none__' && x.group === 'element' && x.param) {
+        return { ...x, image: '' };
+      }
+      return x;
+    });
+    DEFAULT_ANIMATION_TYPES.forEach(defItem => {
+      const k = `${defItem.group}_${defItem.code}`;
+      if (!existingKeys.has(k)) {
+        merged.push(JSON.parse(JSON.stringify(defItem)));
+      }
+    });
+    return merged;
+  }
+
   function loadLocalClassifications() {
     let src = null;
     let anim = null;
@@ -1853,7 +1879,7 @@ function initSourceSuggester() {
       const rawAnim = localStorage.getItem('sg_custom_anim_types');
       if (rawAnim) {
         const parsed = JSON.parse(rawAnim);
-        if (Array.isArray(parsed) && parsed.length > 0) anim = parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) anim = mergeMissingDefaultAnims(parsed);
       }
     } catch (e) { /* ignore */ }
     return {
@@ -2826,18 +2852,18 @@ function initSourceSuggester() {
           sgDom.clsFilepath.textContent = `📄 ${sgState.classificationsPath}`;
         }
         if (Array.isArray(res.source_types) && res.source_types.length > 0) {
-          const localImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image).map(x => [x.code, x.image]));
+          const localImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image && x.image !== '__none__').map(x => [x.code, x.image]));
           sgState.sourceTypes = res.source_types.map(x => ({
             ...x,
             image: x.image || localImgMap[x.code] || ''
           }));
         }
         if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
-          const localAnimImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [`${x.group}_${x.code}`, x.image]));
-          sgState.animationTypes = res.animation_types.map(x => ({
+          const localAnimImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image && x.image !== '__none__').map(x => [`${x.group}_${x.code}`, x.image]));
+          sgState.animationTypes = mergeMissingDefaultAnims(res.animation_types.map(x => ({
             ...x,
             image: x.image || localAnimImgMap[`${x.group}_${x.code}`] || ''
-          }));
+          })));
         }
         saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
         if (sgDom.rulesInput) {
