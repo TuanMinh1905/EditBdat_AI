@@ -396,11 +396,13 @@ class SourceSuggester:
                 if not code or code in seen_codes:
                     continue
                 seen_codes.add(code)
+                img_val = str(it.get("image", "")).strip()
                 clean_src.append(
                     {
                         "code": code,
                         "label": str(it.get("label", code)).strip() or code,
                         "description": str(it.get("description", "")).strip(),
+                        "image": img_val,
                     }
                 )
             if clean_src:
@@ -423,6 +425,7 @@ class SourceSuggester:
                 if not code or (group, code) in seen_pairs:
                     continue
                 seen_pairs.add((group, code))
+                img_val = str(it.get("image", "")).strip()
                 clean_anim.append(
                     {
                         "code": code,
@@ -430,6 +433,7 @@ class SourceSuggester:
                         "label": str(it.get("label", code)).strip() or code,
                         "param": str(it.get("param", "")).strip(),
                         "description": str(it.get("description", "")).strip(),
+                        "image": img_val,
                     }
                 )
             if clean_anim:

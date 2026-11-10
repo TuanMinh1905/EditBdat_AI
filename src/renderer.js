@@ -1920,6 +1920,20 @@ function initSourceSuggester() {
     btnSaveAnim: $('#sg-btn-save-anim'),
     btnAddAnim: $('#sg-btn-add-anim'),
     clsAnimTbody: $('#sg-cls-anim-tbody'),
+    // Cột Ảnh ví dụ & Lightbox Modal
+    clsFileInput: $('#sg-cls-file-input'),
+    modalClsImg: $('#modal-cls-image'),
+    modalClsImgCode: $('#cls-img-modal-code'),
+    modalClsImgTitle: $('#cls-img-modal-title'),
+    modalClsImgDesc: $('#cls-img-modal-desc'),
+    modalClsImgClose: $('#cls-img-modal-close'),
+    modalClsImgStage: $('#cls-img-stage'),
+    modalClsImgPreview: $('#cls-img-preview-el'),
+    modalClsImgEmpty: $('#cls-img-empty-state'),
+    modalClsImgPrev: $('#cls-img-prev'),
+    modalClsImgNext: $('#cls-img-next'),
+    modalClsImgRemove: $('#cls-img-btn-remove'),
+    modalClsImgReplace: $('#cls-img-btn-replace'),
     // Timeline & Examples DOM
     timelineCsv: $('#sg-timeline-csv'),
     btnBrowseCsv: $('#sg-btn-browse-csv'),
@@ -2077,6 +2091,164 @@ function initSourceSuggester() {
     setAnimLocked(locked);
   }
 
+  let pendingImgTarget = null; // { tbl: 'src' | 'anim', idx: number }
+  let activeLightbox = null;   // { tbl: 'src' | 'anim', idx: number }
+
+  function getEffectiveItemImage(item) {
+    if (!item) return '';
+    if (item.image && item.image !== '__none__') return item.image;
+    if (item.image === '__none__') return '';
+    // Nếu là Lớp phủ (element) có sẵn file ảnh .png/.jpg trong thư mục cố định Elements, tự động lấy làm ảnh ví dụ mặc định
+    if (item.group === 'element' && item.param) {
+      const p = String(item.param).trim();
+      if (/\.(png|jpe?g|webp|gif|bmp)$/i.test(p)) {
+        return `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Elements/${encodeURIComponent(p)}`;
+      }
+    }
+    return '';
+  }
+
+  function renderImgCellHtml(tbl, idx, item) {
+    const imgSrc = getEffectiveItemImage(item);
+    const safeCode = String(item?.code || '').replace(/"/g, '&quot;');
+    if (imgSrc) {
+      return `
+        <td class="sg-cls-img-cell">
+          <div class="sg-cls-thumb-wrap" data-tbl="${tbl}" data-idx="${idx}" title="Click để phóng to ảnh ví dụ của '${safeCode}' (hoặc kéo-thả ảnh mới vào đây)">
+            <img class="sg-cls-thumb" src="${imgSrc}" alt="${safeCode}" />
+            <div class="sg-cls-thumb-zoom">🔍</div>
+          </div>
+        </td>
+      `;
+    }
+    return `
+      <td class="sg-cls-img-cell">
+        <button type="button" class="sg-img-add-btn" data-tbl="${tbl}" data-idx="${idx}" title="Click để tải ảnh ví dụ cho '${safeCode}' (hoặc kéo-thả ảnh vào đây)">＋ Ảnh</button>
+      </td>
+    `;
+  }
+
+  function compressImageToDataUrl(file, maxDim = 1150, quality = 0.86) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Không đọc được file ảnh'));
+      reader.onload = () => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Định dạng ảnh không hợp lệ'));
+        img.onload = () => {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w >= h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const isPng = file.type === 'image/png';
+          const outUrl = isPng ? canvas.toDataURL('image/png') : canvas.toDataURL('image/jpeg', quality);
+          resolve(outUrl);
+        };
+        img.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function applyImageFileToItem(tbl, idx, file) {
+    if (!file || !file.type.startsWith('image/')) {
+      sgLog('Vui lòng chọn đúng định dạng file hình ảnh (.png, .jpg, .webp...).', 'error');
+      return;
+    }
+    const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+    const item = list[idx];
+    if (!item) return;
+
+    try {
+      const dataUrl = await compressImageToDataUrl(file);
+      item.image = dataUrl;
+      // Nếu myös có bản gốc trong origSourceTypes/origAnimationTypes khi đang mở khóa thì cập nhật luôn để không mất
+      const origList = tbl === 'src' ? sgState.origSourceTypes : sgState.origAnimationTypes;
+      if (origList && origList[idx]) {
+        origList[idx].image = dataUrl;
+      }
+      await persistBothClassificationTables();
+      renderClassificationTables();
+      if (activeLightbox && activeLightbox.tbl === tbl && activeLightbox.idx === idx) {
+        updateLightboxModalView();
+      }
+      sgLog(`🖼️ Đã cập nhật ảnh ví dụ cho "${item.code}"!`, 'success');
+    } catch (err) {
+      sgLog(`Lỗi tải ảnh ví dụ: ${err.message}`, 'error');
+    }
+  }
+
+  function triggerPickImageFor(tbl, idx) {
+    pendingImgTarget = { tbl, idx };
+    if (sgDom.clsFileInput) {
+      sgDom.clsFileInput.value = '';
+      sgDom.clsFileInput.click();
+    }
+  }
+
+  function updateLightboxModalView() {
+    if (!activeLightbox || !sgDom.modalClsImg) return;
+    const list = activeLightbox.tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+    if (!list || !list.length) return;
+    const idx = ((activeLightbox.idx % list.length) + list.length) % list.length;
+    activeLightbox.idx = idx;
+    const item = list[idx];
+    const imgSrc = getEffectiveItemImage(item);
+
+    if (sgDom.modalClsImgCode) sgDom.modalClsImgCode.textContent = item.code || '';
+    if (sgDom.modalClsImgTitle) {
+      const prefix = activeLightbox.tbl === 'src' ? '📂 Source: ' : (item.group === 'anim' ? '🎬 Chuyển động: ' : '🖼️ Lớp phủ V3: ');
+      sgDom.modalClsImgTitle.textContent = `${prefix}${item.label || item.code || ''} (${idx + 1}/${list.length})`;
+    }
+    if (sgDom.modalClsImgDesc) {
+      const paramStr = item.param ? ` · Thông số/File: ${item.param}` : '';
+      sgDom.modalClsImgDesc.textContent = `${item.description || 'Chưa có mô tả'}${paramStr}`;
+    }
+
+    if (imgSrc) {
+      if (sgDom.modalClsImgPreview) {
+        sgDom.modalClsImgPreview.src = imgSrc;
+        sgDom.modalClsImgPreview.style.display = 'block';
+      }
+      if (sgDom.modalClsImgEmpty) sgDom.modalClsImgEmpty.style.display = 'none';
+      if (sgDom.modalClsImgRemove) sgDom.modalClsImgRemove.style.display = 'inline-flex';
+    } else {
+      if (sgDom.modalClsImgPreview) {
+        sgDom.modalClsImgPreview.src = '';
+        sgDom.modalClsImgPreview.style.display = 'none';
+      }
+      if (sgDom.modalClsImgEmpty) sgDom.modalClsImgEmpty.style.display = 'block';
+      if (sgDom.modalClsImgRemove) sgDom.modalClsImgRemove.style.display = 'none';
+    }
+  }
+
+  function openClsImageModal(tbl, idx) {
+    activeLightbox = { tbl, idx };
+    updateLightboxModalView();
+    if (sgDom.modalClsImg) {
+      sgDom.modalClsImg.style.display = 'flex';
+    }
+  }
+
+  function closeClsImageModal() {
+    activeLightbox = null;
+    if (sgDom.modalClsImg) {
+      sgDom.modalClsImg.style.display = 'none';
+    }
+  }
+
   function renderClassificationTables() {
     if (!sgDom.clsSourceTbody || !sgDom.clsAnimTbody) return;
     const srcLocked = sgState.srcLocked;
@@ -2087,12 +2259,14 @@ function initSourceSuggester() {
       const safeCode = String(s.code || '').replace(/"/g, '&quot;');
       const safeLabel = String(s.label || '').replace(/"/g, '&quot;');
       const safeDesc = String(s.description || '').replace(/"/g, '&quot;');
+      const imgCell = renderImgCellHtml('src', idx, s);
       if (srcLocked) {
         return `
           <tr>
             <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
             <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
             <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
+            ${imgCell}
           </tr>
         `;
       }
@@ -2101,6 +2275,7 @@ function initSourceSuggester() {
           <td><input type="text" class="sg-cls-input code-font sg-src-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: rai_1"></td>
           <td><input type="text" class="sg-cls-input sg-src-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên ngắn..."></td>
           <td><input type="text" class="sg-cls-input sg-src-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
+          ${imgCell}
           <td style="text-align:center;">
             <button class="sg-example-del sg-src-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
           </td>
@@ -2115,6 +2290,7 @@ function initSourceSuggester() {
       const safeLabel = String(a.label || '').replace(/"/g, '&quot;');
       const safeParam = String(a.param || '').replace(/"/g, '&quot;');
       const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
+      const imgCell = renderImgCellHtml('anim', idx, a);
       if (animLocked) {
         const badgeHtml = grp === 'anim'
           ? `<span class="sg-group-badge sg-group-anim">🎬 Chuyển động</span>`
@@ -2126,6 +2302,7 @@ function initSourceSuggester() {
             <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
             <td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>
             <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
+            ${imgCell}
           </tr>
         `;
       }
@@ -2141,12 +2318,53 @@ function initSourceSuggester() {
           <td><input type="text" class="sg-cls-input sg-anim-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên hiển thị..."></td>
           <td><input type="text" class="sg-cls-input sg-anim-param" data-idx="${idx}" value="${safeParam}" placeholder="100->108 hoặc file.png"></td>
           <td><input type="text" class="sg-cls-input sg-anim-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
+          ${imgCell}
           <td style="text-align:center;">
             <button class="sg-example-del sg-anim-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
           </td>
         </tr>
       `;
     }).join('');
+
+    // Events cho cột Ảnh ví dụ (hoạt động cả khi khóa lẫn khi mở khóa)
+    if (sgDom.clsCard) {
+      sgDom.clsCard.querySelectorAll('.sg-img-add-btn').forEach(btn => {
+        const tbl = btn.dataset.tbl;
+        const idx = Number(btn.dataset.idx);
+        btn.addEventListener('click', () => triggerPickImageFor(tbl, idx));
+        btn.addEventListener('dragover', e => { e.preventDefault(); btn.classList.add('drag-over'); });
+        btn.addEventListener('dragleave', () => btn.classList.remove('drag-over'));
+        btn.addEventListener('drop', e => {
+          e.preventDefault();
+          btn.classList.remove('drag-over');
+          const file = e.dataTransfer?.files?.[0];
+          if (file) applyImageFileToItem(tbl, idx, file);
+        });
+      });
+
+      sgDom.clsCard.querySelectorAll('.sg-cls-thumb-wrap').forEach(wrap => {
+        const tbl = wrap.dataset.tbl;
+        const idx = Number(wrap.dataset.idx);
+        wrap.addEventListener('click', () => openClsImageModal(tbl, idx));
+        wrap.addEventListener('dragover', e => { e.preventDefault(); wrap.classList.add('drag-over'); });
+        wrap.addEventListener('dragleave', () => wrap.classList.remove('drag-over'));
+        wrap.addEventListener('drop', e => {
+          e.preventDefault();
+          wrap.classList.remove('drag-over');
+          const file = e.dataTransfer?.files?.[0];
+          if (file) applyImageFileToItem(tbl, idx, file);
+        });
+        // Nếu ảnh mặc định từ thư mục Elements không tìm thấy trên đĩa, chuyển thành nút + Ảnh gọn gàng
+        const imgEl = wrap.querySelector('img');
+        if (imgEl) {
+          imgEl.addEventListener('error', () => {
+            const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+            if (list && list[idx]) list[idx].image = '__none__';
+            renderClassificationTables();
+          }, { once: true });
+        }
+      });
+    }
 
     // Events cho các chip mã khi bảng đang khóa: Click -> Copy hoặc chèn vào ô quy tắc .txt
     if (sgDom.clsCard) {
@@ -2512,10 +2730,18 @@ function initSourceSuggester() {
           sgDom.clsFilepath.textContent = `📄 ${sgState.classificationsPath}`;
         }
         if (Array.isArray(res.source_types) && res.source_types.length > 0) {
-          sgState.sourceTypes = res.source_types;
+          const localImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image).map(x => [x.code, x.image]));
+          sgState.sourceTypes = res.source_types.map(x => ({
+            ...x,
+            image: x.image || localImgMap[x.code] || ''
+          }));
         }
         if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
-          sgState.animationTypes = res.animation_types;
+          const localAnimImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [`${x.group}_${x.code}`, x.image]));
+          sgState.animationTypes = res.animation_types.map(x => ({
+            ...x,
+            image: x.image || localAnimImgMap[`${x.group}_${x.code}`] || ''
+          }));
         }
         saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
         if (sgDom.rulesInput) {
@@ -2587,7 +2813,8 @@ function initSourceSuggester() {
       .map(s => ({
         code: String(s.code || '').trim(),
         label: String(s.label || s.code || '').trim(),
-        description: String(s.description || '').trim()
+        description: String(s.description || '').trim(),
+        image: String(s.image || '').trim()
       }))
       .filter(s => s.code);
 
@@ -2597,9 +2824,13 @@ function initSourceSuggester() {
         group: a.group === 'anim' ? 'anim' : 'element',
         label: String(a.label || a.code || '').trim(),
         param: String(a.param || '').trim(),
-        description: String(a.description || '').trim()
+        description: String(a.description || '').trim(),
+        image: String(a.image || '').trim()
       }))
       .filter(a => a.code);
+
+    const srcImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image).map(x => [x.code, x.image]));
+    const animImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [`${x.group}_${x.code}`, x.image]));
 
     saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
 
@@ -2609,11 +2840,125 @@ function initSourceSuggester() {
         animation_types: sgState.animationTypes
       });
       if (res && res.error) throw new Error(res.error);
-      if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
-      if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
+      if (Array.isArray(res.source_types)) {
+        sgState.sourceTypes = res.source_types.map(x => ({ ...x, image: x.image || srcImgMap[x.code] || '' }));
+      }
+      if (Array.isArray(res.animation_types)) {
+        sgState.animationTypes = res.animation_types.map(x => ({ ...x, image: x.image || animImgMap[`${x.group}_${x.code}`] || '' }));
+      }
       saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
     }
   }
+
+  // --- Sự kiện File Input & Lightbox Phóng to Ảnh ví dụ ---
+  if (sgDom.clsFileInput) {
+    sgDom.clsFileInput.addEventListener('change', () => {
+      const file = sgDom.clsFileInput.files?.[0];
+      if (file && pendingImgTarget) {
+        applyImageFileToItem(pendingImgTarget.tbl, pendingImgTarget.idx, file);
+      }
+      pendingImgTarget = null;
+    });
+  }
+
+  if (sgDom.modalClsImgClose) {
+    sgDom.modalClsImgClose.addEventListener('click', closeClsImageModal);
+  }
+  if (sgDom.modalClsImg) {
+    sgDom.modalClsImg.addEventListener('click', e => {
+      if (e.target === sgDom.modalClsImg) closeClsImageModal();
+    });
+  }
+  if (sgDom.modalClsImgPrev) {
+    sgDom.modalClsImgPrev.addEventListener('click', () => {
+      if (!activeLightbox) return;
+      activeLightbox.idx -= 1;
+      updateLightboxModalView();
+    });
+  }
+  if (sgDom.modalClsImgNext) {
+    sgDom.modalClsImgNext.addEventListener('click', () => {
+      if (!activeLightbox) return;
+      activeLightbox.idx += 1;
+      updateLightboxModalView();
+    });
+  }
+  if (sgDom.modalClsImgReplace) {
+    sgDom.modalClsImgReplace.addEventListener('click', () => {
+      if (!activeLightbox) return;
+      triggerPickImageFor(activeLightbox.tbl, activeLightbox.idx);
+    });
+  }
+  if (sgDom.modalClsImgRemove) {
+    sgDom.modalClsImgRemove.addEventListener('click', async () => {
+      if (!activeLightbox) return;
+      const list = activeLightbox.tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+      const item = list?.[activeLightbox.idx];
+      if (!item) return;
+      const ok = await askConfirm(`Bạn có muốn xóa ảnh ví dụ của "${item.code}" không?`, {
+        title: '🗑️ Xác nhận xóa ảnh ví dụ',
+        confirmText: 'Xóa ảnh',
+        danger: true
+      });
+      if (!ok) return;
+      item.image = '__none__';
+      const origList = activeLightbox.tbl === 'src' ? sgState.origSourceTypes : sgState.origAnimationTypes;
+      if (origList && origList[activeLightbox.idx]) {
+        origList[activeLightbox.idx].image = '__none__';
+      }
+      await persistBothClassificationTables();
+      renderClassificationTables();
+      updateLightboxModalView();
+      sgLog(`Đã xóa ảnh ví dụ của "${item.code}".`, 'info');
+    });
+  }
+  if (sgDom.modalClsImgStage) {
+    sgDom.modalClsImgStage.addEventListener('dragover', e => {
+      e.preventDefault();
+      sgDom.modalClsImgStage.classList.add('drag-over');
+    });
+    sgDom.modalClsImgStage.addEventListener('dragleave', () => {
+      sgDom.modalClsImgStage.classList.remove('drag-over');
+    });
+    sgDom.modalClsImgStage.addEventListener('drop', e => {
+      e.preventDefault();
+      sgDom.modalClsImgStage.classList.remove('drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file && activeLightbox) {
+        applyImageFileToItem(activeLightbox.tbl, activeLightbox.idx, file);
+      }
+    });
+  }
+
+  // Hỗ trợ phím mũi tên ← / →, Esc và Ctrl+V dán ảnh từ Clipboard khi đang mở Lightbox
+  window.addEventListener('keydown', e => {
+    if (!activeLightbox || !sgDom.modalClsImg || sgDom.modalClsImg.style.display === 'none') return;
+    if (e.key === 'Escape') {
+      closeClsImageModal();
+    } else if (e.key === 'ArrowLeft') {
+      activeLightbox.idx -= 1;
+      updateLightboxModalView();
+    } else if (e.key === 'ArrowRight') {
+      activeLightbox.idx += 1;
+      updateLightboxModalView();
+    }
+  });
+
+  window.addEventListener('paste', e => {
+    if (!activeLightbox || !sgDom.modalClsImg || sgDom.modalClsImg.style.display === 'none') return;
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (const clipItem of items) {
+      if (clipItem.type && clipItem.type.startsWith('image/')) {
+        const file = clipItem.getAsFile();
+        if (file) {
+          e.preventDefault();
+          applyImageFileToItem(activeLightbox.tbl, activeLightbox.idx, file);
+          break;
+        }
+      }
+    }
+  });
 
   // --- GÓC 1: Bảng 1 (Phân loại Source) ---
   if (sgDom.btnEditSrc) {
