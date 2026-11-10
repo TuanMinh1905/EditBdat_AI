@@ -37,6 +37,7 @@ from jsx_generator import JSXGenerator
 from clip_splitter import ClipSplitter
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
+from token_tracker import get_usage, reset_usage
 
 app = Flask(__name__)
 CORS(app)
@@ -827,6 +828,37 @@ def api_suggester_export_csv():
         })
     except Exception as e:
         log(f"Loi suggester-export-csv: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# TOKEN USAGE TRACKER
+# =============================================================================
+
+@app.route('/api/token-usage/get', methods=['POST'])
+def api_token_usage_get():
+    """Tra ve thong ke so luong token Gemini API da goi trong app cho key hien tai."""
+    try:
+        data = request.get_json() or {}
+        api_key = data.get('api_key', '')
+        usage = get_usage(api_key)
+        return jsonify({"success": True, "usage": usage})
+    except Exception as e:
+        log(f"Loi token-usage-get: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/token-usage/reset', methods=['POST'])
+def api_token_usage_reset():
+    """Reset thong ke token cho key hien tai."""
+    try:
+        data = request.get_json() or {}
+        api_key = data.get('api_key', '')
+        usage = reset_usage(api_key)
+        log("Da reset thong ke token API.")
+        return jsonify({"success": True, "usage": usage})
+    except Exception as e:
+        log(f"Loi token-usage-reset: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 

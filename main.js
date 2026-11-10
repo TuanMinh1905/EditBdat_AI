@@ -498,6 +498,31 @@ ipcMain.handle('suggester-export-csv', async (event, params) => {
   }
 });
 
+// --- Token Usage Tracker & External Links ---
+ipcMain.handle('get-token-usage', async (event, params) => {
+  try {
+    return await callPython('/api/token-usage/get', params || {});
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('reset-token-usage', async (event, params) => {
+  try {
+    return await callPython('/api/token-usage/reset', params || {});
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('open-external', async (event, url) => {
+  if (typeof url === 'string' && (url.startsWith('https://') || url.startsWith('http://'))) {
+    await shell.openExternal(url);
+    return { success: true };
+  }
+  return { error: 'URL không hợp lệ' };
+});
+
 // Window controls
 ipcMain.handle('window-minimize', () => mainWindow.minimize());
 ipcMain.handle('window-maximize', () => {

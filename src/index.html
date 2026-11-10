@@ -763,6 +763,44 @@
             </div>
             <p class="setting-hint">Lấy API key tại <a href="#" id="link-gemini-api">Google AI Studio</a></p>
           </div>
+
+          <!-- Token Usage Tracker -->
+          <div class="token-usage-box" id="token-usage-box">
+            <div class="token-usage-header">
+              <div class="token-usage-title">
+                <span>📊 Thống kê Token của Key đang dùng (trong App)</span>
+                <span class="token-key-badge" id="token-key-badge">Chưa có key</span>
+              </div>
+              <div class="token-usage-actions">
+                <a href="#" id="link-gemini-usage" class="token-link">Quota AI Studio ↗</a>
+                <button type="button" class="btn-token-mini" id="btn-refresh-token" title="Cập nhật thống kê">🔄 Làm mới</button>
+                <button type="button" class="btn-token-mini danger" id="btn-reset-token" title="Reset bộ đếm token của key này">🗑️ Reset</button>
+              </div>
+            </div>
+
+            <div class="token-stats-grid">
+              <div class="token-stat-card">
+                <span class="token-stat-label">Tổng Token đã dùng</span>
+                <strong class="token-stat-value" id="token-stat-total">0</strong>
+              </div>
+              <div class="token-stat-card">
+                <span class="token-stat-label">Hôm nay</span>
+                <strong class="token-stat-value accent" id="token-stat-today">0</strong>
+              </div>
+              <div class="token-stat-card">
+                <span class="token-stat-label">Input / Output (+Think)</span>
+                <strong class="token-stat-value small" id="token-stat-io">0 / 0</strong>
+              </div>
+              <div class="token-stat-card">
+                <span class="token-stat-label">Số lượt gọi AI</span>
+                <strong class="token-stat-value" id="token-stat-requests">0</strong>
+              </div>
+            </div>
+
+            <div class="token-last-call" id="token-last-call">
+              Chưa có lượt gọi Gemini API nào được ghi nhận cho key này.
+            </div>
+          </div>
         </div>
 
         <div class="settings-group">

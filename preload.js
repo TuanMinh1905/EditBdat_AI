@@ -53,5 +53,10 @@ contextBridge.exposeInMainWorld('api', {
   suggesterSaveExamples: (params) => ipcRenderer.invoke('suggester-save-examples', params),
   suggesterDeleteExample: (params) => ipcRenderer.invoke('suggester-delete-example', params),
   suggesterExportCsv: (params) => ipcRenderer.invoke('suggester-export-csv', params),
+
+  // Token Usage Tracker & External Links
+  getTokenUsage: (params) => ipcRenderer.invoke('get-token-usage', params),
+  resetTokenUsage: (params) => ipcRenderer.invoke('reset-token-usage', params),
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });
 

@@ -45,6 +45,7 @@ Code_AI/
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
 │   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại Source theo phong cách (RAG Embedding + Rules)
+│   ├── token_tracker.py             # Đếm & lưu số lượng Token Gemini API đã sử dụng theo từng API Key
 │   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
@@ -308,6 +309,7 @@ try {
 | 2026-11-10 | Thêm Animation System (Ken Burns zoom, Opacity fade, Transitions). Thêm lỗi #20 (image media block), #21 (voice media block). Thêm fallback level 4 trong `pick_clips()`. Thêm checkbox "Bật Animation" vào UI tab Gen XML (card #10). | Animation verified working in Premiere Pro. Fix import failures cho XML có ảnh stillframe. |
 | 2026-11-10 | Thêm Tool 1 — Source Suggester (`python/source_suggester.py`, `templates/source_style_rules.txt`, `templates/source_examples.json`) + 7 API endpoints trong `main.py` + tab UI "Gợi ý Source" (`#tab-source-suggester`). Hỗ trợ viết quy tắc phong cách riêng, Gemini Embedding (`text-embedding-004`) RAG few-shot, chỉnh sửa inline trên bảng (giới hạn chặt trong `VALID_LOAI`, `VALID_ELEMENTS`, `VALID_ANIMS`), lưu combo (`loai_source` + `element` + `anim`) vào kho ví dụ và xuất `2_CSV_PhanLoaiSource.csv` (7 cột: `doan,cau,y,loai_source,thoi_ky,element,anim`). Đồng bộ `premiere_xml_generator.py` đọc cột `element` và `anim` (`zoom_in`, `zoom_out`, `static`, `auto`). | Giải quyết vấn đề GPT web gán Source/Animation quá màu mè; dạy AI học đồng thời cả tư duy chọn Source lẫn Lớp phủ (Element V3) và Chuyển động (Zoom) của user qua từng video. |
 | 2026-11-10 | Thêm quy tắc #13: Sau mỗi lần chỉnh sửa hoặc viết code mới, tự động commit và push lên Git với commit message bằng tiếng Việt. | Theo yêu cầu của user để luôn đồng bộ code mới nhất lên Git và dễ theo dõi lịch sử thay đổi bằng tiếng Việt. |
+| 2026-11-10 | Sắp xếp lại 6 tab sidebar (`Tạo mới`, `Quy tắc`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`, `Cài đặt`). Thêm `python/token_tracker.py` + 2 API `/api/token-usage/get`, `/api/token-usage/reset` + IPC (`get-token-usage`, `reset-token-usage`, `open-external`) + UI thống kê Token theo từng API Key trong tab Cài đặt. | Giúp user theo dõi trực tiếp lượng Token Gemini API đã tiêu thụ trong App ngay tại màn hình Cài đặt. |
 
 ---
 

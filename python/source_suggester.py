@@ -13,6 +13,7 @@ import math
 from datetime import datetime
 from google import genai
 from google.genai import types
+from token_tracker import record_usage
 
 
 VALID_LOAI = [
@@ -642,6 +643,12 @@ class SourceSuggester:
             contents=full_prompt,
             config=config,
         )
+        usage = record_usage(api_key, response, feature="source_suggester", model="gemini-3.8-flash")
+        if usage:
+            self._log(
+                f"[Suggester] Token luot goi: {usage['total_tokens']:,} "
+                f"(in={usage['prompt_tokens']:,}, out={usage['output_tokens']:,}, think={usage['thoughts_tokens']:,})"
+            )
 
         raw_text = response.text or ""
         parsed_list = self._parse_json_array(raw_text)

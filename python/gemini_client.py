@@ -7,6 +7,7 @@ import re
 from google.genai import types
 
 from preset_catalog import catalog_prompt
+from token_tracker import record_usage
 
 
 # System prompt hướng dẫn AI sinh timeline JSON đúng schema
@@ -156,6 +157,7 @@ class GeminiClient:
             ],
             config=self._make_config(temperature=0.2, max_output_tokens=32768)
         )
+        record_usage(self.api_key, response, feature="create_timeline", model=self.model_name)
 
         # Parse response — thinking model có thể trả text=None nếu hết token
         raw_text = response.text
@@ -186,6 +188,7 @@ Hãy sửa các lỗi trên và trả về JSON hoàn chỉnh đã sửa."""
             contents=fix_prompt,
             config=self._make_config(temperature=0.1, max_output_tokens=32768)
         )
+        record_usage(self.api_key, response, feature="fix_timeline", model=self.model_name)
 
         raw_text = response.text
         if not raw_text:

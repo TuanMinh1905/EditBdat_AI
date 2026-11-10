@@ -71,6 +71,16 @@ const dom = {
   btnToggleKey: $('#btn-toggle-key'),
   btnBrowseAe: $('#btn-browse-ae'),
   btnBrowseOutput: $('#btn-browse-output'),
+  linkGeminiApi: $('#link-gemini-api'),
+  linkGeminiUsage: $('#link-gemini-usage'),
+  btnRefreshToken: $('#btn-refresh-token'),
+  btnResetToken: $('#btn-reset-token'),
+  tokenKeyBadge: $('#token-key-badge'),
+  tokenStatTotal: $('#token-stat-total'),
+  tokenStatToday: $('#token-stat-today'),
+  tokenStatIo: $('#token-stat-io'),
+  tokenStatRequests: $('#token-stat-requests'),
+  tokenLastCall: $('#token-last-call'),
 
   // Backend
   backendStatus: $('#backend-status'),
@@ -635,6 +645,91 @@ async function loadSettings() {
   dom.settingCompWidth.value = state.settings.compWidth || 1920;
   dom.settingCompHeight.value = state.settings.compHeight || 1080;
   dom.settingCompFps.value = state.settings.compFps || 30;
+  if (state.backendReady) loadTokenUsage();
+}
+
+function formatTokenNum(n) {
+  return Number(n || 0).toLocaleString('vi-VN');
+}
+
+function renderTokenUsage(usage) {
+  if (!dom.tokenStatTotal) return;
+  if (!usage || !usage.has_key) {
+    if (dom.tokenKeyBadge) dom.tokenKeyBadge.textContent = 'Chưa nhập key';
+    dom.tokenStatTotal.textContent = '0';
+    if (dom.tokenStatToday) dom.tokenStatToday.textContent = '0';
+    if (dom.tokenStatIo) dom.tokenStatIo.textContent = '0 / 0';
+    if (dom.tokenStatRequests) dom.tokenStatRequests.textContent = '0';
+    if (dom.tokenLastCall) {
+      dom.tokenLastCall.textContent = 'Nhập Gemini API Key để xem thống kê token của key đó trong App.';
+    }
+    return;
+  }
+
+  const total = usage.total || {};
+  const today = usage.today || {};
+  if (dom.tokenKeyBadge) dom.tokenKeyBadge.textContent = `Key ${usage.key_hint || ''}`;
+  dom.tokenStatTotal.textContent = formatTokenNum(total.total_tokens);
+  if (dom.tokenStatToday) dom.tokenStatToday.textContent = formatTokenNum(today.total_tokens);
+
+  const outPlusThink = (total.output_tokens || 0) + (total.thoughts_tokens || 0);
+  if (dom.tokenStatIo) {
+    dom.tokenStatIo.textContent = `${formatTokenNum(total.prompt_tokens)} / ${formatTokenNum(outPlusThink)}`;
+  }
+  if (dom.tokenStatRequests) dom.tokenStatRequests.textContent = formatTokenNum(total.requests);
+
+  if (dom.tokenLastCall) {
+    if (usage.last_call) {
+      const lc = usage.last_call;
+      const featMap = {
+        source_suggester: 'Gợi ý Source',
+        create_timeline: 'Tạo Timeline',
+        fix_timeline: 'Fix Timeline'
+      };
+      const featName = featMap[lc.feature] || lc.feature || 'Gemini API';
+      dom.tokenLastCall.textContent =
+        `Gần nhất (${lc.timestamp} · ${featName}): ${formatTokenNum(lc.total_tokens)} tokens ` +
+        `(In ${formatTokenNum(lc.prompt_tokens)} · Out ${formatTokenNum(lc.output_tokens)} · Think ${formatTokenNum(lc.thoughts_tokens)})`;
+    } else {
+      dom.tokenLastCall.textContent = 'Chưa có lượt gọi Gemini API nào được ghi nhận cho key này.';
+    }
+  }
+}
+
+async function loadTokenUsage() {
+  if (!window.api || !window.api.getTokenUsage) return;
+  try {
+    const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) ||
+                   (state.settings && state.settings.geminiApiKey) || '';
+    const res = await window.api.getTokenUsage({ api_key: apiKey });
+    if (res && res.success) {
+      renderTokenUsage(res.usage);
+    }
+  } catch (err) {
+    console.warn('loadTokenUsage error:', err);
+  }
+}
+
+async function resetTokenUsage() {
+  if (!window.api || !window.api.resetTokenUsage) return;
+  const ok = await askConfirm('Bạn có muốn xóa thống kê số lượng Token đã lưu cho API Key hiện tại không?', {
+    title: '🗑️ Xác nhận Reset Token',
+    confirmText: 'Có, reset về 0',
+    danger: true
+  });
+  if (!ok) return;
+
+  try {
+    const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) ||
+                   (state.settings && state.settings.geminiApiKey) || '';
+    const res = await window.api.resetTokenUsage({ api_key: apiKey });
+    if (res && res.success) {
+      renderTokenUsage(res.usage);
+      addLog('Đã reset thống kê token API', 'info');
+    }
+  } catch (err) {
+    addLog(`Lỗi reset token: ${err.message}`, 'error');
+  }
 }
 
 async function saveSettings() {
@@ -655,6 +750,7 @@ async function saveSettings() {
   await window.api.saveSettings(settings);
   state.settings = settings;
   addLog('Đã lưu cài đặt', 'success');
+  loadTokenUsage();
 
   // Flash save button
   dom.btnSaveSettings.textContent = '✅ Đã lưu!';
@@ -681,6 +777,10 @@ function switchTab(tabName) {
   if (tabRules) tabRules.style.display = tabName === 'rules' ? 'flex' : 'none';
   const tabSuggester = $('#tab-source-suggester');
   if (tabSuggester) tabSuggester.style.display = tabName === 'source-suggester' ? 'flex' : 'none';
+
+  if (tabName === 'settings') {
+    loadTokenUsage();
+  }
 }
 // --- Event Bindings ---
 function initEvents() {
@@ -816,6 +916,37 @@ function initEvents() {
     if (dir) dom.settingOutputDir.value = dir;
   });
 
+  // Token usage tracker & Google AI Studio links
+  if (dom.btnRefreshToken) {
+    dom.btnRefreshToken.addEventListener('click', loadTokenUsage);
+  }
+  if (dom.btnResetToken) {
+    dom.btnResetToken.addEventListener('click', resetTokenUsage);
+  }
+  if (dom.settingApiKey) {
+    let tokenDebounce = null;
+    dom.settingApiKey.addEventListener('input', () => {
+      clearTimeout(tokenDebounce);
+      tokenDebounce = setTimeout(loadTokenUsage, 400);
+    });
+  }
+  if (dom.linkGeminiApi) {
+    dom.linkGeminiApi.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.api && window.api.openExternal) {
+        window.api.openExternal('https://aistudio.google.com/apikey');
+      }
+    });
+  }
+  if (dom.linkGeminiUsage) {
+    dom.linkGeminiUsage.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.api && window.api.openExternal) {
+        window.api.openExternal('https://aistudio.google.com/usage');
+      }
+    });
+  }
+
   // Backend events
   window.api.onBackendReady((ready) => {
     state.backendReady = ready;
@@ -825,6 +956,7 @@ function initEvents() {
       dot.className = 'status-dot connected';
       label.textContent = 'Sẵn sàng';
       addLog('Backend Python đã kết nối', 'success');
+      loadTokenUsage();
     } else {
       dot.className = 'status-dot error';
       label.textContent = 'Lỗi';
