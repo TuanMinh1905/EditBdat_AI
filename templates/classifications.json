@@ -2,28 +2,23 @@
   "source_types": [
     {
       "code": "rai_1",
-      "label": "Rải đơn",
-      "description": "Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung"
+      "label": "Rải 1",
+      "description": "Rải 1 là các đoạn highlight chiếu từ truyền hình ( Bao gồm Skill - Kiến tạo - Ghi bàn )"
     },
     {
-      "code": "rai_2_1",
-      "label": "Rải đôi 1",
-      "description": "Video rải đôi kiểu 1 (2 clip chia đôi màn hình)"
-    },
-    {
-      "code": "rai_2_2",
-      "label": "Rải đôi 2",
-      "description": "Video rải đôi kiểu 2 (2 clip bố cục phụ)"
+      "code": "rai_2",
+      "label": "Rải 2",
+      "description": "mấy đoạn pha xử lí rồi cut nhanh ở góc gần"
     },
     {
       "code": "rai_3",
       "label": "Rải 3",
-      "description": "Video rải 3 clip cùng lúc"
+      "description": "Là mấy đoạn như đoạn đầu Busi"
     },
     {
       "code": "rai_4",
       "label": "Rải 4 / Danh hiệu",
-      "description": "Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc"
+      "description": "Những đoạn đặc biệt như Video Kevin De Bruyne : Bước ra sân từ đường hầm , ăn mừng cùng CĐV, tri ân CĐV khán đài, Ăn mừng sau trận cùng đồng đội"
     },
     {
       "code": "phong_van",

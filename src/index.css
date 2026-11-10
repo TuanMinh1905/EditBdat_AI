@@ -2112,9 +2112,9 @@ a:hover { color: #c4b5fd; }
 }
 
 .sg-left {
-  width: var(--left-w, 380px);
-  min-width: 250px;
-  max-width: 75%;
+  width: var(--left-w, 48%);
+  min-width: 340px;
+  max-width: 78%;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -3197,7 +3197,7 @@ body.is-resizing-v * {
   container-type: inline-size;
 }
 
-@container (max-width: 660px) {
+@container (max-width: 760px) {
   .sg-cls-grid {
     flex-direction: column;
     height: auto !important;
@@ -3466,8 +3466,95 @@ body.is-resizing-v * {
   gap: 8px;
 }
 
+/* ============================================================================
+   BỐ CỤC 2 KHU VỰC RÕ RÀNG:
+   - TRÁI (.zone-cls): PHÂN LOẠI & QUY TẮC CHUẨN
+   - PHẢI (.zone-ai): AI ĐƯA RA GỢI Ý CHO VIDEO ĐANG DỰNG
+   ============================================================================ */
+.sg-zone-banner {
+  flex-shrink: 0;
+  padding: 9px 13px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
+.sg-zone-banner.zone-cls {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.16), rgba(99, 102, 241, 0.06));
+  border: 1px solid rgba(139, 92, 246, 0.35);
+  border-left: 4px solid #8b5cf6;
+}
 
+.sg-zone-banner.zone-ai {
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(59, 130, 246, 0.06));
+  border: 1px solid rgba(6, 182, 212, 0.35);
+  border-left: 4px solid #06b6d4;
+}
 
+.sg-zone-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #f8fafc;
+}
 
+.sg-zone-sub {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.35;
+}
+
+.sg-ai-run-card {
+  flex-shrink: 0;
+  padding: 12px 14px;
+}
+
+.sg-ai-run-grid {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sg-ai-run-col {
+  flex: 1 1 210px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.sg-run-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.sg-run-label code {
+  color: #67e8f9;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.sg-ai-run-btn-col {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: flex-end;
+}
+
+.sg-ai-run-btn {
+  width: auto !important;
+  min-width: 220px;
+  padding: 9px 18px !important;
+  margin-top: 0 !important;
+  white-space: nowrap;
+}
+
+@container (max-width: 620px) {
+  .sg-ai-run-btn-col,
+  .sg-ai-run-btn {
+    width: 100% !important;
+  }
+}
 

@@ -1065,114 +1065,21 @@
     <main class="main-content suggester-content" id="tab-source-suggester" style="display: none;">
       <div class="sg-container">
 
-        <!-- CỘT TRÁI: QUY TẮC + INPUT CSV + KHO VÍ DỤ -->
+        <!-- =============================================================
+             BÊN TRÁI: TOÀN BỘ CONTAINER VỀ PHÂN LOẠI & QUY TẮC DẠY AI
+             ============================================================= -->
         <div class="sg-left">
 
-          <!-- Ghi chú phân biệt 2 file .txt và .json -->
-          <div class="sp-card sg-note-box">
-            <div>📌 <strong>Ghi chú cách AI học:</strong></div>
-            <div>• <code>File .txt</code> = <strong>Nguyên tắc bạn dặn AI</strong> (luôn áp dụng cho mọi câu).</div>
-            <div>• <code>File .json</code> = <strong>Bài mẫu bạn đã làm sẵn</strong> (gặp câu nào na ná thì AI lôi bài mẫu tương ứng ra bắt chước).</div>
+          <div class="sg-zone-banner zone-cls">
+            <div class="sg-zone-title">🗂️ KHU VỰC 1: PHÂN LOẠI &amp; QUY TẮC CHUẨN</div>
+            <div class="sg-zone-sub">Quản lý danh mục Source, Animation, ảnh ví dụ và nguyên tắc dạy AI dùng chung cho mọi video</div>
           </div>
 
-          <!-- Card 1: Hiển thị & Chỉnh sửa File .txt (Khóa mặc định) -->
-          <div class="sp-card">
-            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-              <span>📄 1. File quy tắc (.txt)</span>
-              <span class="sg-badge" id="sg-rules-status">🔒 Đang khóa</span>
-            </div>
-            <div class="sg-file-bar">
-              <span class="sg-file-path" id="sg-rules-filepath" title="templates/source_style_rules.txt">📄 templates/source_style_rules.txt</span>
-              <div style="display:flex; gap:4px; flex-shrink:0;">
-                <button class="sg-mini-btn" id="sg-btn-reload-rules" title="Đọc lại nội dung mới nhất từ file .txt">🔄 Đọc lại</button>
-                <button class="sg-mini-btn" id="sg-btn-open-rules" title="Mở file .txt bằng app ngoài">📂 Mở ngoài</button>
-              </div>
-            </div>
-            <p class="sp-hint" style="margin-bottom:6px;">
-              Hiển thị nguyên nội dung file <code>source_style_rules.txt</code>. Mặc định được <strong>khóa an toàn</strong> — bấm <strong>Chỉnh sửa</strong> khi cần sửa.
-            </p>
-            <textarea id="sg-rules-input" class="sg-rules-textarea is-locked" rows="8" readonly
-              placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
-            <div class="v-split-resizer" data-vkey="sg-rules-h" data-target="#sg-rules-input" data-min-h="85" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao ô Quy tắc .txt (Nhấp đúp để đặt lại)"></div>
-            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
-              <span class="sp-hint" id="sg-rules-char">0 dòng · 0 ký tự</span>
-              <div style="display:flex; gap:6px; align-items:center;">
-                <button class="btn-secondary" id="sg-btn-edit-rules" style="padding:6px 12px; font-size:0.78rem;">
-                  ✏️ Chỉnh sửa
-                </button>
-                <button class="btn-secondary" id="sg-btn-cancel-rules" style="padding:6px 10px; font-size:0.78rem; display:none;">
-                  ✖ Hủy
-                </button>
-                <button class="btn-primary" id="sg-btn-save-rules" style="padding:6px 12px; font-size:0.78rem; display:none;">
-                  💾 Lưu &amp; Khóa lại
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Card 2: Chọn Timeline CSV & Chạy AI -->
-          <div class="sp-card">
-            <div class="sp-card-header">📂 2. File Timeline CSV &amp; Gợi ý AI</div>
-            <div class="sp-file-row" style="margin-bottom:8px;">
-              <input type="text" class="sp-path-input" id="sg-timeline-csv" placeholder="Chọn 1_CSV_Timeline.csv..."
-                readonly>
-              <button class="btn-secondary" id="sg-btn-browse-csv">Chọn CSV</button>
-            </div>
-            <div class="sp-field" style="margin-bottom:10px;">
-              <label style="font-size:0.76rem; color:var(--text-secondary); display:block; margin-bottom:4px;">
-                Thời kỳ / Bối cảnh mặc định (tùy chọn — giúp AI điền cột <code>thoi_ky</code> chuẩn hơn):
-              </label>
-              <input type="text" class="sp-path-input" id="sg-default-thoiky"
-                placeholder="VD: Euro 2008 · Tây Ban Nha / Xavi" style="width:100%;">
-            </div>
-            <button class="btn-generate" id="sg-btn-suggest" style="width:100%;">
-              <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source + Animation</span>
-            </button>
-          </div>
-
-          <!-- Card 3: Kho ví dụ đã học (RAG Embedding) -->
-          <div class="sp-card">
-            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-              <span>📚 3. Kho ví dụ đã dạy AI (<span id="sg-example-count">0</span> mẫu)</span>
-              <button class="btn-secondary" id="sg-btn-clear-examples" title="Xóa toàn bộ kho ví dụ"
-                style="padding:3px 8px; font-size:0.7rem; color:var(--error);">
-                Xóa hết
-              </button>
-            </div>
-            <div class="sg-file-bar">
-              <span class="sg-file-path" id="sg-examples-filepath" title="templates/source_examples.json">📄 templates/source_examples.json</span>
-              <button class="sg-mini-btn" id="sg-btn-open-examples" title="Mở trực tiếp file .json trên máy">📂 Mở .json</button>
-            </div>
-            <p class="sp-hint" style="margin-bottom:8px;">
-              Mỗi lần bạn sửa bảng bên phải và bấm <strong>"Lưu vào Kho ví dụ"</strong>, AI sẽ nhúng (Gemini Embedding)
-              để lần sau tìm câu tương tự và bắt chước đúng ý bạn.
-            </p>
-            <div class="sg-examples-list" id="sg-examples-list">
-              <div class="sp-hint" style="text-align:center; padding:12px 0;">Chưa có ví dụ nào. Hãy chạy gợi ý hoặc
-                chỉnh sửa bảng rồi bấm "Lưu vào Kho ví dụ".</div>
-            </div>
-            <div class="v-split-resizer" data-vkey="sg-examples-h" data-target="#sg-examples-list" data-min-h="80" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Kho ví dụ (Nhấp đúp để đặt lại)"></div>
-          </div>
-
-          <!-- Card 4: Nhật ký -->
-          <div class="sp-card">
-            <div class="sp-card-header">📜 Nhật ký Gợi ý Source</div>
-            <div class="sp-log-box" id="sg-log-box" style="height:120px;"></div>
-            <div class="v-split-resizer" data-vkey="sg-log-h" data-target="#sg-log-box" data-min-h="70" data-max-h="420" title="Kéo lên/xuống để chỉnh chiều cao Nhật ký (Nhấp đúp để đặt lại)"></div>
-          </div>
-
-        </div>
-
-        <div class="split-resizer" data-tab-key="source-suggester" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
-
-        <!-- CỘT PHẢI: 2 BẢNG PHÂN LOẠI SOURCE & ANIMATION + BẢNG TIMELINE -->
-        <div class="sg-right">
-
-          <!-- KHU VỰC 2 BẢNG PHÂN LOẠI SOURCE & ANIMATION (Cập nhật trực tiếp -> App lấy ra xài) -->
+          <!-- 1. HAI BẢNG PHÂN LOẠI SOURCE & ANIMATION -->
           <div class="sp-card sg-cls-card" id="sg-cls-card">
             <div class="sg-cls-header">
               <div class="sg-cls-title-group">
-                <span>🗂️ Bảng Phân loại Source &amp; Animation</span>
+                <span>📋 1. Bảng Phân loại Source &amp; Animation</span>
                 <span class="sg-stat-pill" id="sg-cls-summary">13 Source · 20 Animation</span>
               </div>
               <div class="sg-cls-actions">
@@ -1182,7 +1089,7 @@
 
             <div class="sg-cls-body" id="sg-cls-body">
               <div class="sg-cls-hint">
-                💡 <strong>Cách hoạt động:</strong> Bấm vào bất kỳ <code>Mã</code> nào để copy nhanh (hoặc chèn thẳng vào ô Quy tắc <code>.txt</code> nếu đang mở khóa). Mỗi bảng có nút <strong>✏️ Chỉnh sửa</strong> và <strong>💾 Lưu</strong> riêng ở góc phải — khi lưu, toàn bộ AI, Dropdown và Tool Cắt Clip / Gen XML sẽ tự động lấy danh sách mới ra xài!
+                💡 Bấm vào <code>Mã</code> bất kỳ để copy hoặc chèn thẳng xuống ô <strong>File quy tắc (.txt)</strong> ngay bên dưới. Bấm vào <strong>Ảnh ví dụ</strong> để phóng to.
               </div>
 
               <div class="sg-cls-grid" id="sg-cls-grid">
@@ -1202,10 +1109,10 @@
                     <table class="sg-cls-table" id="sg-cls-source-table">
                       <thead>
                         <tr>
-                          <th style="width:104px;">Mã (code)</th>
-                          <th style="width:106px;">Tên hiển thị</th>
+                          <th style="width:100px;">Mã (code)</th>
+                          <th style="width:104px;">Tên hiển thị</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:78px; text-align:center;">Ảnh ví dụ</th>
+                          <th style="width:74px; text-align:center;">Ảnh ví dụ</th>
                           <th class="sg-cls-col-del sg-src-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1214,7 +1121,7 @@
                   </div>
                 </div>
 
-                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner" data-min-w="200" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 1 và Bảng 2 (Nhấp đúp để đặt lại)"></div>
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 1 và Bảng 2 (Nhấp đúp để đặt lại)"></div>
 
                 <!-- BẢNG 2: PHÂN LOẠI ANIMATION & LỚP PHỦ -->
                 <div class="sg-cls-panel sg-cls-panel-right">
@@ -1232,12 +1139,12 @@
                     <table class="sg-cls-table" id="sg-cls-anim-table">
                       <thead>
                         <tr>
-                          <th style="width:88px;">Nhóm</th>
-                          <th style="width:98px;">Mã (code)</th>
-                          <th style="width:116px;">Tên hiển thị</th>
-                          <th style="width:110px;">Thông số / File</th>
+                          <th style="width:86px;">Nhóm</th>
+                          <th style="width:94px;">Mã (code)</th>
+                          <th style="width:112px;">Tên hiển thị</th>
+                          <th style="width:105px;">Thông số / File</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:78px; text-align:center;">Ảnh ví dụ</th>
+                          <th style="width:74px; text-align:center;">Ảnh ví dụ</th>
                           <th class="sg-cls-col-del sg-anim-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1252,6 +1159,102 @@
             </div>
           </div>
 
+          <!-- 2. FILE QUY TẮC (.TXT) -->
+          <div class="sp-card">
+            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>📄 2. Quy tắc chọn Phân loại (.txt — Nguyên tắc luôn áp dụng)</span>
+              <span class="sg-badge" id="sg-rules-status">🔒 Đang khóa</span>
+            </div>
+            <div class="sg-file-bar">
+              <span class="sg-file-path" id="sg-rules-filepath" title="templates/source_style_rules.txt">📄 templates/source_style_rules.txt</span>
+              <div style="display:flex; gap:4px; flex-shrink:0;">
+                <button class="sg-mini-btn" id="sg-btn-reload-rules" title="Đọc lại nội dung mới nhất từ file .txt">🔄 Đọc lại</button>
+                <button class="sg-mini-btn" id="sg-btn-open-rules" title="Mở file .txt bằng app ngoài">📂 Mở ngoài</button>
+              </div>
+            </div>
+            <p class="sp-hint" style="margin-bottom:6px;">
+              Dặn AI khi nào dùng loại Source hay Animation nào. Mặc định <strong>khóa an toàn</strong> — bấm <strong>Chỉnh sửa</strong> để viết thêm.
+            </p>
+            <textarea id="sg-rules-input" class="sg-rules-textarea is-locked" rows="6" readonly
+              placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
+            <div class="v-split-resizer" data-vkey="sg-rules-h" data-target="#sg-rules-input" data-min-h="85" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao ô Quy tắc .txt (Nhấp đúp để đặt lại)"></div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span class="sp-hint" id="sg-rules-char">0 dòng · 0 ký tự</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button class="btn-secondary" id="sg-btn-edit-rules" style="padding:6px 12px; font-size:0.78rem;">
+                  ✏️ Chỉnh sửa
+                </button>
+                <button class="btn-secondary" id="sg-btn-cancel-rules" style="padding:6px 10px; font-size:0.78rem; display:none;">
+                  ✖ Hủy
+                </button>
+                <button class="btn-primary" id="sg-btn-save-rules" style="padding:6px 12px; font-size:0.78rem; display:none;">
+                  💾 Lưu &amp; Khóa lại
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. KHO VÍ DỤ ĐÃ DẠY AI (.JSON) -->
+          <div class="sp-card">
+            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>📚 3. Kho bài mẫu phân loại đã dạy AI (<span id="sg-example-count">0</span> mẫu)</span>
+              <button class="btn-secondary" id="sg-btn-clear-examples" title="Xóa toàn bộ kho ví dụ"
+                style="padding:3px 8px; font-size:0.7rem; color:var(--error);">
+                Xóa hết
+              </button>
+            </div>
+            <div class="sg-file-bar">
+              <span class="sg-file-path" id="sg-examples-filepath" title="templates/source_examples.json">📄 templates/source_examples.json</span>
+              <button class="sg-mini-btn" id="sg-btn-open-examples" title="Mở trực tiếp file .json trên máy">📂 Mở .json</button>
+            </div>
+            <p class="sp-hint" style="margin-bottom:8px;">
+              Các câu mẫu bạn đã duyệt bên phải và bấm <strong>"🧠 Lưu vào Kho ví dụ"</strong> (AI dùng Gemini Embedding tìm câu tương tự để bắt chước).
+            </p>
+            <div class="sg-examples-list" id="sg-examples-list">
+              <div class="sp-hint" style="text-align:center; padding:12px 0;">Chưa có ví dụ nào. Hãy chạy gợi ý hoặc
+                chỉnh sửa bảng bên phải rồi bấm "Lưu vào Kho ví dụ".</div>
+            </div>
+            <div class="v-split-resizer" data-vkey="sg-examples-h" data-target="#sg-examples-list" data-min-h="80" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Kho ví dụ (Nhấp đúp để đặt lại)"></div>
+          </div>
+
+        </div>
+
+        <div class="split-resizer" data-tab-key="source-suggester-2zone" data-min-w="360" title="Kéo để phóng to / thu nhỏ giữa Khu vực 1 (Phân loại &amp; Quy tắc) và Khu vực 2 (AI Gợi ý) — Nhấp đúp để đặt lại"></div>
+
+        <!-- =============================================================
+             BÊN PHẢI: TOÀN BỘ CONTAINER VỀ AI ĐƯA RA GỢI Ý & XUẤT TIMELINE
+             ============================================================= -->
+        <div class="sg-right">
+
+          <div class="sg-zone-banner zone-ai">
+            <div class="sg-zone-title">🤖 KHU VỰC 2: AI ĐƯA RA GỢI Ý CHO VIDEO ĐANG DỰNG</div>
+            <div class="sg-zone-sub">Chọn file Timeline CSV của bài mới → AI tự động phân tích &amp; gắn Source + Animation dựa theo Phân loại bên trái</div>
+          </div>
+
+          <!-- 1. CHỌN FILE TIMELINE CSV & CHẠY AI GỢI Ý -->
+          <div class="sp-card sg-ai-run-card">
+            <div class="sg-ai-run-grid">
+              <div class="sg-ai-run-col">
+                <label class="sg-run-label">📂 1. File kịch bản <code>1_CSV_Timeline.csv</code></label>
+                <div class="sp-file-row">
+                  <input type="text" class="sp-path-input" id="sg-timeline-csv" placeholder="Chọn 1_CSV_Timeline.csv..." readonly>
+                  <button class="btn-secondary" id="sg-btn-browse-csv">Chọn CSV</button>
+                </div>
+              </div>
+              <div class="sg-ai-run-col">
+                <label class="sg-run-label">🏷️ 2. Thời kỳ / Bối cảnh mặc định (tùy chọn)</label>
+                <input type="text" class="sp-path-input" id="sg-default-thoiky"
+                  placeholder="VD: Euro 2008 · Tây Ban Nha / Xavi" style="width:100%;">
+              </div>
+              <div class="sg-ai-run-btn-col">
+                <button class="btn-generate sg-ai-run-btn" id="sg-btn-suggest">
+                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source + Animation</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. BẢNG KẾT QUẢ AI GỢI Ý & XUẤT CSV -->
           <div class="sp-card sg-table-card">
 
             <!-- Thanh công cụ trên bảng -->
@@ -1265,7 +1268,7 @@
               </div>
               <div class="sg-toolbar-actions">
                 <button class="btn-secondary" id="sg-btn-learn" disabled
-                  title="Lưu các dòng hiện tại vào kho ví dụ để AI học cho lần sau">
+                  title="Lưu các dòng hiện tại vào kho ví dụ bên trái để AI học cho lần sau">
                   🧠 Lưu vào Kho ví dụ (Dạy AI)
                 </button>
                 <button class="btn-primary" id="sg-btn-export" disabled
@@ -1298,7 +1301,7 @@
                 <tbody id="sg-tbody">
                   <tr>
                     <td colspan="9" class="sg-empty-row">
-                      Hãy chọn file <code>1_CSV_Timeline.csv</code> ở cột bên trái để bắt đầu.
+                      Hãy chọn file <code>1_CSV_Timeline.csv</code> ở khung phía trên rồi bấm <strong>🤖 AI Gợi ý Source + Animation</strong>.
                     </td>
                   </tr>
                 </tbody>
@@ -1306,6 +1309,14 @@
             </div>
 
           </div>
+
+          <!-- 3. NHẬT KÝ CHẠY AI -->
+          <div class="sp-card">
+            <div class="sp-card-header">📜 Nhật ký Gợi ý Source</div>
+            <div class="sp-log-box" id="sg-log-box" style="height:95px;"></div>
+            <div class="v-split-resizer" data-vkey="sg-log-h" data-target="#sg-log-box" data-min-h="65" data-max-h="380" title="Kéo lên/xuống để chỉnh chiều cao Nhật ký (Nhấp đúp để đặt lại)"></div>
+          </div>
+
         </div>
 
       </div>
