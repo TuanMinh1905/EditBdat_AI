@@ -434,6 +434,38 @@ def _load_element_map(element_map_path=None):
     return auto_map, elements
 
 
+def _load_anim_specs():
+    """Doc bang phan loai Animation tu templates/classifications.json de ho tro ma anim tuy chinh."""
+    cls_path = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "templates",
+        "classifications.json",
+    )
+    specs = {
+        "zoom_in": (100, 108),
+        "zoom_out": (108, 100),
+        "static": (100, 100),
+    }
+    if not os.path.exists(cls_path):
+        return specs
+    try:
+        import json
+
+        with open(cls_path, "r", encoding="utf-8-sig") as f:
+            data = json.load(f)
+        for item in data.get("animation_types", []):
+            if item.get("group") != "anim":
+                continue
+            code = str(item.get("code", "")).strip().lower()
+            param = str(item.get("param", "")).strip()
+            m = re.match(r"^(\d+)\s*(?:->|→|-|:)\s*(\d+)$", param)
+            if code and m:
+                specs[code] = (int(m.group(1)), int(m.group(2)))
+    except Exception:
+        pass
+    return specs
+
+
 def _resolve_element(loai_source, csv_element_value, auto_map, elements, element_dir):
     """
     Tra ve list element dicts cho mot cau/y.
@@ -712,8 +744,9 @@ def generate_xml(
     cat_idx = build_catalog_index(cat_rows)
     used_set = set()
 
-    # Load element map (neu co element_dir)
+    # Load element map (neu co element_dir) va anim_specs (tu classifications.json)
     auto_map, elements = {}, {}
+    anim_specs = _load_anim_specs()
     if element_dir:
         auto_map, elements = _load_element_map()
         log(
@@ -957,13 +990,13 @@ def generate_xml(
                     fps=fps,
                     file_registered=file_registered,
                 )
-                # Animation: Ken Burns zoom (doc tu cot 'anim' trong CSV hoac xen ke mac dinh)
+                # Animation: Ken Burns zoom (doc tu cot 'anim' trong CSV + bang phan loai classifications.json)
                 csv_anim_val = (sp.get("anim", "") or "auto").strip().lower()
                 if enable_animations and csv_anim_val not in ("static", "none"):
-                    if csv_anim_val == "zoom_in":
-                        _add_scale_effect(ci, clip["duration"], 100, 108)
-                    elif csv_anim_val == "zoom_out":
-                        _add_scale_effect(ci, clip["duration"], 108, 100)
+                    if csv_anim_val in anim_specs:
+                        s_start, s_end = anim_specs[csv_anim_val]
+                        if s_start != s_end:
+                            _add_scale_effect(ci, clip["duration"], s_start, s_end)
                     elif not clip["is_image"]:
                         # Che do auto mac dinh: xen ke zoom-in va zoom-out
                         if clip_index % 2 == 0:

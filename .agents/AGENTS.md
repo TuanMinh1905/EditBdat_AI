@@ -50,6 +50,7 @@ Code_AI/
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
 ├── templates/                       # Template JSX, preset effects, element map
+│   ├── classifications.json         # Bảng Phân loại Source & Animation động (cập nhật trực tiếp từ UI)
 │   ├── element_map.json             # Mapping element_id → file overlay/texture
 │   ├── source_style_rules.txt       # Quy tắc phong cách chọn Source của user
 │   └── source_examples.json         # Kho ví dụ câu thoại → loai_source (kèm vector embedding)
@@ -311,6 +312,7 @@ try {
 | 2026-11-10 | Thêm quy tắc #13: Sau mỗi lần chỉnh sửa hoặc viết code mới, tự động commit và push lên Git với commit message bằng tiếng Việt. | Theo yêu cầu của user để luôn đồng bộ code mới nhất lên Git và dễ theo dõi lịch sử thay đổi bằng tiếng Việt. |
 | 2026-11-10 | Sắp xếp lại 6 tab sidebar (`Tạo mới`, `Quy tắc`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`, `Cài đặt`). Thêm `python/token_tracker.py` + 2 API `/api/token-usage/get`, `/api/token-usage/reset` + IPC (`get-token-usage`, `reset-token-usage`, `open-external`) + UI thống kê Token theo từng API Key trong tab Cài đặt. | Giúp user theo dõi trực tiếp lượng Token Gemini API đã tiêu thụ trong App ngay tại màn hình Cài đặt. |
 | 2026-11-10 | Quy hoạch lại cấu trúc thư mục sản xuất `D:\Edit SofaZone` thành 3 phân khu chuẩn (`01_Tai_Nguyen_Co_Dinh`, `02_Kho_Source`, `03_Projects`). Tự động đồng bộ bản sao `source_style_rules.txt` và `source_examples.json` sang `01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt`. Điền sẵn các đường dẫn cố định (`02_Clip_Da_Cat`, `catalog.csv`, `Elements`) trong `renderer.js`. | Giúp user quản lý file khoa học, không bị rối khi tạo Project video mới và tiết kiệm thao tác chọn lại các đường dẫn cố định. |
+| 2026-11-10 | Thêm 2 bảng **Phân loại Source** và **Phân loại Animation & Lớp phủ** hiển thị trực tiếp trên tab `💡 Gợi ý Source - Animation` (và đồng bộ sang tab `📋 Quy tắc`). Tạo `templates/classifications.json`, thêm API `/api/source-suggester/save-classifications` + IPC `suggester-save-classifications`. Đồng bộ động dữ liệu 2 bảng này sang AI Prompt (`source_suggester.py`), Dropdown Timeline, Tool B (`clip_splitter.py`) và Tool A (`premiere_xml_generator.py` + `element_map.json`). | Cho phép user xem, thêm, sửa, xóa và mô tả các loại Source & Animation ngay trên giao diện, sau đó toàn bộ App tự động lấy danh sách mới nhất ra sử dụng. |
 
 ---
 

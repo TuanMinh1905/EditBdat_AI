@@ -48,6 +48,7 @@ contextBridge.exposeInMainWorld('api', {
   saveCsvFile: (defaultPath) => ipcRenderer.invoke('save-csv-file', defaultPath),
   suggesterGetState: () => ipcRenderer.invoke('suggester-get-state'),
   suggesterSaveRules: (params) => ipcRenderer.invoke('suggester-save-rules', params),
+  suggesterSaveClassifications: (params) => ipcRenderer.invoke('suggester-save-classifications', params),
   suggesterLoadCsv: (params) => ipcRenderer.invoke('suggester-load-csv', params),
   suggesterSuggest: (params) => ipcRenderer.invoke('suggester-suggest', params),
   suggesterSaveExamples: (params) => ipcRenderer.invoke('suggester-save-examples', params),

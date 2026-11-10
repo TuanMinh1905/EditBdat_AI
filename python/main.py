@@ -674,10 +674,11 @@ def api_premiere_generate():
 
 @app.route('/api/source-suggester/get-state', methods=['POST'])
 def api_suggester_get_state():
-    """Tra ve quy tac phong cach va danh sach vi du trong kho."""
+    """Tra ve quy tac phong cach, 2 bang phan loai Source/Animation va danh sach vi du trong kho."""
     try:
         rules = source_suggester.get_rules()
         examples = source_suggester.get_examples()
+        cls_data = source_suggester.get_classifications()
         return jsonify({
             "success": True,
             "rules": rules,
@@ -685,9 +686,34 @@ def api_suggester_get_state():
             "total_examples": len(examples),
             "rules_path": source_suggester.rules_path,
             "examples_path": source_suggester.examples_path,
+            "source_types": cls_data["source_types"],
+            "animation_types": cls_data["animation_types"],
+            "classifications_path": cls_data["classifications_path"],
         })
     except Exception as e:
         log(f"Loi suggester-get-state: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/save-classifications', methods=['POST'])
+def api_suggester_save_classifications():
+    """Luu 2 bang Phan loai Source va Animation vao templates/classifications.json."""
+    try:
+        data = request.get_json() or {}
+        source_types = data.get('source_types')
+        animation_types = data.get('animation_types')
+        cls_data = source_suggester.save_classifications(
+            source_types=source_types,
+            animation_types=animation_types,
+        )
+        return jsonify({
+            "success": True,
+            "source_types": cls_data["source_types"],
+            "animation_types": cls_data["animation_types"],
+            "classifications_path": cls_data["classifications_path"],
+        })
+    except Exception as e:
+        log(f"Loi suggester-save-classifications: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 

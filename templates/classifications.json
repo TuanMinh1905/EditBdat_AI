@@ -1,0 +1,211 @@
+{
+  "source_types": [
+    {
+      "code": "rai_1",
+      "label": "Rải đơn",
+      "description": "Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung"
+    },
+    {
+      "code": "rai_2_1",
+      "label": "Rải đôi 1",
+      "description": "Video rải đôi kiểu 1 (2 clip chia đôi màn hình)"
+    },
+    {
+      "code": "rai_2_2",
+      "label": "Rải đôi 2",
+      "description": "Video rải đôi kiểu 2 (2 clip bố cục phụ)"
+    },
+    {
+      "code": "rai_3",
+      "label": "Rải 3",
+      "description": "Video rải 3 clip cùng lúc"
+    },
+    {
+      "code": "rai_4",
+      "label": "Rải 4 / Danh hiệu",
+      "description": "Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc"
+    },
+    {
+      "code": "phong_van",
+      "label": "Phỏng vấn",
+      "description": "Cảnh phỏng vấn cầu thủ / HLV nói chuyện"
+    },
+    {
+      "code": "training",
+      "label": "Tập luyện",
+      "description": "Cảnh tập luyện trên sân tập"
+    },
+    {
+      "code": "binh_luan_chay",
+      "label": "BLV nói",
+      "description": "Cảnh bình luận viên / chuyên gia đang nói"
+    },
+    {
+      "code": "khan_dai",
+      "label": "Khán đài",
+      "description": "Cảnh cổ động viên, khán đài, bầu không khí sân vận động"
+    },
+    {
+      "code": "anh_thong_so",
+      "label": "Bảng số liệu",
+      "description": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh"
+    },
+    {
+      "code": "anh_thoi_diem",
+      "label": "Ảnh khoảnh khắc",
+      "description": "Ảnh chụp khoảnh khắc / đội hình / tin tức tại một thời điểm cụ thể"
+    },
+    {
+      "code": "anh_chung_bao",
+      "label": "Mặt báo",
+      "description": "Ảnh mặt báo, tiêu đề báo chí truyền thông"
+    },
+    {
+      "code": "sa_ban",
+      "label": "Sa bàn",
+      "description": "Sa bàn chiến thuật, sơ đồ đội hình"
+    }
+  ],
+  "animation_types": [
+    {
+      "code": "auto",
+      "group": "anim",
+      "label": "🔄 Mặc định (Auto)",
+      "param": "auto",
+      "description": "Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip"
+    },
+    {
+      "code": "zoom_in",
+      "group": "anim",
+      "label": "🔍 Phóng to (Zoom In)",
+      "param": "100->108",
+      "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh"
+    },
+    {
+      "code": "zoom_out",
+      "group": "anim",
+      "label": "🔎 Thu nhỏ (Zoom Out)",
+      "param": "108->100",
+      "description": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh"
+    },
+    {
+      "code": "static",
+      "group": "anim",
+      "label": "⏹️ Đứng yên (Static)",
+      "param": "100->100",
+      "description": "Đứng yên (100%) — không phóng to thu nhỏ"
+    },
+    {
+      "code": "auto",
+      "group": "element",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame, còn lại không phủ)"
+    },
+    {
+      "code": "none",
+      "group": "element",
+      "label": "🚫 Không phủ (None)",
+      "param": "",
+      "description": "Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)"
+    },
+    {
+      "code": "tv_retro",
+      "group": "element",
+      "label": "📺 Khung Sofa TV",
+      "param": "tv FRAME2.png",
+      "description": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn"
+    },
+    {
+      "code": "film_grain",
+      "group": "element",
+      "label": "🎞️ Phim 8mm hồi ức",
+      "param": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
+      "description": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức"
+    },
+    {
+      "code": "scout_frame",
+      "group": "element",
+      "label": "📋 Hồ sơ Scout",
+      "param": "scout frame.png",
+      "description": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)"
+    },
+    {
+      "code": "stats_table",
+      "group": "element",
+      "label": "📊 Bảng số liệu",
+      "param": "Comparison Table List Infographic Graph.png",
+      "description": "Khung bảng thống kê / so sánh số liệu"
+    },
+    {
+      "code": "stats_table_1",
+      "group": "element",
+      "label": "📊 Bảng mẫu 1",
+      "param": "Comparison Table List Infographic Graph (1).png",
+      "description": "Bảng thống kê mẫu 1"
+    },
+    {
+      "code": "stats_table_2",
+      "group": "element",
+      "label": "📊 Bảng mẫu 2",
+      "param": "Comparison Table List Infographic Graph (2).png",
+      "description": "Bảng thống kê mẫu 2"
+    },
+    {
+      "code": "tv_sony",
+      "group": "element",
+      "label": "📺 TV Sony bàn gỗ",
+      "param": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
+      "description": "Khung TV Sony cổ điển trên bàn gỗ"
+    },
+    {
+      "code": "tv_dolly",
+      "group": "element",
+      "label": "📺 TV Dolly In",
+      "param": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
+      "description": "Hiệu ứng TV retro dolly-in"
+    },
+    {
+      "code": "circle_gold",
+      "group": "element",
+      "label": "🟡 Vòng tròn vàng",
+      "param": "5.png",
+      "description": "Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)"
+    },
+    {
+      "code": "circle_blue",
+      "group": "element",
+      "label": "🔵 Vòng tròn xanh",
+      "param": "o.png",
+      "description": "Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)"
+    },
+    {
+      "code": "paper_texture",
+      "group": "element",
+      "label": "📜 Giấy cũ 1",
+      "param": "paper texture.png",
+      "description": "Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu"
+    },
+    {
+      "code": "paper_texture_2",
+      "group": "element",
+      "label": "📜 Giấy cũ 2",
+      "param": "paper texture 2.png",
+      "description": "Lớp phủ giấy cũ mẫu 2"
+    },
+    {
+      "code": "texture_dark",
+      "group": "element",
+      "label": "🌑 Phủ tối (Dark)",
+      "param": "textture.png",
+      "description": "Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương"
+    },
+    {
+      "code": "grid_orange",
+      "group": "element",
+      "label": "🟧 Lưới cam",
+      "param": "vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4",
+      "description": "Nền lưới cam chuyển động (grid animation)"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 """
 Source Suggester (Cong cu 1 — Goi y phan loai Source + Element + Animation theo phong cach ca nhan)
-Su dung Gemini Embedding (RAG few-shot) + Gemini 3.8 Flash + Rule Set co dinh
+Su dung Gemini Embedding (RAG few-shot) + Gemini 3.8 Flash + Rule Set + Bang Phan Loai dong
 de goi y cot `loai_source`, `element`, `anim` va `thoi_ky` tu file `1_CSV_Timeline.csv`,
 xuat ra `2_CSV_PhanLoaiSource.csv`.
 """
@@ -16,93 +16,237 @@ from google.genai import types
 from token_tracker import record_usage
 
 
-VALID_LOAI = [
-    "rai_1",
-    "rai_2_1",
-    "rai_2_2",
-    "rai_3",
-    "rai_4",
-    "phong_van",
-    "training",
-    "binh_luan_chay",
-    "khan_dai",
-    "anh_thong_so",
-    "anh_thoi_diem",
-    "anh_chung_bao",
-    "sa_ban",
+DEFAULT_SOURCE_TYPES = [
+    {
+        "code": "rai_1",
+        "label": "Rải đơn",
+        "description": "Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung",
+    },
+    {
+        "code": "rai_2_1",
+        "label": "Rải đôi 1",
+        "description": "Video rải đôi kiểu 1 (2 clip chia đôi màn hình)",
+    },
+    {
+        "code": "rai_2_2",
+        "label": "Rải đôi 2",
+        "description": "Video rải đôi kiểu 2 (2 clip bố cục phụ)",
+    },
+    {
+        "code": "rai_3",
+        "label": "Rải 3",
+        "description": "Video rải 3 clip cùng lúc",
+    },
+    {
+        "code": "rai_4",
+        "label": "Rải 4 / Danh hiệu",
+        "description": "Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc",
+    },
+    {
+        "code": "phong_van",
+        "label": "Phỏng vấn",
+        "description": "Cảnh phỏng vấn cầu thủ / HLV nói chuyện",
+    },
+    {
+        "code": "training",
+        "label": "Tập luyện",
+        "description": "Cảnh tập luyện trên sân tập",
+    },
+    {
+        "code": "binh_luan_chay",
+        "label": "BLV nói",
+        "description": "Cảnh bình luận viên / chuyên gia đang nói",
+    },
+    {
+        "code": "khan_dai",
+        "label": "Khán đài",
+        "description": "Cảnh cổ động viên, khán đài, bầu không khí sân vận động",
+    },
+    {
+        "code": "anh_thong_so",
+        "label": "Bảng số liệu",
+        "description": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh",
+    },
+    {
+        "code": "anh_thoi_diem",
+        "label": "Ảnh khoảnh khắc",
+        "description": "Ảnh chụp khoảnh khắc / đội hình / tin tức tại một thời điểm cụ thể",
+    },
+    {
+        "code": "anh_chung_bao",
+        "label": "Mặt báo",
+        "description": "Ảnh mặt báo, tiêu đề báo chí truyền thông",
+    },
+    {
+        "code": "sa_ban",
+        "label": "Sa bàn",
+        "description": "Sa bàn chiến thuật, sơ đồ đội hình",
+    },
 ]
 
-LOAI_DESCRIPTIONS = {
-    "rai_1": "Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung",
-    "rai_2_1": "Video rải đôi kiểu 1 (2 clip chia đôi màn hình)",
-    "rai_2_2": "Video rải đôi kiểu 2 (2 clip bố cục phụ)",
-    "rai_3": "Video rải 3 clip cùng lúc",
-    "rai_4": "Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc",
-    "phong_van": "Cảnh phỏng vấn cầu thủ / HLV nói chuyện",
-    "training": "Cảnh tập luyện trên sân tập",
-    "binh_luan_chay": "Cảnh bình luận viên / chuyên gia đang nói",
-    "khan_dai": "Cảnh cổ động viên, khán đài, bầu không khí sân vận động",
-    "anh_thong_so": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh",
-    "anh_thoi_diem": "Ảnh chụp khoảnh khắc / đội hình / tin tức tại một thời điểm cụ thể",
-    "anh_chung_bao": "Ảnh mặt báo, tiêu đề báo chí truyền thông",
-    "sa_ban": "Sa bàn chiến thuật, sơ đồ đội hình",
-}
-
-VALID_ELEMENTS = [
-    "auto",
-    "none",
-    "tv_retro",
-    "tv_sony",
-    "tv_dolly",
-    "film_grain",
-    "scout_frame",
-    "stats_table",
-    "stats_table_1",
-    "stats_table_2",
-    "circle_gold",
-    "circle_blue",
-    "paper_texture",
-    "paper_texture_2",
-    "texture_dark",
-    "grid_orange",
+DEFAULT_ANIMATION_TYPES = [
+    {
+        "code": "auto",
+        "group": "anim",
+        "label": "🔄 Mặc định (Auto)",
+        "param": "auto",
+        "description": "Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip",
+    },
+    {
+        "code": "zoom_in",
+        "group": "anim",
+        "label": "🔍 Phóng to (Zoom In)",
+        "param": "100->108",
+        "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh",
+    },
+    {
+        "code": "zoom_out",
+        "group": "anim",
+        "label": "🔎 Thu nhỏ (Zoom Out)",
+        "param": "108->100",
+        "description": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh",
+    },
+    {
+        "code": "static",
+        "group": "anim",
+        "label": "⏹️ Đứng yên (Static)",
+        "param": "100->100",
+        "description": "Đứng yên (100%) — không phóng to thu nhỏ",
+    },
+    {
+        "code": "auto",
+        "group": "element",
+        "label": "✨ Tự động (Auto)",
+        "param": "",
+        "description": "Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame, còn lại không phủ)",
+    },
+    {
+        "code": "none",
+        "group": "element",
+        "label": "🚫 Không phủ (None)",
+        "param": "",
+        "description": "Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)",
+    },
+    {
+        "code": "tv_retro",
+        "group": "element",
+        "label": "📺 Khung Sofa TV",
+        "param": "tv FRAME2.png",
+        "description": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn",
+    },
+    {
+        "code": "film_grain",
+        "group": "element",
+        "label": "🎞️ Phim 8mm hồi ức",
+        "param": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
+        "description": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức",
+    },
+    {
+        "code": "scout_frame",
+        "group": "element",
+        "label": "📋 Hồ sơ Scout",
+        "param": "scout frame.png",
+        "description": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)",
+    },
+    {
+        "code": "stats_table",
+        "group": "element",
+        "label": "📊 Bảng số liệu",
+        "param": "Comparison Table List Infographic Graph.png",
+        "description": "Khung bảng thống kê / so sánh số liệu",
+    },
+    {
+        "code": "stats_table_1",
+        "group": "element",
+        "label": "📊 Bảng mẫu 1",
+        "param": "Comparison Table List Infographic Graph (1).png",
+        "description": "Bảng thống kê mẫu 1",
+    },
+    {
+        "code": "stats_table_2",
+        "group": "element",
+        "label": "📊 Bảng mẫu 2",
+        "param": "Comparison Table List Infographic Graph (2).png",
+        "description": "Bảng thống kê mẫu 2",
+    },
+    {
+        "code": "tv_sony",
+        "group": "element",
+        "label": "📺 TV Sony bàn gỗ",
+        "param": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
+        "description": "Khung TV Sony cổ điển trên bàn gỗ",
+    },
+    {
+        "code": "tv_dolly",
+        "group": "element",
+        "label": "📺 TV Dolly In",
+        "param": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
+        "description": "Hiệu ứng TV retro dolly-in",
+    },
+    {
+        "code": "circle_gold",
+        "group": "element",
+        "label": "🟡 Vòng tròn vàng",
+        "param": "5.png",
+        "description": "Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)",
+    },
+    {
+        "code": "circle_blue",
+        "group": "element",
+        "label": "🔵 Vòng tròn xanh",
+        "param": "o.png",
+        "description": "Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)",
+    },
+    {
+        "code": "paper_texture",
+        "group": "element",
+        "label": "📜 Giấy cũ 1",
+        "param": "paper texture.png",
+        "description": "Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu",
+    },
+    {
+        "code": "paper_texture_2",
+        "group": "element",
+        "label": "📜 Giấy cũ 2",
+        "param": "paper texture 2.png",
+        "description": "Lớp phủ giấy cũ mẫu 2",
+    },
+    {
+        "code": "texture_dark",
+        "group": "element",
+        "label": "🌑 Phủ tối (Dark)",
+        "param": "textture.png",
+        "description": "Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương",
+    },
+    {
+        "code": "grid_orange",
+        "group": "element",
+        "label": "🟧 Lưới cam",
+        "param": "vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4",
+        "description": "Nền lưới cam chuyển động (grid animation)",
+    },
 ]
 
+VALID_LOAI = [x["code"] for x in DEFAULT_SOURCE_TYPES]
+LOAI_DESCRIPTIONS = {x["code"]: x["description"] for x in DEFAULT_SOURCE_TYPES}
+
+VALID_ELEMENTS = [x["code"] for x in DEFAULT_ANIMATION_TYPES if x["group"] == "element"]
 ELEMENT_DESCRIPTIONS = {
-    "auto": "Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame, còn lại không phủ)",
-    "none": "Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)",
-    "tv_retro": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn",
-    "tv_sony": "Khung TV Sony cổ điển trên bàn gỗ",
-    "tv_dolly": "Hiệu ứng TV retro dolly-in",
-    "film_grain": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức",
-    "scout_frame": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)",
-    "stats_table": "Khung bảng thống kê / so sánh số liệu",
-    "stats_table_1": "Bảng thống kê mẫu 1",
-    "stats_table_2": "Bảng thống kê mẫu 2",
-    "circle_gold": "Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)",
-    "circle_blue": "Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)",
-    "paper_texture": "Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu",
-    "paper_texture_2": "Lớp phủ giấy cũ mẫu 2",
-    "texture_dark": "Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương",
-    "grid_orange": "Nền lưới cam chuyển động (grid animation)",
+    x["code"]: x["description"]
+    for x in DEFAULT_ANIMATION_TYPES
+    if x["group"] == "element"
 }
 
-VALID_ANIMS = [
-    "auto",
-    "zoom_in",
-    "zoom_out",
-    "static",
-]
-
+VALID_ANIMS = [x["code"] for x in DEFAULT_ANIMATION_TYPES if x["group"] == "anim"]
 ANIM_DESCRIPTIONS = {
-    "auto": "Mặc định (tự động xen kẽ zoom nhẹ)",
-    "zoom_in": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh",
-    "zoom_out": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh",
-    "static": "Đứng yên (100%) — không zoom",
+    x["code"]: x["description"]
+    for x in DEFAULT_ANIMATION_TYPES
+    if x["group"] == "anim"
 }
 
 
 class SourceSuggester:
-    """Quan ly quy tac phong cach, kho vi du (RAG embedding) va goi AI goi y Source + Element + Anim."""
+    """Quan ly quy tac phong cach, bang phan loai Source/Animation, kho vi du (RAG embedding) va goi AI."""
 
     def __init__(self, base_dir=None, log=None):
         """Khoi tao SourceSuggester voi duong dan luu tru trong templates/."""
@@ -114,7 +258,13 @@ class SourceSuggester:
 
         self.rules_path = os.path.join(self.templates_dir, "source_style_rules.txt")
         self.examples_path = os.path.join(self.templates_dir, "source_examples.json")
-        self.external_sync_dir = r"D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt"
+        self.classifications_path = os.path.join(
+            self.templates_dir, "classifications.json"
+        )
+        self.element_map_path = os.path.join(self.templates_dir, "element_map.json")
+        self.external_sync_dir = (
+            r"D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt"
+        )
         self._log = log or (lambda msg: print(msg, flush=True))
 
         # Dam bao file ton tai
@@ -124,13 +274,25 @@ class SourceSuggester:
         if not os.path.exists(self.examples_path):
             with open(self.examples_path, "w", encoding="utf-8") as f:
                 f.write("[]\n")
+        if not os.path.exists(self.classifications_path):
+            self._save_classifications_raw(
+                {
+                    "source_types": DEFAULT_SOURCE_TYPES,
+                    "animation_types": DEFAULT_ANIMATION_TYPES,
+                }
+            )
 
     def _sync_external_backup(self):
-        """Dong bo ban sao source_style_rules.txt va source_examples.json sang 01_Tai_Nguyen_Co_Dinh."""
+        """Dong bo ban sao .txt, .json sang 01_Tai_Nguyen_Co_Dinh."""
         try:
             if os.path.isdir(self.external_sync_dir):
                 import shutil
-                for src in (self.rules_path, self.examples_path):
+
+                for src in (
+                    self.rules_path,
+                    self.examples_path,
+                    self.classifications_path,
+                ):
                     if os.path.exists(src):
                         shutil.copy2(
                             src,
@@ -138,6 +300,190 @@ class SourceSuggester:
                         )
         except Exception as e:
             self._log(f"[Suggester] Bo qua dong bo backup ngoai: {str(e)}")
+
+    # ------------------------------------------------------------------
+    # 0. Quan ly Bang Phan Loai Source & Animation (classifications.json)
+    # ------------------------------------------------------------------
+
+    def _load_classifications_raw(self):
+        """Doc file classifications.json, tra ve dict {source_types, animation_types}."""
+        try:
+            if os.path.exists(self.classifications_path):
+                with open(self.classifications_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    src = data.get("source_types")
+                    anim = data.get("animation_types")
+                    return {
+                        "source_types": src
+                        if isinstance(src, list) and len(src) > 0
+                        else DEFAULT_SOURCE_TYPES,
+                        "animation_types": anim
+                        if isinstance(anim, list) and len(anim) > 0
+                        else DEFAULT_ANIMATION_TYPES,
+                    }
+        except Exception as e:
+            self._log(f"[Suggester] Loi doc classifications.json: {str(e)}")
+        return {
+            "source_types": list(DEFAULT_SOURCE_TYPES),
+            "animation_types": list(DEFAULT_ANIMATION_TYPES),
+        }
+
+    def _save_classifications_raw(self, data):
+        """Ghi classifications.json va dong bo sang element_map.json + backup ngoai."""
+        with open(self.classifications_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+        self._sync_element_map(data.get("animation_types", []))
+        self._sync_external_backup()
+
+    def _sync_element_map(self, animation_types):
+        """Cap nhat templates/element_map.json khi user chinh sua hoac them element moi."""
+        try:
+            el_map_data = {"auto_map": {}, "elements": {}}
+            if os.path.exists(self.element_map_path):
+                with open(self.element_map_path, "r", encoding="utf-8-sig") as f:
+                    el_map_data = json.load(f)
+            elements_dict = el_map_data.get("elements", {})
+
+            for item in animation_types:
+                if item.get("group") != "element":
+                    continue
+                code = str(item.get("code", "")).strip()
+                param_file = str(item.get("param", "")).strip()
+                desc = str(item.get("description", "")).strip()
+                if not code or code in ("auto", "none"):
+                    continue
+                if param_file:
+                    ext = os.path.splitext(param_file)[1].lower()
+                    is_img = ext in (".png", ".jpg", ".jpeg", ".bmp", ".webp")
+                    existing = elements_dict.get(code, {})
+                    elements_dict[code] = {
+                        "file": param_file,
+                        "track": existing.get("track", "V3"),
+                        "scope": existing.get("scope", "clip"),
+                        "is_image": is_img,
+                        "opacity": existing.get("opacity", 100),
+                        "note": desc or item.get("label", code),
+                    }
+            el_map_data["elements"] = elements_dict
+            with open(self.element_map_path, "w", encoding="utf-8") as f:
+                json.dump(el_map_data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            self._log(f"[Suggester] Bo qua dong bo element_map.json: {str(e)}")
+
+    def get_classifications(self):
+        """Tra ve du lieu 2 bang phan loai Source va Animation cho UI."""
+        data = self._load_classifications_raw()
+        return {
+            "source_types": data["source_types"],
+            "animation_types": data["animation_types"],
+            "classifications_path": self.classifications_path,
+        }
+
+    def save_classifications(self, source_types=None, animation_types=None):
+        """Luu cap nhat 2 bang Phan loai Source va Animation tu UI."""
+        current = self._load_classifications_raw()
+
+        if source_types is not None and isinstance(source_types, list):
+            clean_src = []
+            seen_codes = set()
+            for it in source_types:
+                code = re.sub(
+                    r"[^a-zA-Z0-9_]",
+                    "_",
+                    str(it.get("code", "")).strip().lower(),
+                ).strip("_")
+                if not code or code in seen_codes:
+                    continue
+                seen_codes.add(code)
+                clean_src.append(
+                    {
+                        "code": code,
+                        "label": str(it.get("label", code)).strip() or code,
+                        "description": str(it.get("description", "")).strip(),
+                    }
+                )
+            if clean_src:
+                current["source_types"] = clean_src
+
+        if animation_types is not None and isinstance(animation_types, list):
+            clean_anim = []
+            seen_pairs = set()
+            for it in animation_types:
+                code = re.sub(
+                    r"[^a-zA-Z0-9_]",
+                    "_",
+                    str(it.get("code", "")).strip().lower(),
+                ).strip("_")
+                group = (
+                    "anim"
+                    if str(it.get("group", "")).strip().lower() == "anim"
+                    else "element"
+                )
+                if not code or (group, code) in seen_pairs:
+                    continue
+                seen_pairs.add((group, code))
+                clean_anim.append(
+                    {
+                        "code": code,
+                        "group": group,
+                        "label": str(it.get("label", code)).strip() or code,
+                        "param": str(it.get("param", "")).strip(),
+                        "description": str(it.get("description", "")).strip(),
+                    }
+                )
+            if clean_anim:
+                current["animation_types"] = clean_anim
+
+        self._save_classifications_raw(current)
+        self._log(
+            f"[Suggester] Da luu bang phan loai: {len(current['source_types'])} Source, {len(current['animation_types'])} Animation/Element"
+        )
+        return self.get_classifications()
+
+    def _get_dynamic_dicts(self):
+        """Tra ve (loai_dict, element_dict, anim_dict) tu classifications.json."""
+        cls_data = self._load_classifications_raw()
+        loai_dict = {}
+        for x in cls_data["source_types"]:
+            c = x.get("code", "").strip()
+            if c:
+                lbl = x.get("label", "")
+                desc = x.get("description", "")
+                loai_dict[c] = f"{lbl} — {desc}" if lbl and desc else (desc or lbl or c)
+
+        element_dict = {}
+        anim_dict = {}
+        for x in cls_data["animation_types"]:
+            c = x.get("code", "").strip()
+            grp = x.get("group", "element")
+            if not c:
+                continue
+            lbl = x.get("label", "")
+            desc = x.get("description", "")
+            param = x.get("param", "")
+            full_desc = desc or lbl or c
+            if param and grp == "anim" and param != "auto":
+                full_desc = f"{full_desc} (Thông số: {param})"
+            elif param and grp == "element":
+                full_desc = f"{full_desc} [File: {param}]"
+            if grp == "anim":
+                anim_dict[c] = full_desc
+            else:
+                element_dict[c] = full_desc
+
+        if "auto" not in element_dict:
+            element_dict["auto"] = ELEMENT_DESCRIPTIONS["auto"]
+        if "none" not in element_dict:
+            element_dict["none"] = ELEMENT_DESCRIPTIONS["none"]
+        if "auto" not in anim_dict:
+            anim_dict["auto"] = ANIM_DESCRIPTIONS["auto"]
+
+        return (
+            loai_dict or LOAI_DESCRIPTIONS,
+            element_dict or ELEMENT_DESCRIPTIONS,
+            anim_dict or ANIM_DESCRIPTIONS,
+        )
 
     # ------------------------------------------------------------------
     # 1. Quan ly Quy tac phong cach (Style Rules)
@@ -366,42 +712,46 @@ class SourceSuggester:
         return [item[1] for item in scored[:top_k]]
 
     # ------------------------------------------------------------------
-    # 4. Sanitize & Validate loai_source, element, anim
+    # 4. Sanitize & Validate loai_source, element, anim (Dong theo bang phan loai)
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def sanitize_loai_source(raw_val):
+    def sanitize_loai_source(self, raw_val):
         """
-        Dam bao loai_source chi chua toi da 2 ma hop le trong VALID_LOAI,
+        Dam bao loai_source chi chua toi da 2 ma hop le trong bang Phan loai Source,
         ngan cach boi ' + '. Neu khong co ma hop le nao -> fallback 'rai_1'.
         """
+        loai_dict, _, _ = self._get_dynamic_dicts()
+        valid_set = set(loai_dict.keys()) | set(VALID_LOAI)
+        default_code = next(iter(loai_dict.keys()), "rai_1")
         if not raw_val:
-            return "rai_1"
+            return default_code
         parts = re.split(r"[+,;/|]+", str(raw_val))
         valid_parts = []
         for p in parts:
             code = p.strip().lower()
-            if code in VALID_LOAI and code not in valid_parts:
+            if code in valid_set and code not in valid_parts:
                 valid_parts.append(code)
             if len(valid_parts) >= 2:
                 break
-        return " + ".join(valid_parts) if valid_parts else "rai_1"
+        return " + ".join(valid_parts) if valid_parts else default_code
 
-    @staticmethod
-    def sanitize_element(raw_val):
-        """Dam bao element nam trong VALID_ELEMENTS. Fallback 'auto'."""
+    def sanitize_element(self, raw_val):
+        """Dam bao element nam trong bang Phan loai Element. Fallback 'auto'."""
+        _, element_dict, _ = self._get_dynamic_dicts()
+        valid_set = set(element_dict.keys()) | set(VALID_ELEMENTS)
         if not raw_val:
             return "auto"
         val = str(raw_val).strip().lower()
-        return val if val in VALID_ELEMENTS else "auto"
+        return val if val in valid_set else "auto"
 
-    @staticmethod
-    def sanitize_anim(raw_val):
-        """Dam bao anim nam trong VALID_ANIMS. Fallback 'auto'."""
+    def sanitize_anim(self, raw_val):
+        """Dam bao anim nam trong bang Phan loai Anim. Fallback 'auto'."""
+        _, _, anim_dict = self._get_dynamic_dicts()
+        valid_set = set(anim_dict.keys()) | set(VALID_ANIMS)
         if not raw_val:
             return "auto"
         val = str(raw_val).strip().lower()
-        return val if val in VALID_ANIMS else "auto"
+        return val if val in valid_set else "auto"
 
     # ------------------------------------------------------------------
     # 5. Doc & Xuat CSV
@@ -472,7 +822,7 @@ class SourceSuggester:
         Su dung:
           1. Quy tac phong cach cua user (source_style_rules.txt)
           2. Kho vi du da luu (source_examples.json) + Gemini Embedding RAG
-          3. Danh sach co dinh VALID_LOAI, VALID_ELEMENTS, VALID_ANIMS
+          3. Hai bang Phan loai Source va Animation dong (classifications.json)
         """
         if not api_key or not api_key.strip():
             raise ValueError(
@@ -482,6 +832,7 @@ class SourceSuggester:
         client = genai.Client(api_key=api_key.strip())
         rules_text = self.get_rules().strip()
         examples = self._load_examples_raw()
+        loai_dict, element_dict, anim_dict = self._get_dynamic_dicts()
 
         # Dam bao cac vi du trong kho co embedding
         missing_emb_indices = [
@@ -509,29 +860,23 @@ class SourceSuggester:
             else [None] * len(timeline_rows)
         )
 
-        loai_list_str = "\n".join(
-            [f"- `{k}`: {v}" for k, v in LOAI_DESCRIPTIONS.items()]
-        )
-        element_list_str = "\n".join(
-            [f"- `{k}`: {v}" for k, v in ELEMENT_DESCRIPTIONS.items()]
-        )
-        anim_list_str = "\n".join(
-            [f"- `{k}`: {v}" for k, v in ANIM_DESCRIPTIONS.items()]
-        )
+        loai_list_str = "\n".join([f"- `{k}`: {v}" for k, v in loai_dict.items()])
+        element_list_str = "\n".join([f"- `{k}`: {v}" for k, v in element_dict.items()])
+        anim_list_str = "\n".join([f"- `{k}`: {v}" for k, v in anim_dict.items()])
 
         prompt_parts = [
             "Bạn là trợ lý đạo diễn hình ảnh cho kênh phân tích bóng đá SofaZone (phong cách tư liệu hoài niệm / vintage).",
             "Nhiệm vụ của bạn là gán bộ 3 thông số (`loai_source`, `element`, `anim`) và `thoi_ky` cho từng câu thoại theo ĐÚNG tư duy của người dùng, KHÔNG tự ý làm màu mè rối mắt.",
             "",
-            "=== 1A. DANH SÁCH MÃ `loai_source` HỢP LỆ (TẦNG VIDEO/ẢNH V1-V2) ===",
+            "=== 1A. BẢNG PHÂN LOẠI SOURCE (`loai_source` — TẦNG VIDEO/ẢNH V1-V2) ===",
             loai_list_str,
-            "Quy tắc `loai_source`: Chỉ chọn 1 mã (VD: `rai_1`) hoặc tối đa 2 mã ghép bằng dấu cộng (VD: `anh_thong_so + rai_1`). Không bịa mã mới.",
+            "Quy tắc `loai_source`: Chỉ chọn 1 mã (VD: `rai_1`) hoặc tối đa 2 mã ghép bằng dấu cộng (VD: `anh_thong_so + rai_1`) nằm trong bảng trên. Không bịa mã mới.",
             "",
-            "=== 1B. DANH SÁCH MÃ `element` HỢP LỆ (LỚP PHỦ KHUNG/TEXTURE V3) ===",
+            "=== 1B. BẢNG PHÂN LOẠI LỚP PHỦ ELEMENT (`element` — KHUNG/TEXTURE V3) ===",
             element_list_str,
-            "Quy tắc `element`: Không lạm dụng khung viền ở mọi câu gây ngộp! Câu dẫn chuyện pha bóng bình thường nên để `none` hoặc `auto`. Chỉ bật `tv_retro`, `film_grain`, `scout_frame`, `stats_table`... khi câu thoại thực sự nhấn mạnh điểm chuyển thời kỳ, hồi ức thời niên thiếu, ảnh chụp đội hình, phỏng vấn hoặc bảng số liệu.",
+            "Quy tắc `element`: Không lạm dụng khung viền ở mọi câu gây ngộp! Câu dẫn chuyện pha bóng bình thường nên để `none` hoặc `auto`. Chỉ bật khung/lớp phủ khi phù hợp với mô tả trong bảng trên và quy tắc của người dùng.",
             "",
-            "=== 1C. DANH SÁCH MÃ `anim` HỢP LỆ (CHUYỂN ĐỘNG ZOOM) ===",
+            "=== 1C. BẢNG PHÂN LOẠI CHUYỂN ĐỘNG ANIMATION (`anim` — CAMERA ZOOM V1-V2) ===",
             anim_list_str,
         ]
 
@@ -548,7 +893,7 @@ class SourceSuggester:
                 [
                     "",
                     "=== 2. QUY TẮC PHONG CÁCH RIÊNG CỦA NGƯỜI DÙNG ===",
-                    "(Người dùng chưa nhập quy tắc riêng — hãy chọn tiết chế, tinh tế: câu dẫn chuyện bình thường dùng `loai_source: rai_1`, `element: none` hoặc `auto`, `anim: auto`; câu hồi ức thời trẻ dùng `element: film_grain`; câu giới thiệu ảnh đội hình/khoảnh khắc dùng `element: tv_retro` kèm `anim: zoom_in`; câu có số liệu thống kê dùng `loai_source: anh_thong_so`, `element: stats_table`).",
+                    "(Người dùng chưa nhập quy tắc riêng — hãy chọn tiết chế, tinh tế dựa theo mô tả trong Bảng Phân Loại Source & Animation ở mục 1A, 1B, 1C).",
                 ]
             )
 
@@ -660,7 +1005,9 @@ class SourceSuggester:
             contents=full_prompt,
             config=config,
         )
-        usage = record_usage(api_key, response, feature="source_suggester", model="gemini-3.8-flash")
+        usage = record_usage(
+            api_key, response, feature="source_suggester", model="gemini-3.8-flash"
+        )
         if usage:
             self._log(
                 f"[Suggester] Token luot goi: {usage['total_tokens']:,} "

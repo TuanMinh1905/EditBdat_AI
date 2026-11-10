@@ -398,6 +398,7 @@ ipcMain.handle('save-csv-file', async (event, defaultPath) => {
 ipcMain.handle('suggester-get-state', async () => {
   const rulesPath = path.join(__dirname, 'templates', 'source_style_rules.txt');
   const examplesPath = path.join(__dirname, 'templates', 'source_examples.json');
+  const clsPath = path.join(__dirname, 'templates', 'classifications.json');
   try {
     const res = await callPython('/api/source-suggester/get-state', {});
     if (res && !res.error) {
@@ -405,6 +406,7 @@ ipcMain.handle('suggester-get-state', async () => {
         ...res,
         rules_path: res.rules_path || rulesPath,
         examples_path: res.examples_path || examplesPath,
+        classifications_path: res.classifications_path || clsPath,
       };
     }
   } catch (e) {
@@ -429,6 +431,13 @@ ipcMain.handle('suggester-get-state', async () => {
         }));
       }
     }
+    let sourceTypes = [];
+    let animationTypes = [];
+    if (fs.existsSync(clsPath)) {
+      const clsRaw = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
+      sourceTypes = Array.isArray(clsRaw.source_types) ? clsRaw.source_types : [];
+      animationTypes = Array.isArray(clsRaw.animation_types) ? clsRaw.animation_types : [];
+    }
     return {
       success: true,
       rules,
@@ -436,6 +445,40 @@ ipcMain.handle('suggester-get-state', async () => {
       total_examples: examples.length,
       rules_path: rulesPath,
       examples_path: examplesPath,
+      source_types: sourceTypes,
+      animation_types: animationTypes,
+      classifications_path: clsPath,
+    };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('suggester-save-classifications', async (event, params) => {
+  const clsPath = path.join(__dirname, 'templates', 'classifications.json');
+  try {
+    const res = await callPython('/api/source-suggester/save-classifications', params || {});
+    if (res && !res.error) return res;
+  } catch (e) {
+    // Fallback ghi truc tiep
+  }
+  try {
+    let current = { source_types: [], animation_types: [] };
+    if (fs.existsSync(clsPath)) {
+      current = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
+    }
+    if (params && Array.isArray(params.source_types)) {
+      current.source_types = params.source_types;
+    }
+    if (params && Array.isArray(params.animation_types)) {
+      current.animation_types = params.animation_types;
+    }
+    fs.writeFileSync(clsPath, JSON.stringify(current, null, 2), 'utf-8');
+    return {
+      success: true,
+      source_types: current.source_types,
+      animation_types: current.animation_types,
+      classifications_path: clsPath,
     };
   } catch (err) {
     return { error: err.message };

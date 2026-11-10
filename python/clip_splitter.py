@@ -35,6 +35,27 @@ VALID_LOAI = [
     'anh_thong_so', 'anh_thoi_diem', 'anh_chung_bao', 'sa_ban', 'chua_phan_loai'
 ]
 
+
+def get_valid_loai():
+    """Doc danh sach loai hop le (ket hop VALID_LOAI mac dinh + classifications.json)."""
+    valid = set(VALID_LOAI)
+    try:
+        cls_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            'templates',
+            'classifications.json',
+        )
+        if os.path.exists(cls_path):
+            with open(cls_path, 'r', encoding='utf-8-sig') as f:
+                data = json.load(f)
+            for item in data.get('source_types', []):
+                c = str(item.get('code', '')).strip().lower()
+                if c:
+                    valid.add(c)
+    except Exception:
+        pass
+    return valid
+
 CATALOG_FIELDS = [
     'ten_file', 'loai', 'cau_thu', 'doi_bong', 'ky_nang', 'stt',
     'video_nguon', 'start_s', 'end_s', 'duration_s',
@@ -253,7 +274,7 @@ class ClipSplitter:
             doi_bong = slugify(doi_bong or fd or 'Unknown')
             ky_nang = ky_nang or fk or 'Mixed'
         else:
-            loai = loai if loai in VALID_LOAI else 'chua_phan_loai'
+            loai = loai if loai in get_valid_loai() else 'chua_phan_loai'
             cau_thu = slugify(cau_thu)
             doi_bong = slugify(doi_bong)
 

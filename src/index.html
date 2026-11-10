@@ -935,9 +935,9 @@
 
         <!-- VALID LOAI -->
         <div class="rules-card">
-          <div class="rules-card-header">📂 Danh sách VALID_LOAI (loại clip hợp lệ)</div>
+          <div class="rules-card-header">📂 Danh sách Phân loại Source (VALID_LOAI — Đồng bộ từ Bảng Phân loại)</div>
           <div class="rules-card-body">
-            <div class="rules-loai-grid">
+            <div class="rules-loai-grid" id="rules-loai-grid">
               <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
               <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
               <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
@@ -950,9 +950,18 @@
               <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
               <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
               <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
-              <div class="rules-loai-item"><code>sa_ban</code><span>Sà bàn</span></div>
-              <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc
-                  định)</span></div>
+              <div class="rules-loai-item"><code>sa_ban</code><span>Sa bàn</span></div>
+              <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- VALID ANIMATION & ELEMENT -->
+        <div class="rules-card">
+          <div class="rules-card-header">🎬 Danh sách Phân loại Animation &amp; Lớp phủ (Đồng bộ từ Bảng Phân loại)</div>
+          <div class="rules-card-body">
+            <div class="rules-loai-grid" id="rules-anim-grid">
+              <!-- Rendered dynamically by JS from classifications.json -->
             </div>
           </div>
         </div>
@@ -1144,8 +1153,80 @@
 
         <div class="split-resizer" data-tab-key="source-suggester" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
 
-        <!-- CỘT PHẢI: BẢNG CHỈNH SỬA INLINE + XUẤT CSV -->
+        <!-- CỘT PHẢI: 2 BẢNG PHÂN LOẠI SOURCE & ANIMATION + BẢNG TIMELINE -->
         <div class="sg-right">
+
+          <!-- KHU VỰC 2 BẢNG PHÂN LOẠI SOURCE & ANIMATION (Cập nhật trực tiếp -> App lấy ra xài) -->
+          <div class="sp-card sg-cls-card" id="sg-cls-card">
+            <div class="sg-cls-header">
+              <div class="sg-cls-title-group">
+                <span>🗂️ Bảng Phân loại Source &amp; Animation</span>
+                <span class="sg-stat-pill" id="sg-cls-summary">13 Source · 20 Animation</span>
+                <span class="sg-badge" id="sg-cls-status">🔒 Đang khóa</span>
+              </div>
+              <div class="sg-cls-actions">
+                <span class="sg-file-path" id="sg-cls-filepath" title="templates/classifications.json" style="max-width:210px;">📄 templates/classifications.json</span>
+                <button class="sg-mini-btn" id="sg-btn-open-cls" title="Mở file classifications.json">📂 Mở .json</button>
+                <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-cls">✏️ Chỉnh sửa 2 bảng</button>
+                <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-cls" style="display:none;">✖ Hủy</button>
+                <button class="btn-primary sg-cls-btn" id="sg-btn-save-cls" style="display:none;">💾 Lưu &amp; Áp dụng</button>
+                <button class="sg-mini-btn" id="sg-btn-toggle-cls" title="Thu gọn / Mở rộng 2 bảng phân loại">🔼 Thu gọn</button>
+              </div>
+            </div>
+
+            <div class="sg-cls-body" id="sg-cls-body">
+              <div class="sg-cls-hint">
+                💡 <strong>Cách hoạt động:</strong> Bấm vào bất kỳ <code>Mã</code> nào để copy nhanh (hoặc chèn thẳng vào ô Quy tắc <code>.txt</code> nếu đang mở khóa). Khi bạn bấm <strong>✏️ Chỉnh sửa 2 bảng</strong> và <strong>💾 Lưu &amp; Áp dụng</strong>, toàn bộ AI, Dropdown và Tool Cắt Clip / Gen XML sẽ tự động lấy danh sách mới này ra xài!
+              </div>
+
+              <div class="sg-cls-grid">
+                <!-- BẢNG 1: PHÂN LOẠI SOURCE -->
+                <div class="sg-cls-panel">
+                  <div class="sg-cls-panel-head">
+                    <span>📂 Bảng 1: Phân loại Source (<code>loai_source</code> — Track V1/V2)</span>
+                    <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-source" style="display:none;">＋ Thêm Source</button>
+                  </div>
+                  <div class="sg-cls-table-wrap">
+                    <table class="sg-cls-table">
+                      <thead>
+                        <tr>
+                          <th style="width:118px;">Mã (code)</th>
+                          <th style="width:120px;">Tên hiển thị</th>
+                          <th>Mô tả ý nghĩa / Khi nào dùng (Để AI học)</th>
+                          <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="sg-cls-source-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- BẢNG 2: PHÂN LOẠI ANIMATION & LỚP PHỦ -->
+                <div class="sg-cls-panel">
+                  <div class="sg-cls-panel-head">
+                    <span>🎬 Bảng 2: Phân loại Animation &amp; Lớp phủ (<code>anim</code> &amp; <code>element</code>)</span>
+                    <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-anim" style="display:none;">＋ Thêm Animation</button>
+                  </div>
+                  <div class="sg-cls-table-wrap">
+                    <table class="sg-cls-table">
+                      <thead>
+                        <tr>
+                          <th style="width:94px;">Nhóm</th>
+                          <th style="width:110px;">Mã (code)</th>
+                          <th style="width:130px;">Tên hiển thị</th>
+                          <th style="width:130px;">Thông số / File</th>
+                          <th>Mô tả ý nghĩa / Khi nào dùng (Để AI học)</th>
+                          <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="sg-cls-anim-tbody"></tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="sp-card sg-table-card">
 
             <!-- Thanh công cụ trên bảng -->

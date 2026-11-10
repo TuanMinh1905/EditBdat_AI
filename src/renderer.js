@@ -1791,49 +1791,46 @@ function initRules() {
 }
 
 // ============================================================
-// TOOL 1 — SOURCE SUGGESTER UI (Gợi ý phân loại Source theo phong cách)
+// TOOL 1 — SOURCE SUGGESTER UI (Gợi ý phân loại Source & Animation)
 // ============================================================
 
-const SG_VALID_LOAI = [
-  { code: 'rai_1', label: 'rai_1 (Rải đơn)' },
-  { code: 'rai_2_1', label: 'rai_2_1 (Rải đôi 1)' },
-  { code: 'rai_2_2', label: 'rai_2_2 (Rải đôi 2)' },
-  { code: 'rai_3', label: 'rai_3 (Rải 3)' },
-  { code: 'rai_4', label: 'rai_4 (Rải 4 / Danh hiệu)' },
-  { code: 'phong_van', label: 'phong_van (Phỏng vấn)' },
-  { code: 'training', label: 'training (Tập luyện)' },
-  { code: 'binh_luan_chay', label: 'binh_luan_chay (BLV nói)' },
-  { code: 'khan_dai', label: 'khan_dai (Khán đài)' },
-  { code: 'anh_thong_so', label: 'anh_thong_so (Bảng số liệu)' },
-  { code: 'anh_thoi_diem', label: 'anh_thoi_diem (Ảnh khoảnh khắc)' },
-  { code: 'anh_chung_bao', label: 'anh_chung_bao (Mặt báo)' },
-  { code: 'sa_ban', label: 'sa_ban (Sa bàn)' }
+const DEFAULT_SOURCE_TYPES = [
+  { code: 'rai_1', label: 'Rải đơn', description: 'Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung' },
+  { code: 'rai_2_1', label: 'Rải đôi 1', description: 'Video rải đôi kiểu 1 (2 clip chia đôi màn hình)' },
+  { code: 'rai_2_2', label: 'Rải đôi 2', description: 'Video rải đôi kiểu 2 (2 clip bố cục phụ)' },
+  { code: 'rai_3', label: 'Rải 3', description: 'Video rải 3 clip cùng lúc' },
+  { code: 'rai_4', label: 'Rải 4 / Danh hiệu', description: 'Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc' },
+  { code: 'phong_van', label: 'Phỏng vấn', description: 'Cảnh phỏng vấn cầu thủ / HLV nói chuyện' },
+  { code: 'training', label: 'Tập luyện', description: 'Cảnh tập luyện trên sân tập' },
+  { code: 'binh_luan_chay', label: 'BLV nói', description: 'Cảnh bình luận viên / chuyên gia đang nói' },
+  { code: 'khan_dai', label: 'Khán đài', description: 'Cảnh cổ động viên, khán đài, bầu không khí sân vận động' },
+  { code: 'anh_thong_so', label: 'Bảng số liệu', description: 'Ảnh bảng thống kê, số liệu, biểu đồ so sánh' },
+  { code: 'anh_thoi_diem', label: 'Ảnh khoảnh khắc', description: 'Ảnh chụp khoảnh khắc / đội hình / tin tức tại một thời điểm cụ thể' },
+  { code: 'anh_chung_bao', label: 'Mặt báo', description: 'Ảnh mặt báo, tiêu đề báo chí truyền thông' },
+  { code: 'sa_ban', label: 'Sa bàn', description: 'Sa bàn chiến thuật, sơ đồ đội hình' }
 ];
 
-const SG_VALID_ELEMENTS = [
-  { code: 'auto', label: '✨ auto (Tự động)' },
-  { code: 'none', label: '🚫 none (Không phủ)' },
-  { code: 'tv_retro', label: '📺 tv_retro (Khung Sofa TV)' },
-  { code: 'film_grain', label: '🎞️ film_grain (Phim 8mm hồi ức)' },
-  { code: 'scout_frame', label: '📋 scout_frame (Hồ sơ Scout)' },
-  { code: 'stats_table', label: '📊 stats_table (Bảng số liệu)' },
-  { code: 'stats_table_1', label: '📊 stats_table_1 (Bảng mẫu 1)' },
-  { code: 'stats_table_2', label: '📊 stats_table_2 (Bảng mẫu 2)' },
-  { code: 'tv_sony', label: '📺 tv_sony (TV Sony bàn gỗ)' },
-  { code: 'tv_dolly', label: '📺 tv_dolly (TV Dolly In)' },
-  { code: 'circle_gold', label: '🟡 circle_gold (Vòng tròn vàng)' },
-  { code: 'circle_blue', label: '🔵 circle_blue (Vòng tròn xanh)' },
-  { code: 'paper_texture', label: '📜 paper_texture (Giấy cũ)' },
-  { code: 'paper_texture_2', label: '📜 paper_texture_2 (Giấy cũ 2)' },
-  { code: 'texture_dark', label: '🌑 texture_dark (Phủ tối)' },
-  { code: 'grid_orange', label: '🟧 grid_orange (Lưới cam)' }
-];
-
-const SG_VALID_ANIMS = [
-  { code: 'auto', label: '🔄 auto (Mặc định)' },
-  { code: 'zoom_in', label: '🔍 zoom_in (Phóng to)' },
-  { code: 'zoom_out', label: '🔎 zoom_out (Thu nhỏ)' },
-  { code: 'static', label: '⏹️ static (Đứng yên)' }
+const DEFAULT_ANIMATION_TYPES = [
+  { code: 'auto', group: 'anim', label: '🔄 Mặc định (Auto)', param: 'auto', description: 'Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip' },
+  { code: 'zoom_in', group: 'anim', label: '🔍 Phóng to (Zoom In)', param: '100->108', description: 'Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh' },
+  { code: 'zoom_out', group: 'anim', label: '🔎 Thu nhỏ (Zoom Out)', param: '108->100', description: 'Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh' },
+  { code: 'static', group: 'anim', label: '⏹️ Đứng yên (Static)', param: '100->100', description: 'Đứng yên (100%) — không phóng to thu nhỏ' },
+  { code: 'auto', group: 'element', label: '✨ Tự động (Auto)', param: '', description: 'Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame)' },
+  { code: 'none', group: 'element', label: '🚫 Không phủ (None)', param: '', description: 'Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)' },
+  { code: 'tv_retro', group: 'element', label: '📺 Khung Sofa TV', param: 'tv FRAME2.png', description: 'Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn' },
+  { code: 'film_grain', group: 'element', label: '🎞️ Phim 8mm hồi ức', param: '8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4', description: 'Khung phim nhựa 8mm cổ điển — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức' },
+  { code: 'scout_frame', group: 'element', label: '📋 Hồ sơ Scout', param: 'scout frame.png', description: 'Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)' },
+  { code: 'stats_table', group: 'element', label: '📊 Bảng số liệu', param: 'Comparison Table List Infographic Graph.png', description: 'Khung bảng thống kê / so sánh số liệu' },
+  { code: 'stats_table_1', group: 'element', label: '📊 Bảng mẫu 1', param: 'Comparison Table List Infographic Graph (1).png', description: 'Bảng thống kê mẫu 1' },
+  { code: 'stats_table_2', group: 'element', label: '📊 Bảng mẫu 2', param: 'Comparison Table List Infographic Graph (2).png', description: 'Bảng thống kê mẫu 2' },
+  { code: 'tv_sony', group: 'element', label: '📺 TV Sony bàn gỗ', param: 'large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4', description: 'Khung TV Sony cổ điển trên bàn gỗ' },
+  { code: 'tv_dolly', group: 'element', label: '📺 TV Dolly In', param: 'Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm', description: 'Hiệu ứng TV retro dolly-in' },
+  { code: 'circle_gold', group: 'element', label: '🟡 Vòng tròn vàng', param: '5.png', description: 'Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)' },
+  { code: 'circle_blue', group: 'element', label: '🔵 Vòng tròn xanh', param: 'o.png', description: 'Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)' },
+  { code: 'paper_texture', group: 'element', label: '📜 Giấy cũ 1', param: 'paper texture.png', description: 'Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu' },
+  { code: 'paper_texture_2', group: 'element', label: '📜 Giấy cũ 2', param: 'paper texture 2.png', description: 'Lớp phủ giấy cũ mẫu 2' },
+  { code: 'texture_dark', group: 'element', label: '🌑 Phủ tối (Dark)', param: 'textture.png', description: 'Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương' },
+  { code: 'grid_orange', group: 'element', label: '🟧 Lưới cam', param: 'vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4', description: 'Nền lưới cam chuyển động (grid animation)' }
 ];
 
 function initSourceSuggester() {
@@ -1842,8 +1839,15 @@ function initSourceSuggester() {
     defaultThoiKy: localStorage.getItem('sg_default_thoiky') || '',
     rulesPath: '',
     examplesPath: '',
+    classificationsPath: '',
     rulesLocked: true,
     rulesOriginalText: '',
+    clsLocked: true,
+    clsCollapsed: localStorage.getItem('sg_cls_collapsed') === '1',
+    sourceTypes: JSON.parse(JSON.stringify(DEFAULT_SOURCE_TYPES)),
+    animationTypes: JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES)),
+    origSourceTypes: [],
+    origAnimationTypes: [],
     rows: [],
     examples: [],
     isSuggesting: false
@@ -1859,6 +1863,22 @@ function initSourceSuggester() {
     btnEditRules: $('#sg-btn-edit-rules'),
     btnCancelRules: $('#sg-btn-cancel-rules'),
     btnSaveRules: $('#sg-btn-save-rules'),
+    // Classification tables DOM
+    clsCard: $('#sg-cls-card'),
+    clsBody: $('#sg-cls-body'),
+    clsSummary: $('#sg-cls-summary'),
+    clsStatus: $('#sg-cls-status'),
+    clsFilepath: $('#sg-cls-filepath'),
+    btnOpenCls: $('#sg-btn-open-cls'),
+    btnEditCls: $('#sg-btn-edit-cls'),
+    btnCancelCls: $('#sg-btn-cancel-cls'),
+    btnSaveCls: $('#sg-btn-save-cls'),
+    btnToggleCls: $('#sg-btn-toggle-cls'),
+    btnAddSource: $('#sg-btn-add-source'),
+    btnAddAnim: $('#sg-btn-add-anim'),
+    clsSourceTbody: $('#sg-cls-source-tbody'),
+    clsAnimTbody: $('#sg-cls-anim-tbody'),
+    // Timeline & Examples DOM
     timelineCsv: $('#sg-timeline-csv'),
     btnBrowseCsv: $('#sg-btn-browse-csv'),
     defaultThoiKy: $('#sg-default-thoiky'),
@@ -1877,6 +1897,267 @@ function initSourceSuggester() {
     btnFillThoiKy: $('#sg-btn-fill-thoiky'),
     tbody: $('#sg-tbody')
   };
+
+  function getValidLoaiList() {
+    return sgState.sourceTypes.map(s => ({
+      code: s.code,
+      label: `${s.code} (${s.label || s.code})`,
+      title: s.description || ''
+    }));
+  }
+
+  function getValidElementsList() {
+    return sgState.animationTypes
+      .filter(a => a.group !== 'anim')
+      .map(a => ({
+        code: a.code,
+        label: `${a.label || a.code} (${a.code})`,
+        title: a.description || ''
+      }));
+  }
+
+  function getValidAnimsList() {
+    return sgState.animationTypes
+      .filter(a => a.group === 'anim')
+      .map(a => ({
+        code: a.code,
+        label: `${a.label || a.code} (${a.code})`,
+        title: a.description || ''
+      }));
+  }
+
+  function syncClassificationsEverywhere() {
+    // 1. Đồng bộ badge tổng số lượng
+    if (sgDom.clsSummary) {
+      sgDom.clsSummary.textContent = `${sgState.sourceTypes.length} Source · ${sgState.animationTypes.length} Animation`;
+    }
+
+    // 2. Đồng bộ Dropdown #sp-loai ở Tab ✂️ Cắt Clip (Tool B)
+    const spLoaiSel = $('#sp-loai');
+    if (spLoaiSel) {
+      const curVal = spLoaiSel.value || 'chua_phan_loai';
+      const opts = [`<option value="chua_phan_loai">chua_phan_loai (mặc định)</option>`];
+      sgState.sourceTypes.forEach(s => {
+        if (s.code && s.code !== 'chua_phan_loai') {
+          opts.push(`<option value="${s.code}">${s.code} — ${s.label || ''}</option>`);
+        }
+      });
+      spLoaiSel.innerHTML = opts.join('');
+      spLoaiSel.value = curVal;
+    }
+
+    // 3. Đồng bộ Tab 📋 Quy tắc (#rules-loai-grid & #rules-anim-grid)
+    const rulesLoaiGrid = $('#rules-loai-grid');
+    if (rulesLoaiGrid) {
+      const itemsHtml = sgState.sourceTypes.map(s => {
+        const safeCode = String(s.code || '').replace(/</g, '&lt;');
+        const safeLbl = String(s.label || '').replace(/</g, '&lt;');
+        const safeDesc = String(s.description || '').replace(/"/g, '&quot;');
+        return `<div class="rules-loai-item" title="${safeDesc}"><code>${safeCode}</code><span>${safeLbl}</span></div>`;
+      });
+      itemsHtml.push(`<div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>`);
+      rulesLoaiGrid.innerHTML = itemsHtml.join('');
+    }
+
+    const rulesAnimGrid = $('#rules-anim-grid');
+    if (rulesAnimGrid) {
+      rulesAnimGrid.innerHTML = sgState.animationTypes.map(a => {
+        const safeCode = String(a.code || '').replace(/</g, '&lt;');
+        const safeLbl = String(a.label || '').replace(/</g, '&lt;');
+        const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
+        const tag = a.group === 'anim' ? '🎬 Zoom' : '🖼️ Lớp phủ';
+        return `<div class="rules-loai-item" title="${safeDesc}"><code>${safeCode}</code><span>${tag}: ${safeLbl}</span></div>`;
+      }).join('');
+    }
+
+    // 4. Render lại bảng phân loại & bảng Timeline hiện tại
+    renderClassificationTables();
+    renderTable();
+  }
+
+  function setClsCollapsed(collapsed) {
+    sgState.clsCollapsed = Boolean(collapsed);
+    localStorage.setItem('sg_cls_collapsed', sgState.clsCollapsed ? '1' : '0');
+    if (sgDom.clsBody) {
+      sgDom.clsBody.style.display = sgState.clsCollapsed ? 'none' : 'flex';
+    }
+    if (sgDom.btnToggleCls) {
+      sgDom.btnToggleCls.textContent = sgState.clsCollapsed ? '🔽 Mở rộng 2 bảng' : '🔼 Thu gọn';
+    }
+  }
+
+  function setClsLocked(locked) {
+    sgState.clsLocked = Boolean(locked);
+    if (sgDom.clsStatus) {
+      sgDom.clsStatus.textContent = sgState.clsLocked ? '🔒 Đang khóa' : '🔓 Đang chỉnh sửa';
+      sgDom.clsStatus.classList.toggle('unsaved', !sgState.clsLocked);
+    }
+    if (sgDom.btnEditCls) sgDom.btnEditCls.style.display = sgState.clsLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnCancelCls) sgDom.btnCancelCls.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveCls) sgDom.btnSaveCls.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnAddSource) sgDom.btnAddSource.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnAddAnim) sgDom.btnAddAnim.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
+
+    if (sgDom.clsCard) {
+      sgDom.clsCard.querySelectorAll('.sg-cls-col-del').forEach(th => {
+        th.style.display = sgState.clsLocked ? 'none' : 'table-cell';
+      });
+    }
+    if (!sgState.clsLocked && sgState.clsCollapsed) {
+      setClsCollapsed(false);
+    }
+    renderClassificationTables();
+  }
+
+  function renderClassificationTables() {
+    if (!sgDom.clsSourceTbody || !sgDom.clsAnimTbody) return;
+    const locked = sgState.clsLocked;
+
+    // --- BẢNG 1: SOURCE ---
+    sgDom.clsSourceTbody.innerHTML = sgState.sourceTypes.map((s, idx) => {
+      const safeCode = String(s.code || '').replace(/"/g, '&quot;');
+      const safeLabel = String(s.label || '').replace(/"/g, '&quot;');
+      const safeDesc = String(s.description || '').replace(/"/g, '&quot;');
+      if (locked) {
+        return `
+          <tr>
+            <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
+            <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
+            <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
+          </tr>
+        `;
+      }
+      return `
+        <tr data-src-idx="${idx}">
+          <td><input type="text" class="sg-cls-input code-font sg-src-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: rai_1"></td>
+          <td><input type="text" class="sg-cls-input sg-src-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên ngắn..."></td>
+          <td><input type="text" class="sg-cls-input sg-src-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
+          <td style="text-align:center;">
+            <button class="sg-example-del sg-src-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // --- BẢNG 2: ANIMATION & ELEMENT ---
+    sgDom.clsAnimTbody.innerHTML = sgState.animationTypes.map((a, idx) => {
+      const grp = a.group === 'anim' ? 'anim' : 'element';
+      const safeCode = String(a.code || '').replace(/"/g, '&quot;');
+      const safeLabel = String(a.label || '').replace(/"/g, '&quot;');
+      const safeParam = String(a.param || '').replace(/"/g, '&quot;');
+      const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
+      if (locked) {
+        const badgeHtml = grp === 'anim'
+          ? `<span class="sg-group-badge sg-group-anim">🎬 Chuyển động</span>`
+          : `<span class="sg-group-badge sg-group-element">🖼️ Lớp phủ V3</span>`;
+        return `
+          <tr>
+            <td>${badgeHtml}</td>
+            <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
+            <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
+            <td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>
+            <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
+          </tr>
+        `;
+      }
+      return `
+        <tr data-anim-idx="${idx}">
+          <td>
+            <select class="sg-cls-select sg-anim-group" data-idx="${idx}">
+              <option value="anim" ${grp === 'anim' ? 'selected' : ''}>🎬 Zoom</option>
+              <option value="element" ${grp === 'element' ? 'selected' : ''}>🖼️ Lớp phủ</option>
+            </select>
+          </td>
+          <td><input type="text" class="sg-cls-input code-font sg-anim-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: zoom_in"></td>
+          <td><input type="text" class="sg-cls-input sg-anim-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên hiển thị..."></td>
+          <td><input type="text" class="sg-cls-input sg-anim-param" data-idx="${idx}" value="${safeParam}" placeholder="100->108 hoặc file.png"></td>
+          <td><input type="text" class="sg-cls-input sg-anim-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
+          <td style="text-align:center;">
+            <button class="sg-example-del sg-anim-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Events khi Đang khóa: Click vào chip mã -> Copy hoặc chèn vào ô quy tắc .txt
+    if (locked) {
+      sgDom.clsCard.querySelectorAll('.sg-code-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const code = chip.dataset.code || '';
+          if (!code) return;
+          if (!sgState.rulesLocked && sgDom.rulesInput) {
+            const ta = sgDom.rulesInput;
+            const start = ta.selectionStart ?? ta.value.length;
+            const end = ta.selectionEnd ?? ta.value.length;
+            ta.value = ta.value.slice(0, start) + code + ta.value.slice(end);
+            ta.focus();
+            ta.selectionStart = ta.selectionEnd = start + code.length;
+            updateRulesMeta(ta.value);
+            sgLog(`Đã chèn mã "${code}" vào ô File quy tắc (.txt).`, 'info');
+          } else {
+            navigator.clipboard?.writeText(code);
+            sgLog(`📋 Đã copy mã "${code}" vào bộ nhớ tạm!`, 'info');
+          }
+        });
+      });
+      return;
+    }
+
+    // Events khi Đang mở khóa chỉnh sửa:
+    sgDom.clsSourceTbody.querySelectorAll('.sg-src-code').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].code = inp.value; });
+    });
+    sgDom.clsSourceTbody.querySelectorAll('.sg-src-label').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].label = inp.value; });
+    });
+    sgDom.clsSourceTbody.querySelectorAll('.sg-src-desc').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].description = inp.value; });
+    });
+    sgDom.clsSourceTbody.querySelectorAll('.sg-src-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const i = Number(btn.dataset.idx);
+        const item = sgState.sourceTypes[i];
+        const ok = await askConfirm(`Bạn có muốn xóa loại Source "${item?.code || ''}" khỏi bảng không?`, {
+          title: '🗑 Xác nhận xóa loại Source',
+          confirmText: 'Xóa dòng này',
+          danger: true
+        });
+        if (!ok) return;
+        sgState.sourceTypes.splice(i, 1);
+        renderClassificationTables();
+      });
+    });
+
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-group').forEach(sel => {
+      sel.addEventListener('change', () => { sgState.animationTypes[Number(sel.dataset.idx)].group = sel.value; });
+    });
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-code').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].code = inp.value; });
+    });
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-label').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].label = inp.value; });
+    });
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-param').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].param = inp.value; });
+    });
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-desc').forEach(inp => {
+      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].description = inp.value; });
+    });
+    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const i = Number(btn.dataset.idx);
+        const item = sgState.animationTypes[i];
+        const ok = await askConfirm(`Bạn có muốn xóa loại Animation/Lớp phủ "${item?.code || ''}" khỏi bảng không?`, {
+          title: '🗑 Xác nhận xóa Animation / Lớp phủ',
+          confirmText: 'Xóa dòng này',
+          danger: true
+        });
+        if (!ok) return;
+        sgState.animationTypes.splice(i, 1);
+        renderClassificationTables();
+      });
+    });
+  }
 
   function sgLog(msg, type = 'info') {
     if (!sgDom.logBox) return;
@@ -2023,20 +2304,24 @@ function initSourceSuggester() {
       const safeNote = String(r.note || '').replace(/"/g, '&quot;');
       const safeReason = String(r.reason || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
-      const opts1 = SG_VALID_LOAI.map(o =>
-        `<option value="${o.code}" ${o.code === p1 ? 'selected' : ''}>${o.label}</option>`
+      const validLoai = getValidLoaiList();
+      const validElements = getValidElementsList();
+      const validAnims = getValidAnimsList();
+
+      const opts1 = validLoai.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p1 ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
-      const opts2 = `<option value="">-- Không ghép --</option>` + SG_VALID_LOAI.map(o =>
-        `<option value="${o.code}" ${o.code === p2 ? 'selected' : ''}>+ ${o.label}</option>`
+      const opts2 = `<option value="">-- Không ghép --</option>` + validLoai.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p2 ? 'selected' : ''}>+ ${o.label}</option>`
       ).join('');
 
-      const optsEl = SG_VALID_ELEMENTS.map(o =>
-        `<option value="${o.code}" ${o.code === curEl ? 'selected' : ''}>${o.label}</option>`
+      const optsEl = validElements.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curEl ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
-      const optsAnim = SG_VALID_ANIMS.map(o =>
-        `<option value="${o.code}" ${o.code === curAnim ? 'selected' : ''}>${o.label}</option>`
+      const optsAnim = validAnims.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curAnim ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
       return `
@@ -2138,6 +2423,7 @@ function initSourceSuggester() {
       if (res && !res.error) {
         sgState.rulesPath = res.rules_path || '';
         sgState.examplesPath = res.examples_path || '';
+        sgState.classificationsPath = res.classifications_path || '';
         if (sgDom.rulesFilepath && sgState.rulesPath) {
           sgDom.rulesFilepath.title = sgState.rulesPath;
           sgDom.rulesFilepath.textContent = `📄 ${sgState.rulesPath}`;
@@ -2145,6 +2431,16 @@ function initSourceSuggester() {
         if (sgDom.examplesFilepath && sgState.examplesPath) {
           sgDom.examplesFilepath.title = sgState.examplesPath;
           sgDom.examplesFilepath.textContent = `📄 ${sgState.examplesPath}`;
+        }
+        if (sgDom.clsFilepath && sgState.classificationsPath) {
+          sgDom.clsFilepath.title = sgState.classificationsPath;
+          sgDom.clsFilepath.textContent = `📄 ${sgState.classificationsPath}`;
+        }
+        if (Array.isArray(res.source_types) && res.source_types.length > 0) {
+          sgState.sourceTypes = res.source_types;
+        }
+        if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
+          sgState.animationTypes = res.animation_types;
         }
         if (sgDom.rulesInput) {
           sgState.rulesOriginalText = res.rules || '';
@@ -2154,6 +2450,8 @@ function initSourceSuggester() {
         }
         sgState.examples = res.examples || [];
         renderExamples();
+        setClsLocked(true);
+        syncClassificationsEverywhere();
       }
     } catch (e) {
       // Backend có thể chưa sẵn sàng ngay lập tức
@@ -2197,6 +2495,112 @@ function initSourceSuggester() {
 
   // Đảm bảo khóa mặc định khi khởi tạo
   setRulesLocked(true);
+  setClsCollapsed(sgState.clsCollapsed);
+  setClsLocked(true);
+  syncClassificationsEverywhere();
+
+  // --- Sự kiện cho 2 Bảng Phân loại Source & Animation ---
+  if (sgDom.btnToggleCls) {
+    sgDom.btnToggleCls.addEventListener('click', () => {
+      setClsCollapsed(!sgState.clsCollapsed);
+    });
+  }
+
+  if (sgDom.btnOpenCls) {
+    sgDom.btnOpenCls.addEventListener('click', async () => {
+      if (!sgState.classificationsPath) await loadBackendState();
+      if (sgState.classificationsPath) {
+        window.api.openFile(sgState.classificationsPath);
+      } else {
+        sgLog('Chưa lấy được đường dẫn file classifications.json.', 'error');
+      }
+    });
+  }
+
+  if (sgDom.btnEditCls) {
+    sgDom.btnEditCls.addEventListener('click', () => {
+      sgState.origSourceTypes = JSON.parse(JSON.stringify(sgState.sourceTypes));
+      sgState.origAnimationTypes = JSON.parse(JSON.stringify(sgState.animationTypes));
+      setClsLocked(false);
+    });
+  }
+
+  if (sgDom.btnCancelCls) {
+    sgDom.btnCancelCls.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.sourceTypes) !== JSON.stringify(sgState.origSourceTypes) ||
+        JSON.stringify(sgState.animationTypes) !== JSON.stringify(sgState.origAnimationTypes);
+      if (changed) {
+        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng Phân loại.\nBạn có chắc muốn hủy các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa Bảng Phân loại',
+          confirmText: 'Hủy thay đổi',
+          cancelText: 'Tiếp tục sửa',
+          danger: true
+        });
+        if (!ok) return;
+      }
+      sgState.sourceTypes = JSON.parse(JSON.stringify(sgState.origSourceTypes));
+      sgState.animationTypes = JSON.parse(JSON.stringify(sgState.origAnimationTypes));
+      setClsLocked(true);
+      syncClassificationsEverywhere();
+      sgLog('Đã hủy chỉnh sửa 2 bảng phân loại và khóa lại.', 'info');
+    });
+  }
+
+  if (sgDom.btnAddSource) {
+    sgDom.btnAddSource.addEventListener('click', () => {
+      sgState.sourceTypes.push({
+        code: `source_moi_${sgState.sourceTypes.length + 1}`,
+        label: 'Loại Source mới',
+        description: 'Mô tả khi nào dùng loại Source này...'
+      });
+      renderClassificationTables();
+      const wrap = sgDom.clsSourceTbody?.closest('.sg-cls-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+  }
+
+  if (sgDom.btnAddAnim) {
+    sgDom.btnAddAnim.addEventListener('click', () => {
+      sgState.animationTypes.push({
+        code: `anim_moi_${sgState.animationTypes.length + 1}`,
+        group: 'anim',
+        label: '🎬 Hiệu ứng mới',
+        param: '100->110',
+        description: 'Mô tả khi nào dùng hiệu ứng / lớp phủ này...'
+      });
+      renderClassificationTables();
+      const wrap = sgDom.clsAnimTbody?.closest('.sg-cls-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+  }
+
+  if (sgDom.btnSaveCls) {
+    sgDom.btnSaveCls.addEventListener('click', async () => {
+      const ok = await askConfirm(
+        `Bạn có muốn lưu 2 bảng Phân loại (${sgState.sourceTypes.length} loại Source & ${sgState.animationTypes.length} loại Animation/Lớp phủ) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
+        {
+          title: '💾 Xác nhận lưu Bảng Phân loại Source & Animation',
+          confirmText: 'Lưu & Áp dụng ngay'
+        }
+      );
+      if (!ok) return;
+
+      try {
+        const res = await window.api.suggesterSaveClassifications({
+          source_types: sgState.sourceTypes,
+          animation_types: sgState.animationTypes
+        });
+        if (res && res.error) throw new Error(res.error);
+        if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
+        if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
+        setClsLocked(true);
+        syncClassificationsEverywhere();
+        sgLog(`✅ Đã lưu và đồng bộ ${sgState.sourceTypes.length} Source & ${sgState.animationTypes.length} Animation trên toàn hệ thống!`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu bảng phân loại: ${err.message}`, 'error');
+      }
+    });
+  }
 
   // Khi rules thay đổi trong lúc mở khóa
   if (sgDom.rulesInput) {
