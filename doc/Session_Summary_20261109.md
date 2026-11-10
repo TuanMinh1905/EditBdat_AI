@@ -120,12 +120,21 @@ Voice_A (30p) + Word_B (Kịch bản) ──(CapCut + GPT Web)──► 1_CSV_Ti
    - `✂️ Cắt Clip` (`#tab-clip-splitter`)
    - `🎬 Gen XML` (`#tab-premiere-gen`)
    - `⚙️ Cài đặt` (`#tab-settings`)
-2. **Thanh kéo thay đổi kích thước (Draggable Split-Pane Resizer) & Responsive:**
-   - Giữa các vùng Container lớn ở cả 4 tab 2 cột (`Tạo mới`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`) đều có thanh kéo `.split-resizer` (`initSplitResizers()`).
-   - Kéo trái/phải mượt mà để phóng to/thu nhỏ cột, nhấp đúp (double-click) để reset mặc định, tự động lưu độ rộng vào `localStorage` (`split_w_{tabKey}`).
-   - Bỏ giới hạn `max-width` hẹp ở tab **Quy tắc** và **Cài đặt** để chiếm trọn không gian màn hình.
-   - Hỗ trợ Responsive đa kích thước cửa sổ (`@media <=1120px`, `<=880px`, `<=640px`).
-3. **Hộp thoại xác nhận lần 2 (`#modal-confirm` + `askConfirm()`):**
+2. **Thanh kéo thay đổi kích thước (Draggable Resizers — Ngang, Dọc & Cột Bảng) & Responsive cho toàn bộ Container lớn/nhỏ:**
+   - **Kéo rộng ngang (`.split-resizer` & `.inner-split-resizer`)**:
+     - Giữa 2 cột lớn (Trái ↔ Phải) ở cả 4 tab (`Tạo mới`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`).
+     - Giữa các Container nhỏ nằm cạnh nhau: **Bảng 1 (Phân loại Source) ↔ Bảng 2 (Phân loại Animation)** trong `#sg-cls-grid` và **2 khung Phân loại Source ↔ Animation** trong `#tab-rules`.
+   - **Kéo dài dọc (`.v-split-resizer`)**:
+     - Nằm ngay bên dưới mọi khung container nhỏ trên toàn Project: khung 2 bảng Phân loại (`#sg-cls-grid`), ô Quy tắc `.txt` (`#sg-rules-input`), Kho ví dụ (`#sg-examples-list`), Nhật ký (`#sg-log-box`), Drop zone (`#drop-zone`), ô Prompt (`#prompt-input`), bảng Catalog (`#sp-catalog-table-wrap`), danh sách Thiếu source (`#pg-missing-list`), và các khung Log.
+   - **Kéo rộng từng cột bảng (`.th-col-resizer`)**:
+     - Tự động gắn thanh kéo ở mép phải mỗi tiêu đề cột (`<th>`) trong tất cả các bảng (`.sg-cls-table`, `.sg-table`, `.sp-catalog-table`, `.rules-table`).
+   - Mọi kích thước sau khi kéo đều tự động lưu vào `localStorage` (`split_w_*`, `vsplit_h_*`, `col_w_*`) và hỗ trợ **Nhấp đúp (Double-click)** để khôi phục mặc định.
+   - **Responsive thông minh theo từng Container (`container-type: inline-size` + `@container` & `@media`)**: Khi kéo hẹp bất kỳ cột nào hoặc thu nhỏ cửa sổ, các container con tự động chuyển sang xếp chồng dọc (`flex-direction: column`), không bao giờ làm tràn hay khuất chữ.
+3. **2 Bảng Phân loại Source & Animation hiển thị và chỉnh sửa trực tiếp trên UI (`templates/classifications.json`):**
+   - Hiển thị trực tiếp trên tab **💡 Gợi ý Source - Animation** (`#sg-cls-card`) gồm **Bảng 1: Phân loại Source (13 loại mặc định)** và **Bảng 2: Phân loại Animation & Lớp phủ (20 loại mặc định: 4 chuyển động Zoom + 16 lớp phủ V3)**.
+   - Hỗ trợ chế độ **🔒 Đang khóa** (click vào mã để copy hoặc chèn thẳng vào ô Quy tắc `.txt`) và **✏️ Chỉnh sửa 2 bảng** (thêm dòng mới, sửa mã/tên/thông số/mô tả, xóa dòng có xác nhận, bấm **💾 Lưu & Áp dụng**).
+   - Khi lưu, toàn bộ **AI Prompt** (`python/source_suggester.py`), **Dropdown bảng Timeline**, **Tab 📋 Quy tắc**, **Dropdown Tool B (`python/clip_splitter.py`)** và **Tool A (`python/premiere_xml_generator.py` + `templates/element_map.json`)** tự động lấy danh sách mới nhất ra sử dụng.
+4. **Hộp thoại xác nhận lần 2 (`#modal-confirm` + `askConfirm()`):**
    - Mọi thao tác chỉnh sửa/lưu/xóa quan trọng đều hiện modal xác nhận 2 bước rõ ràng để tránh bấm nhầm:
      - Lưu chỉnh sửa vào file `source_style_rules.txt`
      - Hủy chỉnh sửa khi đang gõ dở trong file `.txt`
@@ -153,6 +162,7 @@ Voice_A (30p) + Word_B (Kịch bản) ──(CapCut + GPT Web)──► 1_CSV_Ti
 - `python/gemini_client.py`, `python/media_analyzer.py`, `python/timeline_validator.py`, `python/jsx_generator.py`.
 
 ### Templates & Data (`templates/`):
+- `templates/classifications.json` — Bảng Phân loại Source & Animation động (cập nhật trực tiếp từ UI và đồng bộ toàn hệ thống).
 - `templates/element_map.json` — Mapping 20 `element_id` → file ảnh/video overlay trong thư mục Element.
 - `templates/source_style_rules.txt` — File `.txt` lưu nguyên tắc chọn Source & Animation của user.
 - `templates/source_examples.json` — File `.json` lưu kho bài mẫu kèm vector embedding để dạy AI.

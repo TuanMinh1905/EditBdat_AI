@@ -2135,12 +2135,14 @@ a:hover { color: #c4b5fd; }
   flex-direction: column;
   gap: 12px;
   min-height: 0;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
+  container-type: inline-size;
 }
 
 .sg-table-card {
   flex: 1;
-  min-height: 0;
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2906,9 +2908,13 @@ body.is-resizing * {
 }
 
 .sg-cls-grid {
-  display: grid;
-  grid-template-columns: 1fr 1.3fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  height: var(--box-h, 240px);
+  min-height: 130px;
+  max-height: 680px;
+  min-width: 0;
 }
 
 .sg-cls-panel {
@@ -2919,6 +2925,19 @@ body.is-resizing * {
   background: rgba(10, 10, 18, 0.55);
   overflow: hidden;
   min-width: 0;
+  min-height: 0;
+}
+
+.sg-cls-panel-left {
+  width: var(--left-w, 42%);
+  min-width: 190px;
+  max-width: calc(100% - 210px);
+  flex-shrink: 0;
+}
+
+.sg-cls-panel-right {
+  flex: 1;
+  min-width: 200px;
 }
 
 .sg-cls-panel-head {
@@ -2932,6 +2951,8 @@ body.is-resizing * {
   font-size: 0.76rem;
   font-weight: 600;
   color: #ddd6fe;
+  flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .sg-cls-panel-head code {
@@ -2951,7 +2972,8 @@ body.is-resizing * {
 }
 
 .sg-cls-table-wrap {
-  max-height: 205px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: auto;
 }
@@ -2960,6 +2982,7 @@ body.is-resizing * {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.75rem;
+  table-layout: auto;
 }
 
 .sg-cls-table thead th {
@@ -2973,6 +2996,7 @@ body.is-resizing * {
   font-weight: 600;
   border-bottom: 1px solid var(--border-default);
   white-space: nowrap;
+  user-select: none;
 }
 
 .sg-cls-table tbody tr {
@@ -2987,6 +3011,7 @@ body.is-resizing * {
   padding: 5px 8px;
   vertical-align: middle;
   color: var(--text-primary);
+  word-break: break-word;
 }
 
 .sg-code-chip {
@@ -3055,11 +3080,195 @@ body.is-resizing * {
   border-color: var(--accent-primary);
 }
 
-@media (max-width: 1200px) {
+/* ============================================================================
+   INNER SPLIT RESIZER (Kéo rộng ngang giữa các container nhỏ)
+   & VERTICAL SPLIT RESIZER (Kéo dài dọc các container nhỏ)
+   & COLUMN RESIZER (Kéo rộng cột bảng)
+   ============================================================================ */
+.inner-split-resizer {
+  width: 10px;
+}
+
+.inner-split-resizer::before {
+  height: 36px;
+}
+
+.v-split-resizer {
+  height: 10px;
+  width: 100%;
+  flex-shrink: 0;
+  cursor: row-resize;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  z-index: 4;
+  margin-top: 2px;
+}
+
+.v-split-resizer::before {
+  content: '';
+  width: 44px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  transition: background 150ms ease, width 150ms ease, box-shadow 150ms ease;
+}
+
+.v-split-resizer:hover::before,
+.v-split-resizer.active::before {
+  background: var(--accent-primary, #8B5CF6);
+  width: 76px;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.55);
+}
+
+body.is-resizing-v {
+  cursor: row-resize !important;
+  user-select: none !important;
+}
+
+body.is-resizing-v * {
+  cursor: row-resize !important;
+}
+
+/* Table Column Resizer Handle */
+.th-col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  z-index: 3;
+}
+
+.th-col-resizer:hover,
+.th-col-resizer.active {
+  background: var(--accent-primary, #8B5CF6);
+  box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
+}
+
+/* Rules Tab — 2 container Phân loại Source & Animation nằm ngang có thể kéo rộng */
+.rules-cls-split {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.rules-cls-left {
+  width: var(--left-w, 46%);
+  min-width: 220px;
+  max-width: calc(100% - 240px);
+  flex-shrink: 0;
+  margin-bottom: 0 !important;
+}
+
+.rules-cls-right {
+  flex: 1;
+  min-width: 220px;
+  margin-bottom: 0 !important;
+}
+
+/* Container Queries & Responsive cho các Container nhỏ */
+.sg-left,
+.splitter-left,
+.splitter-right,
+.pgen-left,
+.pgen-right,
+.rules-container {
+  container-type: inline-size;
+}
+
+@container (max-width: 660px) {
   .sg-cls-grid {
+    flex-direction: column;
+    height: auto !important;
+    max-height: none !important;
+    gap: 10px;
+  }
+
+  .sg-cls-grid > .inner-split-resizer {
+    display: none;
+  }
+
+  .sg-cls-panel-left,
+  .sg-cls-panel-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+  }
+
+  .sg-cls-table-wrap {
+    max-height: var(--box-h, 220px);
+  }
+}
+
+@container (max-width: 680px) {
+  .rules-cls-split {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .rules-cls-split > .inner-split-resizer {
+    display: none;
+  }
+
+  .rules-cls-left,
+  .rules-cls-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+  }
+}
+
+@container (max-width: 340px) {
+  .sp-form-grid {
     grid-template-columns: 1fr;
   }
 }
+
+@media (max-width: 1120px) {
+  .sg-cls-grid {
+    flex-direction: column;
+    height: auto !important;
+    max-height: none !important;
+    gap: 10px;
+  }
+
+  .sg-cls-grid > .inner-split-resizer {
+    display: none;
+  }
+
+  .sg-cls-panel-left,
+  .sg-cls-panel-right {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .sg-cls-table-wrap {
+    max-height: var(--box-h, 220px);
+  }
+
+  .rules-cls-split {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .rules-cls-split > .inner-split-resizer {
+    display: none;
+  }
+
+  .rules-cls-left,
+  .rules-cls-right {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+
 
 
 

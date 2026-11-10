@@ -150,6 +150,7 @@
             <p class="drop-formats">Video, Audio, Ảnh</p>
           </div>
         </div>
+        <div class="v-split-resizer" data-vkey="create-drop-h" data-target="#drop-zone" data-min-h="100" data-max-h="380" title="Kéo lên/xuống để chỉnh chiều cao khung kéo thả (Nhấp đúp để đặt lại)"></div>
 
         <div class="media-list" id="media-list">
           <!-- Media items will be inserted here -->
@@ -172,6 +173,7 @@
           <textarea id="prompt-input"
             placeholder="Mô tả cách bạn muốn video được edit...&#10;&#10;Ví dụ: &quot;Ghép 3 video lại, thêm fade transition 1 giây giữa các clip. Video đầu zoom in nhẹ, thêm text 'INTRO' ở giữa màn hình trong 3 giây đầu với font to, màu trắng. Background audio nhạc dùng file nhac.mp3 với volume 60%.&quot;"
             rows="8"></textarea>
+          <div class="v-split-resizer" data-vkey="create-prompt-h" data-target="#prompt-input" data-min-h="90" data-max-h="500" title="Kéo lên/xuống để chỉnh chiều cao ô Prompt (Nhấp đúp để đặt lại)"></div>
           <div class="prompt-footer">
             <span class="char-count" id="char-count">0 ký tự</span>
           </div>
@@ -485,7 +487,7 @@
               <input type="text" id="sp-catalog-search" placeholder="Tìm theo tên, loại, cầu thủ..."
                 class="sp-search-input" />
             </div>
-            <div class="sp-catalog-table-wrap">
+            <div class="sp-catalog-table-wrap" id="sp-catalog-table-wrap">
               <table class="sp-catalog-table">
                 <thead>
                   <tr>
@@ -499,6 +501,7 @@
                 <tbody id="sp-catalog-tbody"></tbody>
               </table>
             </div>
+            <div class="v-split-resizer" data-vkey="sp-catalog-h" data-target="#sp-catalog-table-wrap" data-min-h="140" data-max-h="650" title="Kéo lên/xuống để chỉnh chiều cao bảng Catalog (Nhấp đúp để đặt lại)"></div>
           </div>
 
           <!-- Log -->
@@ -512,6 +515,7 @@
             </div>
             <div class="log-messages sp-log-messages" id="sp-log-messages"
               style="display:none; max-height:180px; overflow-y:auto;"></div>
+            <div class="v-split-resizer" data-vkey="sp-log-h" data-target="#sp-log-messages" data-min-h="80" data-max-h="450" title="Kéo lên/xuống để chỉnh chiều cao khung Log (Nhấp đúp để đặt lại)"></div>
           </div>
 
         </div>
@@ -722,6 +726,7 @@
               <span class="sp-badge" id="pg-missing-count" style="background:#f59e0b;">0</span>
             </div>
             <div class="pgen-missing-list" id="pg-missing-list" style="max-height:200px; overflow-y:auto;"></div>
+            <div class="v-split-resizer" data-vkey="pg-missing-h" data-target="#pg-missing-list" data-min-h="80" data-max-h="480" title="Kéo lên/xuống để chỉnh chiều cao danh sách thiếu source (Nhấp đúp để đặt lại)"></div>
             <p style="font-size:11px;color:#a0aec0;margin:8px 0 0;">Các clip này sẽ có marker vàng trong Premiere. Bổ
               sung source và gen lại.</p>
           </div>
@@ -737,6 +742,7 @@
             </div>
             <div class="log-messages sp-log-messages" id="pg-log-messages"
               style="display:none; max-height:200px; overflow-y:auto;"></div>
+            <div class="v-split-resizer" data-vkey="pg-log-h" data-target="#pg-log-messages" data-min-h="80" data-max-h="450" title="Kéo lên/xuống để chỉnh chiều cao khung Log (Nhấp đúp để đặt lại)"></div>
           </div>
 
         </div>
@@ -933,35 +939,38 @@
           </div>
         </div>
 
-        <!-- VALID LOAI -->
-        <div class="rules-card">
-          <div class="rules-card-header">📂 Danh sách Phân loại Source (VALID_LOAI — Đồng bộ từ Bảng Phân loại)</div>
-          <div class="rules-card-body">
-            <div class="rules-loai-grid" id="rules-loai-grid">
-              <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
-              <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
-              <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
-              <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
-              <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
-              <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
-              <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
-              <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
-              <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
-              <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
-              <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
-              <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
-              <div class="rules-loai-item"><code>sa_ban</code><span>Sa bàn</span></div>
-              <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+        <!-- VALID LOAI & VALID ANIMATION (2 container song song có thể kéo rộng / dài) -->
+        <div class="rules-cls-split" id="rules-cls-split">
+          <div class="rules-card rules-cls-left">
+            <div class="rules-card-header">📂 Danh sách Phân loại Source (VALID_LOAI — Đồng bộ từ Bảng Phân loại)</div>
+            <div class="rules-card-body">
+              <div class="rules-loai-grid" id="rules-loai-grid">
+                <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
+                <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
+                <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
+                <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
+                <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
+                <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
+                <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
+                <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
+                <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
+                <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
+                <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
+                <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
+                <div class="rules-loai-item"><code>sa_ban</code><span>Sa bàn</span></div>
+                <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- VALID ANIMATION & ELEMENT -->
-        <div class="rules-card">
-          <div class="rules-card-header">🎬 Danh sách Phân loại Animation &amp; Lớp phủ (Đồng bộ từ Bảng Phân loại)</div>
-          <div class="rules-card-body">
-            <div class="rules-loai-grid" id="rules-anim-grid">
-              <!-- Rendered dynamically by JS from classifications.json -->
+          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner" data-min-w="220" title="Kéo trái/phải để chỉnh độ rộng 2 khung Phân loại (Nhấp đúp để đặt lại)"></div>
+
+          <div class="rules-card rules-cls-right">
+            <div class="rules-card-header">🎬 Danh sách Phân loại Animation &amp; Lớp phủ (Đồng bộ từ Bảng Phân loại)</div>
+            <div class="rules-card-body">
+              <div class="rules-loai-grid" id="rules-anim-grid">
+                <!-- Rendered dynamically by JS from classifications.json -->
+              </div>
             </div>
           </div>
         </div>
@@ -1084,6 +1093,7 @@
             </p>
             <textarea id="sg-rules-input" class="sg-rules-textarea is-locked" rows="8" readonly
               placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
+            <div class="v-split-resizer" data-vkey="sg-rules-h" data-target="#sg-rules-input" data-min-h="85" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao ô Quy tắc .txt (Nhấp đúp để đặt lại)"></div>
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span class="sp-hint" id="sg-rules-char">0 dòng · 0 ký tự</span>
               <div style="display:flex; gap:6px; align-items:center;">
@@ -1141,12 +1151,14 @@
               <div class="sp-hint" style="text-align:center; padding:12px 0;">Chưa có ví dụ nào. Hãy chạy gợi ý hoặc
                 chỉnh sửa bảng rồi bấm "Lưu vào Kho ví dụ".</div>
             </div>
+            <div class="v-split-resizer" data-vkey="sg-examples-h" data-target="#sg-examples-list" data-min-h="80" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Kho ví dụ (Nhấp đúp để đặt lại)"></div>
           </div>
 
           <!-- Card 4: Nhật ký -->
           <div class="sp-card">
             <div class="sp-card-header">📜 Nhật ký Gợi ý Source</div>
             <div class="sp-log-box" id="sg-log-box" style="height:120px;"></div>
+            <div class="v-split-resizer" data-vkey="sg-log-h" data-target="#sg-log-box" data-min-h="70" data-max-h="420" title="Kéo lên/xuống để chỉnh chiều cao Nhật ký (Nhấp đúp để đặt lại)"></div>
           </div>
 
         </div>
@@ -1179,20 +1191,20 @@
                 💡 <strong>Cách hoạt động:</strong> Bấm vào bất kỳ <code>Mã</code> nào để copy nhanh (hoặc chèn thẳng vào ô Quy tắc <code>.txt</code> nếu đang mở khóa). Khi bạn bấm <strong>✏️ Chỉnh sửa 2 bảng</strong> và <strong>💾 Lưu &amp; Áp dụng</strong>, toàn bộ AI, Dropdown và Tool Cắt Clip / Gen XML sẽ tự động lấy danh sách mới này ra xài!
               </div>
 
-              <div class="sg-cls-grid">
+              <div class="sg-cls-grid" id="sg-cls-grid">
                 <!-- BẢNG 1: PHÂN LOẠI SOURCE -->
-                <div class="sg-cls-panel">
+                <div class="sg-cls-panel sg-cls-panel-left">
                   <div class="sg-cls-panel-head">
                     <span>📂 Bảng 1: Phân loại Source (<code>loai_source</code> — Track V1/V2)</span>
                     <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-source" style="display:none;">＋ Thêm Source</button>
                   </div>
                   <div class="sg-cls-table-wrap">
-                    <table class="sg-cls-table">
+                    <table class="sg-cls-table" id="sg-cls-source-table">
                       <thead>
                         <tr>
-                          <th style="width:118px;">Mã (code)</th>
-                          <th style="width:120px;">Tên hiển thị</th>
-                          <th>Mô tả ý nghĩa / Khi nào dùng (Để AI học)</th>
+                          <th style="width:108px;">Mã (code)</th>
+                          <th style="width:110px;">Tên hiển thị</th>
+                          <th>Mô tả ý nghĩa / Khi nào dùng</th>
                           <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1201,21 +1213,23 @@
                   </div>
                 </div>
 
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner" data-min-w="200" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 1 và Bảng 2 (Nhấp đúp để đặt lại)"></div>
+
                 <!-- BẢNG 2: PHÂN LOẠI ANIMATION & LỚP PHỦ -->
-                <div class="sg-cls-panel">
+                <div class="sg-cls-panel sg-cls-panel-right">
                   <div class="sg-cls-panel-head">
                     <span>🎬 Bảng 2: Phân loại Animation &amp; Lớp phủ (<code>anim</code> &amp; <code>element</code>)</span>
                     <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-anim" style="display:none;">＋ Thêm Animation</button>
                   </div>
                   <div class="sg-cls-table-wrap">
-                    <table class="sg-cls-table">
+                    <table class="sg-cls-table" id="sg-cls-anim-table">
                       <thead>
                         <tr>
-                          <th style="width:94px;">Nhóm</th>
-                          <th style="width:110px;">Mã (code)</th>
-                          <th style="width:130px;">Tên hiển thị</th>
-                          <th style="width:130px;">Thông số / File</th>
-                          <th>Mô tả ý nghĩa / Khi nào dùng (Để AI học)</th>
+                          <th style="width:90px;">Nhóm</th>
+                          <th style="width:102px;">Mã (code)</th>
+                          <th style="width:120px;">Tên hiển thị</th>
+                          <th style="width:115px;">Thông số / File</th>
+                          <th>Mô tả ý nghĩa / Khi nào dùng</th>
                           <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1224,6 +1238,8 @@
                   </div>
                 </div>
               </div>
+
+              <div class="v-split-resizer" data-vkey="sg-cls-grid-h" data-target="#sg-cls-grid" data-min-h="140" data-max-h="680" title="Kéo lên/xuống để mở rộng hoặc thu gọn chiều cao 2 bảng Phân loại (Nhấp đúp để đặt lại)"></div>
             </div>
           </div>
 

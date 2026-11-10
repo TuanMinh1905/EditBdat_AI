@@ -296,6 +296,11 @@ try {
 13. **Tự động Commit & Push lên Git bằng tiếng Việt sau mỗi lần sửa/viết code:**
     - Cứ mỗi lần hoàn thành việc chỉnh sửa code hoặc viết code mới (sau khi đã kiểm tra cú pháp / test xong), **BẮT BUỘC** tự động thực hiện `git add`, `git commit`, và `git push` lên remote repo.
     - **Nội dung commit message BẮT BUỘC viết bằng tiếng Việt**, mô tả rõ ràng các thay đổi vừa thực hiện.
+14. **Khả năng kéo giãn (Resizable) & Responsive cho mọi Container lớn và nhỏ trên toàn Project:**
+    - **Kéo rộng ngang (`.split-resizer` & `.inner-split-resizer`)**: Mọi bố cục 2 cột lớn (trái/phải của các tab) VÀ các cặp container con nằm cạnh nhau (ví dụ: Bảng 1 Source ↔ Bảng 2 Animation trong `#sg-cls-grid`, 2 khung Phân loại trong `#tab-rules`) đều phải đặt trong Flex row và có `.split-resizer` (hoặc `.split-resizer.inner-split-resizer`) ở giữa để kéo qua lại, lưu `localStorage`, nhấp đúp để reset.
+    - **Kéo dài dọc (`.v-split-resizer`)**: Mọi khung danh sách, bảng, ô nhập quy tắc/prompt, log console bên trong các tab phải có thanh kéo dọc `.v-split-resizer` (`data-vkey`, `data-target`, `data-min-h`, `data-max-h`) ngay bên dưới để người dùng kéo cao/thấp tùy ý, lưu `localStorage`, nhấp đúp để reset.
+    - **Kéo rộng từng cột bảng (`.th-col-resizer`)**: Mọi bảng dữ liệu (`.sg-cls-table`, `.sg-table`, `.sp-catalog-table`, `.rules-table`) đều tự động gắn `.th-col-resizer` trên `thead th` để kéo rộng/hẹp từng cột.
+    - **Responsive theo kích thước Container (`@container` & `@media`)**: Các cột lớn (`.sg-right`, `.sg-left`, `.splitter-left`, `.splitter-right`, `.pgen-left`, `.pgen-right`, `.rules-container`) phải bật `container-type: inline-size` để khi người dùng kéo hẹp một cột, các container nhỏ bên trong tự động chuyển sang xếp chồng dọc (`flex-direction: column`), không bao giờ làm khuất hay cắt mất nội dung.
 
 ---
 
@@ -315,6 +320,7 @@ try {
 | 2026-11-10 | Sắp xếp lại 6 tab sidebar (`Tạo mới`, `Quy tắc`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`, `Cài đặt`). Thêm `python/token_tracker.py` + 2 API `/api/token-usage/get`, `/api/token-usage/reset` + IPC (`get-token-usage`, `reset-token-usage`, `open-external`) + UI thống kê Token theo từng API Key trong tab Cài đặt. | Giúp user theo dõi trực tiếp lượng Token Gemini API đã tiêu thụ trong App ngay tại màn hình Cài đặt. |
 | 2026-11-10 | Quy hoạch lại cấu trúc thư mục sản xuất `D:\Edit SofaZone` thành 3 phân khu chuẩn (`01_Tai_Nguyen_Co_Dinh`, `02_Kho_Source`, `03_Projects`). Tự động đồng bộ bản sao `source_style_rules.txt` và `source_examples.json` sang `01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt`. Điền sẵn các đường dẫn cố định (`02_Clip_Da_Cat`, `catalog.csv`, `Elements`) trong `renderer.js`. | Giúp user quản lý file khoa học, không bị rối khi tạo Project video mới và tiết kiệm thao tác chọn lại các đường dẫn cố định. |
 | 2026-11-10 | Thêm 2 bảng **Phân loại Source** và **Phân loại Animation & Lớp phủ** hiển thị trực tiếp trên tab `💡 Gợi ý Source - Animation` (và đồng bộ sang tab `📋 Quy tắc`). Tạo `templates/classifications.json`, thêm API `/api/source-suggester/save-classifications` + IPC `suggester-save-classifications`. Đồng bộ động dữ liệu 2 bảng này sang AI Prompt (`source_suggester.py`), Dropdown Timeline, Tool B (`clip_splitter.py`) và Tool A (`premiere_xml_generator.py` + `element_map.json`). | Cho phép user xem, thêm, sửa, xóa và mô tả các loại Source & Animation ngay trên giao diện, sau đó toàn bộ App tự động lấy danh sách mới nhất ra sử dụng. |
+| 2026-11-10 | Nâng cấp hệ thống Resizer & Responsive cho toàn bộ các Container lớn và nhỏ trên khắp Project (`.split-resizer`, `.inner-split-resizer`, `.v-split-resizer`, `.th-col-resizer` + CSS `@container` queries). Thêm lỗi #22 và quy tắc #14 vào `AGENTS.md`. | Cho phép user kéo rộng ngang giữa Bảng 1 ↔ Bảng 2, kéo dài dọc mọi khung bảng/textarea/log trên tất cả các tab, kéo rộng từng cột bảng và tự động co giãn responsive khi thu hẹp khung. |
 
 ---
 

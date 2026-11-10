@@ -2966,23 +2966,32 @@ function initSourceSuggester() {
 }
 
 // ============================================================
-// SPLIT RESIZER — Kéo phóng to / thu nhỏ 2 cột cho mọi Tab
+// SPLIT RESIZER — Kéo rộng (ngang), kéo dài (dọc) & kéo cột bảng cho toàn Project
 // ============================================================
 
 function initSplitResizers() {
+  // 1. Horizontal Resizers (.split-resizer) — cho cả 2 cột lớn & các container nhỏ bên trong
   const resizers = $$('.split-resizer');
-  if (!resizers.length) return;
-
   resizers.forEach(resizer => {
     const container = resizer.parentElement;
     const leftPane = resizer.previousElementSibling;
     const tabKey = resizer.dataset.tabKey || 'default';
     if (!container || !leftPane) return;
 
+    const isInner = resizer.classList.contains('inner-split-resizer');
+    const minW = parseInt(resizer.dataset.minW, 10) || (isInner ? 190 : 240);
     const storageKey = `split_w_${tabKey}`;
-    const savedW = parseInt(localStorage.getItem(storageKey), 10);
-    if (!Number.isNaN(savedW) && savedW >= 240) {
-      leftPane.style.setProperty('--left-w', `${savedW}px`);
+    const savedVal = localStorage.getItem(storageKey);
+
+    if (savedVal) {
+      if (isInner && savedVal.endsWith('%')) {
+        leftPane.style.setProperty('--left-w', savedVal);
+      } else {
+        const savedPx = parseInt(savedVal, 10);
+        if (!Number.isNaN(savedPx) && savedPx >= minW) {
+          leftPane.style.setProperty('--left-w', `${savedPx}px`);
+        }
+      }
     }
 
     let isDragging = false;
@@ -3002,10 +3011,16 @@ function initSplitResizers() {
     window.addEventListener('mousemove', e => {
       if (!isDragging) return;
       const containerWidth = container.getBoundingClientRect().width;
-      const minW = 240;
-      const maxW = Math.max(minW, Math.min(containerWidth * 0.75, containerWidth - 280));
+      if (containerWidth <= 0) return;
+      const rightMin = isInner ? minW : 260;
+      const maxW = Math.max(minW, Math.min(containerWidth * 0.82, containerWidth - rightMin));
       const newW = Math.round(Math.min(maxW, Math.max(minW, startWidth + (e.clientX - startX))));
-      leftPane.style.setProperty('--left-w', `${newW}px`);
+      if (isInner) {
+        const pct = Math.min(80, Math.max(18, (newW / containerWidth) * 100)).toFixed(1) + '%';
+        leftPane.style.setProperty('--left-w', pct);
+      } else {
+        leftPane.style.setProperty('--left-w', `${newW}px`);
+      }
     });
 
     window.addEventListener('mouseup', () => {
@@ -3013,14 +3028,147 @@ function initSplitResizers() {
       isDragging = false;
       resizer.classList.remove('active');
       document.body.classList.remove('is-resizing');
-      const finalW = Math.round(leftPane.getBoundingClientRect().width);
-      localStorage.setItem(storageKey, String(finalW));
+      const currentVal = leftPane.style.getPropertyValue('--left-w');
+      if (currentVal) {
+        localStorage.setItem(storageKey, currentVal);
+      }
     });
 
     // Nhấp đúp để đặt lại kích thước mặc định
     resizer.addEventListener('dblclick', () => {
       leftPane.style.removeProperty('--left-w');
       localStorage.removeItem(storageKey);
+    });
+  });
+
+  // 2. Vertical Resizers (.v-split-resizer) — Kéo dài / thu gọn chiều cao các container nhỏ
+  const vResizers = $$('.v-split-resizer');
+  vResizers.forEach(vResizer => {
+    const targetSel = vResizer.dataset.target;
+    const targetEl = targetSel ? $(targetSel) : vResizer.previousElementSibling;
+    const vKey = vResizer.dataset.vkey || 'default';
+    if (!targetEl) return;
+
+    const minH = parseInt(vResizer.dataset.minH, 10) || 80;
+    const maxH = parseInt(vResizer.dataset.maxH, 10) || 650;
+    const storageKey = `vsplit_h_${vKey}`;
+
+    function applyHeight(hPx) {
+      targetEl.style.setProperty('--box-h', `${hPx}px`);
+      targetEl.style.height = `${hPx}px`;
+      targetEl.style.maxHeight = `${hPx}px`;
+    }
+
+    function resetHeight() {
+      targetEl.style.removeProperty('--box-h');
+      targetEl.style.removeProperty('height');
+      targetEl.style.removeProperty('max-height');
+    }
+
+    const savedH = parseInt(localStorage.getItem(storageKey), 10);
+    if (!Number.isNaN(savedH) && savedH >= minH && savedH <= maxH) {
+      applyHeight(savedH);
+    }
+
+    let isDraggingV = false;
+    let startY = 0;
+    let startHeight = 0;
+
+    vResizer.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      // Nếu phần tử mục tiêu đang ẩn (vd: log đang đóng), tự động mở ra để kéo
+      if (getComputedStyle(targetEl).display === 'none') {
+        targetEl.style.display = 'block';
+      }
+      isDraggingV = true;
+      startY = e.clientY;
+      startHeight = targetEl.getBoundingClientRect().height;
+      vResizer.classList.add('active');
+      document.body.classList.add('is-resizing-v');
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isDraggingV) return;
+      const newH = Math.round(Math.min(maxH, Math.max(minH, startHeight + (e.clientY - startY))));
+      applyHeight(newH);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDraggingV) return;
+      isDraggingV = false;
+      vResizer.classList.remove('active');
+      document.body.classList.remove('is-resizing-v');
+      const finalH = Math.round(targetEl.getBoundingClientRect().height);
+      if (finalH >= minH) {
+        localStorage.setItem(storageKey, String(finalH));
+      }
+    });
+
+    // Nhấp đúp để đặt lại chiều cao mặc định
+    vResizer.addEventListener('dblclick', () => {
+      resetHeight();
+      localStorage.removeItem(storageKey);
+    });
+  });
+
+  // 3. Table Column Resizers (.th-col-resizer) — Cho phép kéo rộng từng cột trong mọi bảng
+  const tables = $$('.sg-cls-table, .sg-table, .sp-catalog-table, .rules-table');
+  tables.forEach((table, tIdx) => {
+    const ths = table.querySelectorAll('thead th');
+    ths.forEach((th, cIdx) => {
+      if (th.classList.contains('sg-cls-col-del')) return;
+      if (th.querySelector('.th-col-resizer')) return;
+
+      const colKey = `col_w_${table.id || tIdx}_${cIdx}`;
+      const savedColW = parseInt(localStorage.getItem(colKey), 10);
+      if (!Number.isNaN(savedColW) && savedColW >= 48) {
+        th.style.width = `${savedColW}px`;
+        th.style.minWidth = `${savedColW}px`;
+      }
+
+      const handle = document.createElement('div');
+      handle.className = 'th-col-resizer';
+      handle.title = 'Kéo để chỉnh độ rộng cột (Nhấp đúp để đặt lại)';
+      th.appendChild(handle);
+
+      let isDraggingCol = false;
+      let startX = 0;
+      let startW = 0;
+
+      handle.addEventListener('mousedown', e => {
+        if (e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        isDraggingCol = true;
+        startX = e.clientX;
+        startW = th.getBoundingClientRect().width;
+        handle.classList.add('active');
+        document.body.classList.add('is-resizing');
+      });
+
+      window.addEventListener('mousemove', e => {
+        if (!isDraggingCol) return;
+        const newW = Math.max(48, Math.round(startW + (e.clientX - startX)));
+        th.style.width = `${newW}px`;
+        th.style.minWidth = `${newW}px`;
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (!isDraggingCol) return;
+        isDraggingCol = false;
+        handle.classList.remove('active');
+        document.body.classList.remove('is-resizing');
+        const finalW = Math.round(th.getBoundingClientRect().width);
+        localStorage.setItem(colKey, String(finalW));
+      });
+
+      handle.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        th.style.removeProperty('width');
+        th.style.removeProperty('min-width');
+        localStorage.removeItem(colKey);
+      });
     });
   });
 }
