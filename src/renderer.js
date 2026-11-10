@@ -987,19 +987,26 @@ function initEvents() {
 
 // --- Init ---
 async function init() {
-  initEvents();
-  initSplitResizers();
-  initClipSplitter();
-  initPremiereGen();
-  initSourceSuggester();
-  initKyNangDropdown();
-  initRules();
+  const steps = [
+    ['initEvents', initEvents],
+    ['initSplitResizers', initSplitResizers],
+    ['initClipSplitter', initClipSplitter],
+    ['initPremiereGen', initPremiereGen],
+    ['initSourceSuggester', initSourceSuggester],
+    ['initKyNangDropdown', initKyNangDropdown],
+    ['initRules', initRules]
+  ];
+  for (const [name, fn] of steps) {
+    try {
+      fn();
+    } catch (err) {
+      console.error(`Lỗi khởi tạo ${name}:`, err);
+    }
+  }
   await loadSettings();
   await loadSession();
   addLog('Ứng dụng đã sẵn sàng. Hãy thêm media files và nhập prompt.', 'info');
 }
-
-init();
 
 // ============================================================
 // TOOL B — CLIP SPLITTER UI
@@ -1834,6 +1841,36 @@ const DEFAULT_ANIMATION_TYPES = [
 ];
 
 function initSourceSuggester() {
+  function loadLocalClassifications() {
+    let src = null;
+    let anim = null;
+    try {
+      const rawSrc = localStorage.getItem('sg_custom_source_types');
+      if (rawSrc) {
+        const parsed = JSON.parse(rawSrc);
+        if (Array.isArray(parsed) && parsed.length > 0) src = parsed;
+      }
+      const rawAnim = localStorage.getItem('sg_custom_anim_types');
+      if (rawAnim) {
+        const parsed = JSON.parse(rawAnim);
+        if (Array.isArray(parsed) && parsed.length > 0) anim = parsed;
+      }
+    } catch (e) { /* ignore */ }
+    return {
+      sourceTypes: src || JSON.parse(JSON.stringify(DEFAULT_SOURCE_TYPES)),
+      animationTypes: anim || JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES))
+    };
+  }
+
+  function saveLocalClassifications(sourceTypes, animationTypes) {
+    try {
+      localStorage.setItem('sg_custom_source_types', JSON.stringify(sourceTypes));
+      localStorage.setItem('sg_custom_anim_types', JSON.stringify(animationTypes));
+    } catch (e) { /* ignore */ }
+  }
+
+  const initialCls = loadLocalClassifications();
+
   const sgState = {
     csvPath: localStorage.getItem('sg_timeline_csv') || '',
     defaultThoiKy: localStorage.getItem('sg_default_thoiky') || '',
@@ -1844,8 +1881,8 @@ function initSourceSuggester() {
     rulesOriginalText: '',
     clsLocked: true,
     clsCollapsed: localStorage.getItem('sg_cls_collapsed') === '1',
-    sourceTypes: JSON.parse(JSON.stringify(DEFAULT_SOURCE_TYPES)),
-    animationTypes: JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES)),
+    sourceTypes: initialCls.sourceTypes,
+    animationTypes: initialCls.animationTypes,
     origSourceTypes: [],
     origAnimationTypes: [],
     rows: [],
@@ -2423,7 +2460,9 @@ function initSourceSuggester() {
       if (res && !res.error) {
         sgState.rulesPath = res.rules_path || '';
         sgState.examplesPath = res.examples_path || '';
-        sgState.classificationsPath = res.classifications_path || '';
+        sgState.classificationsPath = res.classifications_path ||
+          (sgState.rulesPath ? sgState.rulesPath.replace(/source_style_rules\.txt$/i, 'classifications.json') : '') ||
+          (sgState.examplesPath ? sgState.examplesPath.replace(/source_examples\.json$/i, 'classifications.json') : '');
         if (sgDom.rulesFilepath && sgState.rulesPath) {
           sgDom.rulesFilepath.title = sgState.rulesPath;
           sgDom.rulesFilepath.textContent = `📄 ${sgState.rulesPath}`;
@@ -2442,6 +2481,7 @@ function initSourceSuggester() {
         if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
           sgState.animationTypes = res.animation_types;
         }
+        saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
         if (sgDom.rulesInput) {
           sgState.rulesOriginalText = res.rules || '';
           sgDom.rulesInput.value = res.rules || '';
@@ -2586,13 +2626,38 @@ function initSourceSuggester() {
       if (!ok) return;
 
       try {
-        const res = await window.api.suggesterSaveClassifications({
-          source_types: sgState.sourceTypes,
-          animation_types: sgState.animationTypes
-        });
-        if (res && res.error) throw new Error(res.error);
-        if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
-        if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
+        // Làm sạch dữ liệu trước khi lưu
+        sgState.sourceTypes = sgState.sourceTypes
+          .map(s => ({
+            code: String(s.code || '').trim(),
+            label: String(s.label || s.code || '').trim(),
+            description: String(s.description || '').trim()
+          }))
+          .filter(s => s.code);
+
+        sgState.animationTypes = sgState.animationTypes
+          .map(a => ({
+            code: String(a.code || '').trim(),
+            group: a.group === 'anim' ? 'anim' : 'element',
+            label: String(a.label || a.code || '').trim(),
+            param: String(a.param || '').trim(),
+            description: String(a.description || '').trim()
+          }))
+          .filter(a => a.code);
+
+        saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+
+        if (typeof window.api.suggesterSaveClassifications === 'function') {
+          const res = await window.api.suggesterSaveClassifications({
+            source_types: sgState.sourceTypes,
+            animation_types: sgState.animationTypes
+          });
+          if (res && res.error) throw new Error(res.error);
+          if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
+          if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
+          saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+        }
+
         setClsLocked(true);
         syncClassificationsEverywhere();
         sgLog(`✅ Đã lưu và đồng bộ ${sgState.sourceTypes.length} Source & ${sgState.animationTypes.length} Animation trên toàn hệ thống!`, 'success');
@@ -2959,3 +3024,7 @@ function initSplitResizers() {
     });
   });
 }
+
+// Khởi chạy ứng dụng ở dòng cuối cùng sau khi mọi const & function đã được khai báo
+init();
+

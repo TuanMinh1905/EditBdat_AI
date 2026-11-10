@@ -255,6 +255,7 @@ try {
 | 19 | `NameError: name 'log' is not defined` khi khởi động `python/main.py` | Khởi tạo global instance `ClipSplitter(log=log)` ở dòng 47 TRƯỚC khi định nghĩa hàm `def log(message):` ở dòng 50 | Trong Python, hàm helper (`def log()`) BẮT BUỘC phải được định nghĩa trước mọi lệnh khởi tạo global instance truyền hàm đó làm tham số |
 | 20 | Premiere "File Import Failure" cho XML có ảnh PNG (stillframe) | PNG `<file>` elements có `<audio>` nhưng KHÔNG có `<video>` trong `<media>` block | Trong `_make_clip_item()`: ALL files phải có `<video>` với `<samplecharacteristics>` (width/height). Chỉ non-image files mới có `<audio>` |
 | 21 | Voice file (.mp4) trên audio track thiếu `<video>` trong media block | Voice `.mp4` chỉ có `<audio>` trong `<media>`, thiếu `<video>` → Premiere có thể báo lỗi | Thêm `<video><samplecharacteristics>` với width/height vào voice file `<media>` block |
+| 22 | Bảng Phân loại rỗng và các nút trong tab mới không phản hồi (`ReferenceError: Cannot access 'DEFAULT_SOURCE_TYPES' before initialization`) | Lệnh gọi `init();` đặt ở giữa file `src/renderer.js` (dòng 1002), trong khi các hằng số `const DEFAULT_SOURCE_TYPES`, `const DEFAULT_ANIMATION_TYPES` khai báo ở dưới (dòng 1797+). Hàm `function initSourceSuggester()` được hoist nhưng `const` nằm trong Temporal Dead Zone (TDZ) gây crash hàm khởi tạo | Lệnh gọi `init();` trong `src/renderer.js` **BẮT BUỘC** phải đặt ở dòng cuối cùng của file (sau tất cả khai báo `const`/`let`/`function`), và từng hàm `init*()` bên trong `init()` phải được bọc `try/catch` độc lập |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 
@@ -285,9 +286,10 @@ try {
    - Đảm bảo params gửi lên khớp CHÍNH XÁC với tên field Flask endpoint expect
 9. **Khi patch file JS/HTML phức tạp:** Dùng Python script thay vì `edit_file` nếu có escape characters hoặc regex patterns để tránh lỗi "target not found"
 10. **Shared state giữa các UI components:** Dùng `localStorage` để lưu, hàm getter/setter riêng. Ví dụ: `loadKyNangList()` / `saveKyNangList()` / `syncKyNangDropdown()`
-11. **Vị trí `<script>` và Null-Safe DOM Events:**
+11. **Vị trí `<script>`, vị trí `init()` và Null-Safe DOM Events:**
     - Trong `src/index.html`, thẻ `<script src="renderer.js"></script>` **BẮT BUỘC** phải đặt ở dòng cuối cùng ngay trước `</body>` (sau tất cả các tab và modal). Không bao giờ chèn HTML mới xuống sau thẻ `<script>`.
-    - Trong `src/renderer.js`, khi gán `.addEventListener()`, luôn kiểm tra phần tử tồn tại (`if (el) el.addEventListener(...)`) để tránh một phần tử `null` làm crash toàn bộ hàm `init()`.
+    - Trong `src/renderer.js`, lệnh gọi `init();` **BẮT BUỘC** phải đặt ở dòng cuối cùng của file (sau mọi khai báo `const`, `let`, `function`) để không dính lỗi Temporal Dead Zone (`ReferenceError: Cannot access '...' before initialization`). Bên trong `init()`, mỗi lệnh gọi `init*()` phải bọc trong `try/catch` riêng.
+    - Khi gán `.addEventListener()`, luôn kiểm tra phần tử tồn tại (`if (el) el.addEventListener(...)`) để tránh một phần tử `null` làm crash hàm khởi tạo.
 12. **Thứ tự khởi tạo trong Python (`main.py`):**
     - Hàm `def log(message):` phải được định nghĩa ngay sau `app = Flask(__name__)`, **trước** bất kỳ dòng khởi tạo global instance nào (`MediaAnalyzer`, `ClipSplitter(log=log)`, v.v.).
     - Sau khi sửa `python/main.py`, luôn chạy `python -c "import ast; ast.parse(open('python/main.py', encoding='utf-8').read())"` để kiểm tra cú pháp.

@@ -212,3 +212,4 @@ def reset_usage(api_key="", usage_path=DEFAULT_USAGE_PATH):
         _save_store(store, usage_path)
 
     return get_usage(api_key, usage_path)
+
