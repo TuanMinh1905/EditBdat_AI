@@ -971,6 +971,28 @@
               </div>
             </div>
           </div>
+
+          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner-3" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa khung Animation và Sound nền (Nhấp đúp để đặt lại)"></div>
+
+          <div class="rules-card rules-cls-bgm">
+            <div class="rules-card-header">🎵 4. Danh sách Sound nền (bgm — Track A2)</div>
+            <div class="rules-card-body">
+              <div class="rules-loai-grid" id="rules-bgm-grid">
+                <!-- Rendered dynamically by JS from classifications.json -->
+              </div>
+            </div>
+          </div>
+
+          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner-4" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa khung Sound nền và Sound Effect (Nhấp đúp để đặt lại)"></div>
+
+          <div class="rules-card rules-cls-sfx">
+            <div class="rules-card-header">🔊 5. Danh sách Sound Effect (sfx — Track A3)</div>
+            <div class="rules-card-body">
+              <div class="rules-loai-grid" id="rules-sfx-grid">
+                <!-- Rendered dynamically by JS from classifications.json -->
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- KY NANG -->
@@ -1069,26 +1091,36 @@
         <div class="sg-left">
 
           <div class="sg-zone-banner zone-cls">
-            <div class="sg-zone-title">🗂️ KHU VỰC 1: 3 BẢNG PHÂN LOẠI (SOURCE · LỚP PHỦ DESIGN · ANIMATION) &amp; QUY TẮC</div>
-            <div class="sg-zone-sub">Mỗi đoạn Voice gồm 3 thành phần: <strong>1. Source</strong> (Clip/Ảnh gốc) → <strong>2. Lớp phủ Design</strong> (Khung TV, Phim 8mm, Bảng số liệu...) → <strong>3. Animation</strong> (Zoom In/Out, Static...)</div>
+            <div class="sg-zone-title">🗂️ KHU VỰC 1: 5 BẢNG PHÂN LOẠI (SOURCE · LỚP PHỦ · ANIMATION · SOUND NỀN · SFX) &amp; QUY TẮC</div>
+            <div class="sg-zone-sub">Mỗi đoạn Voice gồm 5 thành phần: <strong>1. Source</strong> (Clip/Ảnh) → <strong>2. Lớp phủ Design</strong> (Khung TV...) → <strong>3. Animation</strong> (Zoom In/Out) → <strong>4. Sound nền</strong> (BGM Track A2) → <strong>5. Sound Effect</strong> (SFX Track A3)</div>
           </div>
 
           <!-- 1. BA BẢNG PHÂN LOẠI: SOURCE - LỚP PHỦ DESIGN - ANIMATION -->
           <div class="sp-card sg-cls-card" id="sg-cls-card">
             <div class="sg-cls-header">
               <div class="sg-cls-title-group">
-                <span>📋 1. Ba Bảng Phân loại: Source · Lớp phủ Design · Animation</span>
-                <span class="sg-stat-pill" id="sg-cls-summary">12 Source · 23 Lớp phủ · 4 Animation</span>
+                <span>📋 5 Bảng Phân loại: Source · Lớp phủ · Animation · Sound nền · Sound Effect</span>
+                <span class="sg-stat-pill" id="sg-cls-summary">12 Source · 23 Lớp phủ · 4 Animation · 12 BGM · 10 SFX</span>
               </div>
               <div class="sg-cls-actions">
-                <button class="sg-mini-btn" id="sg-btn-layout-cls" title="Chuyển đổi hiển thị 3 bảng: Xếp dọc (rộng rãi) hoặc Xếp ngang 3 cột">📐 Đổi bố cục</button>
+                <button class="sg-mini-btn" id="sg-btn-layout-cls" title="Chuyển đổi hiển thị 5 bảng: Xếp dọc (rộng rãi) hoặc Xếp ngang 5 cột">📐 Đổi bố cục</button>
                 <button class="sg-mini-btn" id="sg-btn-toggle-cls" title="Thu gọn / Mở rộng 3 bảng phân loại">🔼 Thu gọn</button>
               </div>
             </div>
 
             <div class="sg-cls-body" id="sg-cls-body">
               <div class="sg-cls-hint">
-                💡 Bấm vào <code>Mã</code> bất kỳ để copy hoặc chèn thẳng xuống ô <strong>File quy tắc (.txt)</strong> bên dưới. Di chuột vào <strong>Video</strong> để chạy thử hiệu ứng, hoặc bấm vào <strong>Ảnh / Video</strong> để phóng to.
+                💡 Bấm vào <code>Mã</code> bất kỳ để copy hoặc chèn thẳng xuống ô <strong>File quy tắc (.txt)</strong> bên dưới. Di chuột vào <strong>Video</strong> để chạy thử hiệu ứng, bấm vào <strong>Ảnh / Video</strong> để phóng to, hoặc bấm <strong>▶ Nghe</strong> để nghe thử âm thanh.
+              </div>
+
+              <!-- Filter pills: lọc nhanh 5 bảng -->
+              <div class="sg-cls-filter-bar" id="sg-cls-filter-bar">
+                <button class="sg-filter-pill active" data-filter="all">📋 Tất cả (5)</button>
+                <button class="sg-filter-pill" data-filter="src">📂 1. Source</button>
+                <button class="sg-filter-pill" data-filter="el">🖼️ 2. Lớp phủ</button>
+                <button class="sg-filter-pill" data-filter="anim">🎬 3. Animation</button>
+                <button class="sg-filter-pill" data-filter="bgm">🎵 4. Sound nền</button>
+                <button class="sg-filter-pill" data-filter="sfx">🔊 5. Sound Effect</button>
               </div>
 
               <div class="sg-cls-grid" id="sg-cls-grid">
@@ -1184,8 +1216,73 @@
                   </div>
                   <div class="v-split-resizer" data-vkey="sg-cls-anim-h" data-target="#sg-cls-anim-wrap" data-min-h="100" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Bảng 3: Animation (Nhấp đúp để đặt lại)"></div>
                 </div>
+
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner-3" data-min-w="180" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 3 và Bảng 4 (Nhấp đúp để đặt lại)"></div>
+
+                <!-- BẢNG 4: SOUND NỀN (BGM — Track A2) -->
+                <div class="sg-cls-panel sg-cls-panel-4" id="sg-cls-panel-bgm">
+                  <div class="sg-cls-panel-head head-bgm">
+                    <span>🎵 Bảng 4: Sound nền (<code>bgm</code> — Track A2)</span>
+                    <div class="sg-cls-panel-actions">
+                      <span class="sg-badge" id="sg-bgm-status">🔒 Đang khóa</span>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-bgm">✏️ Chỉnh sửa</button>
+                      <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-bgm" style="display:none;">＋ Thêm</button>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-bgm" style="display:none;">✖ Hủy</button>
+                      <button class="btn-primary sg-cls-btn" id="sg-btn-save-bgm" style="display:none;">💾 Lưu</button>
+                    </div>
+                  </div>
+                  <div class="sg-cls-table-wrap" id="sg-cls-bgm-wrap">
+                    <table class="sg-cls-table" id="sg-cls-bgm-table">
+                      <thead>
+                        <tr>
+                          <th style="width:96px;">Mã (code)</th>
+                          <th style="width:140px;">Tên hiển thị</th>
+                          <th style="width:160px;">File nhạc (Sounds/Background)</th>
+                          <th>Mô tả / Khi nào dùng</th>
+                          <th style="width:78px; text-align:center;" title="Nghe thử nhạc nền">▶ Nghe</th>
+                          <th class="sg-cls-col-del sg-bgm-col-del" style="width:32px; display:none;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="sg-cls-bgm-tbody"></tbody>
+                    </table>
+                  </div>
+                  <div class="v-split-resizer" data-vkey="sg-cls-bgm-h" data-target="#sg-cls-bgm-wrap" data-min-h="100" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Bảng 4: Sound nền (Nhấp đúp để đặt lại)"></div>
+                </div>
+
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner-4" data-min-w="180" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 4 và Bảng 5 (Nhấp đúp để đặt lại)"></div>
+
+                <!-- BẢNG 5: SOUND EFFECT (SFX — Track A3) -->
+                <div class="sg-cls-panel sg-cls-panel-5" id="sg-cls-panel-sfx">
+                  <div class="sg-cls-panel-head head-sfx">
+                    <span>🔊 Bảng 5: Sound Effect (<code>sfx</code> — Track A3)</span>
+                    <div class="sg-cls-panel-actions">
+                      <span class="sg-badge" id="sg-sfx-status">🔒 Đang khóa</span>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-sfx">✏️ Chỉnh sửa</button>
+                      <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-sfx" style="display:none;">＋ Thêm</button>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-sfx" style="display:none;">✖ Hủy</button>
+                      <button class="btn-primary sg-cls-btn" id="sg-btn-save-sfx" style="display:none;">💾 Lưu</button>
+                    </div>
+                  </div>
+                  <div class="sg-cls-table-wrap" id="sg-cls-sfx-wrap">
+                    <table class="sg-cls-table" id="sg-cls-sfx-table">
+                      <thead>
+                        <tr>
+                          <th style="width:96px;">Mã (code)</th>
+                          <th style="width:140px;">Tên hiển thị</th>
+                          <th style="width:130px;">File SFX (Sounds/SFX)</th>
+                          <th>Mô tả / Khi nào dùng</th>
+                          <th style="width:78px; text-align:center;" title="Nghe thử hiệu ứng">▶ Nghe</th>
+                          <th class="sg-cls-col-del sg-sfx-col-del" style="width:32px; display:none;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="sg-cls-sfx-tbody"></tbody>
+                    </table>
+                  </div>
+                  <div class="v-split-resizer" data-vkey="sg-cls-sfx-h" data-target="#sg-cls-sfx-wrap" data-min-h="100" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Bảng 5: Sound Effect (Nhấp đúp để đặt lại)"></div>
+                </div>
               </div>
               <input type="file" id="sg-cls-file-input" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" style="display:none;" />
+              <input type="file" id="sg-cls-audio-input" accept="audio/*,.mp3,.wav,.ogg,.m4a,.aac,.flac" style="display:none;" />
             </div>
           </div>
 
@@ -1257,8 +1354,8 @@
         <div class="sg-right">
 
           <div class="sg-zone-banner zone-ai">
-            <div class="sg-zone-title">🤖 KHU VỰC 2: AI GỢI Ý (SOURCE + LỚP PHỦ DESIGN + ANIMATION) CHO VIDEO ĐANG DỰNG</div>
-            <div class="sg-zone-sub">Chọn file Timeline CSV của bài mới → AI tự động phân tích &amp; gắn <strong>Source</strong> + <strong>Lớp phủ Design</strong> + <strong>Animation</strong> dựa theo 3 bảng bên trái</div>
+            <div class="sg-zone-title">🤖 KHU VỰC 2: AI GỢI Ý (SOURCE + LỚP PHỦ + ANIMATION + BGM + SFX) CHO VIDEO ĐANG DỰNG</div>
+            <div class="sg-zone-sub">Chọn file Timeline CSV của bài mới → AI tự động phân tích &amp; gắn <strong>Source</strong> + <strong>Lớp phủ</strong> + <strong>Animation</strong> + <strong>BGM</strong> + <strong>SFX</strong> dựa theo 5 bảng bên trái</div>
           </div>
 
           <!-- 1. CHỌN FILE TIMELINE CSV & CHẠY AI GỢI Ý -->
@@ -1278,7 +1375,7 @@
               </div>
               <div class="sg-ai-run-btn-col">
                 <button class="btn-generate sg-ai-run-btn" id="sg-btn-suggest">
-                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source · Lớp phủ · Animation</span>
+                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source · Lớp phủ · Animation · BGM · SFX</span>
                 </button>
               </div>
             </div>
@@ -1319,6 +1416,8 @@
                     <th style="width:132px;" title="Loại Source phụ ghép thêm ở Track V2 (nếu có)">＋ Source phụ</th>
                     <th style="width:168px;" title="Lớp phủ Design đè lên đoạn Clip/Ảnh (Khung TV, Phim 8mm, Bảng số liệu... — Lấy từ Bảng 2)">🖼️ Lớp phủ Design</th>
                     <th style="width:142px;" title="Chuyển động Animation trong đoạn đó (Zoom In 100->108%, Zoom Out, Static... — Lấy từ Bảng 3)">🎬 Animation</th>
+                    <th style="width:145px;" title="Nhạc nền (Sound Background) cho đoạn này — Lấy từ Bảng 4 (Track A2)">🎵 Sound nền</th>
+                    <th style="width:145px;" title="Hiệu ứng âm thanh cho đoạn này — Lấy từ Bảng 5 (Track A3)">🔊 Sound Effect</th>
                     <th style="width:185px;">
                       Thời kỳ / Cầu thủ
                       <button class="sg-fill-btn" id="sg-btn-fill-thoiky"
@@ -1330,7 +1429,7 @@
                 </thead>
                 <tbody id="sg-tbody">
                   <tr>
-                    <td colspan="9" class="sg-empty-row">
+                    <td colspan="11" class="sg-empty-row">
                       Hãy chọn file <code>1_CSV_Timeline.csv</code> ở khung phía trên rồi bấm <strong>🤖 AI Gợi ý Source + Animation</strong>.
                     </td>
                   </tr>

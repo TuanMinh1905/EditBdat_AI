@@ -647,6 +647,8 @@ def api_premiere_generate():
             element_dir     = data.get('element_dir') or None,
             texture_id      = data.get('texture_id') or None,
             enable_animations = data.get('enable_animations', True),
+            sound_root      = data.get('sound_root') or None,
+            sound_map_path  = data.get('sound_map_path') or None,
             log             = log,
         )
 
@@ -658,6 +660,8 @@ def api_premiere_generate():
             "total_clips"      : result['total_clips'],
             "total_elements"   : result.get('total_elements', 0),
             "total_transitions": result.get('total_transitions', 0),
+            "total_bgm_clips"  : result.get('total_bgm_clips', 0),
+            "total_sfx_clips"  : result.get('total_sfx_clips', 0),
             "animations"       : result.get('animations_enabled', False),
             "missing"          : result['missing'],
         })
@@ -689,6 +693,8 @@ def api_suggester_get_state():
             "source_types": cls_data["source_types"],
             "element_types": cls_data["element_types"],
             "animation_types": cls_data["animation_types"],
+            "bgm_types": cls_data["bgm_types"],
+            "sfx_types": cls_data["sfx_types"],
             "classifications_path": cls_data["classifications_path"],
         })
     except Exception as e:
@@ -698,22 +704,28 @@ def api_suggester_get_state():
 
 @app.route('/api/source-suggester/save-classifications', methods=['POST'])
 def api_suggester_save_classifications():
-    """Luu 3 bang Phan loai Source, Lop phu Design va Animation vao templates/classifications.json."""
+    """Luu 5 bang Phan loai Source, Lop phu Design, Animation, Sound nen va Sound Effect vao templates/classifications.json."""
     try:
         data = request.get_json() or {}
         source_types = data.get('source_types')
         element_types = data.get('element_types')
         animation_types = data.get('animation_types')
+        bgm_types = data.get('bgm_types')
+        sfx_types = data.get('sfx_types')
         cls_data = source_suggester.save_classifications(
             source_types=source_types,
             element_types=element_types,
             animation_types=animation_types,
+            bgm_types=bgm_types,
+            sfx_types=sfx_types,
         )
         return jsonify({
             "success": True,
             "source_types": cls_data["source_types"],
             "element_types": cls_data["element_types"],
             "animation_types": cls_data["animation_types"],
+            "bgm_types": cls_data["bgm_types"],
+            "sfx_types": cls_data["sfx_types"],
             "classifications_path": cls_data["classifications_path"],
         })
     except Exception as e:

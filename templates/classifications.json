@@ -265,5 +265,163 @@
       "description": "Đứng yên (100%) — không phóng to thu nhỏ",
       "image": ""
     }
+  ],
+  "bgm_types": [
+    {
+      "code": "auto",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động chọn và nối liền mạch nhạc nền theo từng Đoạn lớn (doan) & mạch cảm xúc",
+      "image": ""
+    },
+    {
+      "code": "none",
+      "label": "🔇 Không nhạc nền (None)",
+      "param": "",
+      "description": "Tắt nhạc nền ở đoạn này (nhường chỗ cho tiếng BLV gốc hoặc khoảng lặng kịch tính)",
+      "image": ""
+    },
+    {
+      "code": "bgm_default",
+      "label": "🎵 Nhạc nền chuẩn SofaZone",
+      "param": "nhạc nền background.mp3",
+      "description": "Nhạc nền chủ đạo mặc định của kênh (dẫn chuyện chung, phân tích chiến thuật)",
+      "image": ""
+    },
+    {
+      "code": "bgm_momentum",
+      "label": "🎵 Momentum (Nhịp độ nhanh)",
+      "param": "chestnutmusicstudios-05-momentum-589472.mp3",
+      "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — hợp cho chuỗi pha bóng tốc độ, phản công, cao trào",
+      "image": ""
+    },
+    {
+      "code": "bgm_dark_ambient",
+      "label": "🎵 Dark Ambient (Trầm / Bí ẩn)",
+      "param": "cinematic-soul-dark-ambient-background-music-617907.mp3",
+      "description": "Nhạc nền trầm lắng, u tối, điện ảnh — hợp khi kể về khủng hoảng, thất bại, chấn thương, góc khuất",
+      "image": ""
+    },
+    {
+      "code": "bgm_freedom",
+      "label": "🎵 Price of Freedom (Hào hùng)",
+      "param": "good_b_music-price-of-freedom-33106.mp3",
+      "description": "Nhạc nền hào hùng, xúc động — hợp cho đoạn nâng cúp vô địch, khoảnh khắc huyền thoại, kết bài",
+      "image": ""
+    },
+    {
+      "code": "bgm_nastelbom",
+      "label": "🎵 Nastelbom (Kể chuyện)",
+      "param": "nastelbom-background-music-617075.mp3",
+      "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — hợp cho phần mở bài hoặc giải thích bối cảnh",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_1",
+      "label": "🎵 Nhạc nền Mid 1",
+      "param": "mid.mp3",
+      "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa (mid.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_2",
+      "label": "🎵 Nhạc nền Mid 2",
+      "param": "mid2.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 2 (mid2.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_3",
+      "label": "🎵 Nhạc nền Mid 3",
+      "param": "mid3.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 3 (mid3.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_4",
+      "label": "🎵 Nhạc nền Mid 4",
+      "param": "mid4.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 4 (mid4.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_5",
+      "label": "🎵 Nhạc nền Mid 5",
+      "param": "mid5.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 5 (mid5.mp3)",
+      "image": ""
+    }
+  ],
+  "sfx_types": [
+    {
+      "code": "auto",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động đặt SFX hợp với Lớp phủ / Source (mặt báo->camera_shutter, bảng số->data_beep, khán đài->crowd_cheer)",
+      "image": ""
+    },
+    {
+      "code": "none",
+      "label": "🔇 Không hiệu ứng (None)",
+      "param": "",
+      "description": "Không chèn hiệu ứng âm thanh ở câu này (giữ giọng đọc sạch)",
+      "image": ""
+    },
+    {
+      "code": "whoosh",
+      "label": "💨 Whoosh (Chuyển cảnh)",
+      "param": "whoosh.mp3",
+      "description": "Tiếng gió lướt nhanh khi chuyển cảnh, đổi chủ đề hoặc phóng to đột ngột",
+      "image": ""
+    },
+    {
+      "code": "camera_shutter",
+      "label": "📸 Chụp ảnh (Mặt báo / Ảnh)",
+      "param": "camera_shutter.mp3",
+      "description": "Tiếng tách máy ảnh khi hiện mặt báo (anh_chung_bao), ảnh khoảnh khắc (anh_thoi_diem) hoặc hồ sơ",
+      "image": ""
+    },
+    {
+      "code": "data_beep",
+      "label": "📊 Tiếng số liệu (Bảng thống kê)",
+      "param": "data_beep.mp3",
+      "description": "Tiếng nhảy số điện tử / gõ phím khi hiện bảng thống kê (anh_thong_so / stats_table)",
+      "image": ""
+    },
+    {
+      "code": "crowd_cheer",
+      "label": "🏟️ Khán đài reo hò",
+      "param": "crowd_cheer.mp3",
+      "description": "Tiếng cổ động viên hò reo vang dội khi ghi bàn, ăn mừng danh hiệu (rai_4, khan_dai)",
+      "image": ""
+    },
+    {
+      "code": "whistle",
+      "label": "📢 Tiếng còi trọng tài",
+      "param": "whistle.mp3",
+      "description": "Tiếng còi khai cuộc / mãn cuộc hoặc tình huống phạm lỗi tranh cãi",
+      "image": ""
+    },
+    {
+      "code": "tv_glitch",
+      "label": "📺 Tiếng bật TV / Nhiễu sóng",
+      "param": "tv_glitch.mp3",
+      "description": "Tiếng bật tivi CRT / nhiễu sóng nhẹ khi xuất hiện khung TV (tv_retro, tv_sony)",
+      "image": ""
+    },
+    {
+      "code": "film_projector",
+      "label": "🎞️ Máy chiếu phim 8mm",
+      "param": "film_projector.mp3",
+      "description": "Tiếng cuộn phim nhựa cổ điển quay đều khi dùng lớp phủ hồi ức (film_grain)",
+      "image": ""
+    },
+    {
+      "code": "impact_boom",
+      "label": "💥 Bass Boom / Hit (Điểm nhấn)",
+      "param": "impact_boom.mp3",
+      "description": "Tiếng trống trầm / Cinematic Hit tạo điểm nhấn mạnh cho câu chốt hạ hoặc bước ngoặt lớn",
+      "image": ""
+    }
   ]
 }

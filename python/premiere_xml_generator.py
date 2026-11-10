@@ -466,6 +466,89 @@ def _load_anim_specs():
     return specs
 
 
+def _load_sound_map(sound_map_path=None):
+    """Doc sound_map.json, tra ve (bgm_map, sfx_map, auto_sfx_by_loai)."""
+    if sound_map_path and os.path.exists(sound_map_path):
+        map_path = sound_map_path
+    else:
+        map_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "templates",
+            "sound_map.json",
+        )
+    if not os.path.exists(map_path):
+        return {}, {}, {}
+    import json
+
+    with open(map_path, "r", encoding="utf-8-sig") as f:
+        data = json.load(f)
+    bgm_map = data.get("bgm", {})
+    sfx_map = data.get("sfx", {})
+    auto_sfx = data.get("auto_sfx_by_loai", {})
+    return bgm_map, sfx_map, auto_sfx
+
+
+def _make_audio_clip_item(
+    clip_index,
+    file_path,
+    clip_in,
+    clip_out,
+    timeline_in,
+    timeline_out,
+    file_duration=None,
+    fps=FPS,
+    file_registered=None,
+    audio_level=None,
+):
+    """
+    Tao <clipitem> audio-only (khong co video) cho BGM/SFX.
+    audio_level: float (vd: -12.0 dB) hoac None.
+    """
+    ci = ET.Element("clipitem", id=f"clipitem-{clip_index}")
+    ET.SubElement(ci, "name").text = os.path.basename(file_path)
+    ET.SubElement(ci, "enabled").text = "TRUE"
+    ET.SubElement(ci, "duration").text = str(clip_out - clip_in)
+    _add_rate(ci, fps)
+    ET.SubElement(ci, "start").text = str(timeline_in)
+    ET.SubElement(ci, "end").text = str(timeline_out)
+    ET.SubElement(ci, "in").text = str(clip_in)
+    ET.SubElement(ci, "out").text = str(clip_out)
+
+    fid = _file_id(file_path)
+    if file_registered is not None and fid in file_registered:
+        ET.SubElement(ci, "file", id=fid)
+    else:
+        dur = file_duration if file_duration is not None else (clip_out - clip_in)
+        f_el = ET.SubElement(ci, "file", id=fid)
+        ET.SubElement(f_el, "name").text = os.path.basename(file_path)
+        ET.SubElement(f_el, "pathurl").text = path_to_url(file_path)
+        _add_rate(f_el, fps)
+        ET.SubElement(f_el, "duration").text = str(dur)
+        mc = ET.SubElement(f_el, "media")
+        aud = ET.SubElement(mc, "audio")
+        ET.SubElement(aud, "channelcount").text = "2"
+        if file_registered is not None:
+            file_registered.add(fid)
+
+    ET.SubElement(ci, "channelcount").text = "2"
+
+    # Audio gain filter (gia tri tuong doi 0.0 → 1.0)
+    if audio_level is not None and audio_level < 1.0:
+        filt = ET.SubElement(ci, "filter")
+        effect = ET.SubElement(filt, "effect")
+        ET.SubElement(effect, "name").text = "Audio Levels"
+        ET.SubElement(effect, "effectid").text = "audiolevels"
+        ET.SubElement(effect, "effectcategory").text = "audio"
+        ET.SubElement(effect, "effecttype").text = "audio"
+        ET.SubElement(effect, "mediatype").text = "audio"
+        param = ET.SubElement(effect, "parameter", authoringApp="PremierePro")
+        ET.SubElement(param, "parameterid").text = "level"
+        ET.SubElement(param, "name").text = "Level"
+        ET.SubElement(param, "value").text = str(audio_level)
+
+    return ci
+
+
 def _resolve_element(loai_source, csv_element_value, auto_map, elements, element_dir):
     """
     Tra ve list element dicts cho mot cau/y.
@@ -719,6 +802,8 @@ def generate_xml(
     element_dir=None,
     texture_id=None,
     enable_animations=True,
+    sound_root=None,
+    sound_map_path=None,
     fps=FPS,
     log=print,
 ):
@@ -734,6 +819,8 @@ def generate_xml(
     - element_dir     : thu muc chua Element/Overlay files (tuy chon)
     - texture_id      : element_id cho texture full-video tren V4 (tuy chon, vd: 'paper_texture')
     - enable_animations: True de them Ken Burns zoom, opacity fade, transitions (mac dinh True)
+    - sound_root      : thu muc goc Sounds (cha cua Background/ va SFX/), tuy chon
+    - sound_map_path  : duong dan toi sound_map.json (tuy chon, mac dinh templates/sound_map.json)
     """
     log("[A] Doc cac file dau vao...")
     tl_rows = read_csv(timeline_csv)
@@ -752,6 +839,11 @@ def generate_xml(
         log(
             f"[A] Element dir: {element_dir}, {len(elements)} element definitions loaded"
         )
+
+    # Load sound map (neu co sound_root)
+    bgm_map, sfx_map, auto_sfx_by_loai = _load_sound_map(sound_map_path)
+    if sound_root:
+        log(f"[A] Sound dir: {sound_root}, {len(bgm_map)} BGM + {len(sfx_map)} SFX loaded")
 
     # Build source plan index: (doan, cau, y) → row
     def norm_y(v):
@@ -873,6 +965,18 @@ def generate_xml(
     ET.SubElement(track_a1, "locked").text = "FALSE"
     ET.SubElement(track_a1, "outputlevel").text = "0"
 
+    # Track A2: BGM (nhac nen)
+    track_a2 = ET.SubElement(audio_el, "track")
+    ET.SubElement(track_a2, "enabled").text = "TRUE"
+    ET.SubElement(track_a2, "locked").text = "FALSE"
+    ET.SubElement(track_a2, "outputlevel").text = "0"
+
+    # Track A3: SFX (hieu ung am thanh)
+    track_a3 = ET.SubElement(audio_el, "track")
+    ET.SubElement(track_a3, "enabled").text = "TRUE"
+    ET.SubElement(track_a3, "locked").text = "FALSE"
+    ET.SubElement(track_a3, "outputlevel").text = "0"
+
     # --- Voice tren A1 ---
     file_registered = set()
     voice_ci = ET.SubElement(track_a1, "clipitem", id="clipitem-voice")
@@ -914,6 +1018,7 @@ def generate_xml(
 
     prev_doan = None
     markers_list = []  # (frame, comment)
+    bgm_sfx_rows = []  # Thu thap bgm/sfx cho tung row: {f_in, f_out, bgm, sfx, loai_source}
 
     for row in tl_with_frames:
         doan = str(row.get("doan", "")).strip().lstrip("0") or "0"
@@ -949,6 +1054,15 @@ def generate_xml(
         )
         goi_y = sp.get("goi_y", "") + " " + text
         thoi_ky_str = sp.get("thoi_ky", "")
+
+        # Thu thap BGM va SFX cho Track A2/A3
+        row_bgm = (sp.get("bgm", "") or "auto").strip().lower()
+        row_sfx = (sp.get("sfx", "") or "auto").strip().lower()
+        bgm_sfx_rows.append({
+            "f_in": f_in, "f_out": f_out,
+            "bgm": row_bgm, "sfx": row_sfx,
+            "loai_source": loai_str,
+        })
 
         clips, filled = pick_clips(
             loai_str,
@@ -1103,6 +1217,101 @@ def generate_xml(
             element_count += 1
             log(f"[A] Texture '{tid}' ({tex_def['file']}) → V4, opacity={tex_opacity}%")
 
+    # --- BGM tren Track A2 (merge consecutive rows co cung bgm) ---
+    bgm_clip_count = 0
+    sfx_clip_count = 0
+    if sound_root and bgm_sfx_rows:
+        # 1. Resolve bgm code → absolute path, merge consecutive same-bgm
+        bgm_segments = []  # list of {bgm_code, f_start, f_end, path}
+        for br in bgm_sfx_rows:
+            bgm_code = br["bgm"]
+            if bgm_code in ("none", ""):
+                continue
+            # auto → bgm_default
+            if bgm_code == "auto":
+                bgm_code = "bgm_default"
+            bgm_def = bgm_map.get(bgm_code)
+            if bgm_def is None:
+                continue
+            bgm_path = os.path.join(sound_root, bgm_def["file"])
+            # Merge: neu segment truoc co cung bgm_code thi noi dai
+            if bgm_segments and bgm_segments[-1]["bgm_code"] == bgm_code:
+                bgm_segments[-1]["f_end"] = br["f_out"]
+            else:
+                bgm_segments.append({
+                    "bgm_code": bgm_code,
+                    "f_start": br["f_in"],
+                    "f_end": br["f_out"],
+                    "path": bgm_path,
+                })
+
+        for seg in bgm_segments:
+            seg_dur = seg["f_end"] - seg["f_start"]
+            if seg_dur <= 0:
+                continue
+            ci = _make_audio_clip_item(
+                clip_index,
+                seg["path"],
+                0,
+                seg_dur,
+                seg["f_start"],
+                seg["f_end"],
+                file_duration=seg_dur,
+                fps=fps,
+                file_registered=file_registered,
+                audio_level=0.15,  # BGM nho, khong at voice
+            )
+            track_a2.append(ci)
+            clip_index += 1
+            bgm_clip_count += 1
+
+        if bgm_clip_count > 0:
+            log(f"[A] BGM: {bgm_clip_count} audio clip(s) da dat tren Track A2 (tu {len(bgm_sfx_rows)} rows)")
+
+        # 2. SFX tren Track A3
+        for br in bgm_sfx_rows:
+            sfx_code = br["sfx"]
+            if sfx_code in ("none", ""):
+                continue
+            # auto → tra theo auto_sfx_by_loai
+            if sfx_code == "auto":
+                # Tim tu loai_source
+                loai_list = [l.strip() for l in re.split(r"[+,;]", br.get("loai_source", ""))]
+                resolved = None
+                for loai in loai_list:
+                    resolved = auto_sfx_by_loai.get(loai) or auto_sfx_by_loai.get(norm(loai))
+                    if resolved:
+                        break
+                if not resolved:
+                    continue
+                sfx_code = resolved
+
+            sfx_def = sfx_map.get(sfx_code)
+            if sfx_def is None:
+                continue
+            sfx_path = os.path.join(sound_root, sfx_def["file"])
+            sfx_dur = min(br["f_out"] - br["f_in"], fps * 3)  # SFX toi da 3s
+            if sfx_dur <= 0:
+                continue
+            ci = _make_audio_clip_item(
+                clip_index,
+                sfx_path,
+                0,
+                sfx_dur,
+                br["f_in"],
+                br["f_in"] + sfx_dur,
+                file_duration=sfx_dur,
+                fps=fps,
+                file_registered=file_registered,
+                audio_level=0.6,  # SFX vua phai
+            )
+            track_a3.append(ci)
+            clip_index += 1
+            sfx_clip_count += 1
+
+        if sfx_clip_count > 0:
+            log(f"[A] SFX: {sfx_clip_count} audio clip(s) da dat tren Track A3")
+
     # --- Animation: Transitions tren V1 ---
     transition_count = 0
     if enable_animations:
@@ -1153,6 +1362,8 @@ def generate_xml(
         "total_clips": clip_index - 1,
         "total_elements": element_count,
         "total_transitions": transition_count,
+        "total_bgm_clips": bgm_clip_count,
+        "total_sfx_clips": sfx_clip_count,
         "animations_enabled": enable_animations,
     }
 
@@ -1175,6 +1386,8 @@ if __name__ == "__main__":
     p.add_argument("--srt", default=None)
     p.add_argument("--element_dir", default=None)
     p.add_argument("--texture_id", default=None)
+    p.add_argument("--sound_root", default=None, help="Thu muc goc Sounds (cha cua Background/ va SFX/)")
+    p.add_argument("--sound_map", default=None, help="Duong dan toi sound_map.json")
     p.add_argument(
         "--no-animations",
         action="store_true",
@@ -1193,10 +1406,14 @@ if __name__ == "__main__":
         element_dir=args.element_dir,
         texture_id=args.texture_id,
         enable_animations=not getattr(args, "no_animations", False),
+        sound_root=args.sound_root,
+        sound_map_path=args.sound_map,
         log=print,
     )
     print(
         f"Xong: {res['total_clips']} clip, {res.get('total_elements', 0)} elements, "
-        f"{res.get('total_transitions', 0)} transitions, {len(res['missing'])} thieu source, "
+        f"{res.get('total_transitions', 0)} transitions, "
+        f"{res.get('total_bgm_clips', 0)} BGM, {res.get('total_sfx_clips', 0)} SFX, "
+        f"{len(res['missing'])} thieu source, "
         f"animations={'ON' if res.get('animations_enabled') else 'OFF'}"
     )

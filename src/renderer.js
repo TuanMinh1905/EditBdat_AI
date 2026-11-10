@@ -1850,6 +1850,18 @@ const DEFAULT_ANIMATION_TYPES = [
   { code: 'static', group: 'anim', label: '⏹️ Đứng yên (Static)', param: '100->100', description: 'Đứng yên (100%) — không phóng to thu nhỏ' }
 ];
 
+const DEFAULT_BGM_TYPES = [
+  { code: 'auto', label: '✨ Tự động (Auto)', param: '', description: 'Tự động chọn nhạc nền theo Đoạn & mạch cảm xúc' },
+  { code: 'none', label: '🔇 Không nhạc nền', param: '', description: 'Tắt nhạc nền ở đoạn này' },
+  { code: 'bgm_default', label: '🎵 Nhạc nền chuẩn SofaZone', param: 'nhạc nền background.mp3', description: 'Nhạc nền chủ đạo mặc định' }
+];
+
+const DEFAULT_SFX_TYPES = [
+  { code: 'auto', label: '✨ Tự động (Auto)', param: '', description: 'Tự động đặt SFX hợp với Source/Lớp phủ' },
+  { code: 'none', label: '🔇 Không hiệu ứng', param: '', description: 'Không chèn hiệu ứng âm thanh' },
+  { code: 'whoosh', label: '💨 Whoosh', param: 'whoosh.mp3', description: 'Tiếng gió lướt nhanh khi chuyển cảnh' }
+];
+
 function initSourceSuggester() {
   function mergeMissingDefaultElements(list) {
     if (!Array.isArray(list) || !list.length) return JSON.parse(JSON.stringify(DEFAULT_ELEMENT_TYPES));
@@ -1913,14 +1925,24 @@ function initSourceSuggester() {
         }
       }
     } catch (e) { /* ignore */ }
+    let bgm = null;
+    let sfx = null;
+    try {
+      const rawBgm = localStorage.getItem('sg_custom_bgm_types');
+      if (rawBgm) { const p = JSON.parse(rawBgm); if (Array.isArray(p) && p.length) bgm = p; }
+      const rawSfx = localStorage.getItem('sg_custom_sfx_types');
+      if (rawSfx) { const p = JSON.parse(rawSfx); if (Array.isArray(p) && p.length) sfx = p; }
+    } catch(_) {}
     return {
       sourceTypes: src || JSON.parse(JSON.stringify(DEFAULT_SOURCE_TYPES)),
       elementTypes: el || JSON.parse(JSON.stringify(DEFAULT_ELEMENT_TYPES)),
-      animationTypes: anim || JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES))
+      animationTypes: anim || JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES)),
+      bgmTypes: bgm || JSON.parse(JSON.stringify(DEFAULT_BGM_TYPES)),
+      sfxTypes: sfx || JSON.parse(JSON.stringify(DEFAULT_SFX_TYPES))
     };
   }
 
-  function saveLocalClassifications(sourceTypes, elementTypes, animationTypes) {
+  function saveLocalClassifications(sourceTypes, elementTypes, animationTypes, bgmTypes, sfxTypes) {
     try {
       const stripHeavyVideo = list => (list || []).map(it => {
         if (it.image && typeof it.image === 'string' && it.image.startsWith('data:video/') && it.image.length > 500000) {
@@ -1931,6 +1953,8 @@ function initSourceSuggester() {
       localStorage.setItem('sg_custom_source_types', JSON.stringify(stripHeavyVideo(sourceTypes)));
       localStorage.setItem('sg_custom_element_types', JSON.stringify(stripHeavyVideo(elementTypes)));
       localStorage.setItem('sg_custom_anim_types_v2', JSON.stringify(stripHeavyVideo(animationTypes)));
+      if (bgmTypes) localStorage.setItem('sg_custom_bgm_types', JSON.stringify(bgmTypes));
+      if (sfxTypes) localStorage.setItem('sg_custom_sfx_types', JSON.stringify(sfxTypes));
     } catch (e) { /* ignore */ }
   }
 
@@ -1952,9 +1976,16 @@ function initSourceSuggester() {
     sourceTypes: initialCls.sourceTypes,
     elementTypes: initialCls.elementTypes,
     animationTypes: initialCls.animationTypes,
+    bgmTypes: initialCls.bgmTypes,
+    sfxTypes: initialCls.sfxTypes,
     origSourceTypes: [],
     origElementTypes: [],
     origAnimationTypes: [],
+    origBgmTypes: [],
+    origSfxTypes: [],
+    bgmLocked: true,
+    sfxLocked: true,
+    clsFilter: 'all',
     rows: [],
     examples: [],
     isSuggesting: false
@@ -1998,6 +2029,21 @@ function initSourceSuggester() {
     btnSaveAnim: $('#sg-btn-save-anim'),
     btnAddAnim: $('#sg-btn-add-anim'),
     clsAnimTbody: $('#sg-cls-anim-tbody'),
+    // Bảng 4: Sound nền (BGM)
+    bgmStatus: $('#sg-bgm-status'),
+    btnEditBgm: $('#sg-btn-edit-bgm'),
+    btnCancelBgm: $('#sg-btn-cancel-bgm'),
+    btnSaveBgm: $('#sg-btn-save-bgm'),
+    btnAddBgm: $('#sg-btn-add-bgm'),
+    clsBgmTbody: $('#sg-cls-bgm-tbody'),
+    // Bảng 5: Sound Effect (SFX)
+    sfxStatus: $('#sg-sfx-status'),
+    btnEditSfx: $('#sg-btn-edit-sfx'),
+    btnCancelSfx: $('#sg-btn-cancel-sfx'),
+    btnSaveSfx: $('#sg-btn-save-sfx'),
+    btnAddSfx: $('#sg-btn-add-sfx'),
+    clsSfxTbody: $('#sg-cls-sfx-tbody'),
+    clsAudioInput: $('#sg-cls-audio-input'),
     // Cột Ảnh ví dụ & Lightbox Modal
     clsFileInput: $('#sg-cls-file-input'),
     modalClsImg: $('#modal-cls-image'),
@@ -2036,12 +2082,16 @@ function initSourceSuggester() {
   function getListByTableKey(tbl) {
     if (tbl === 'src') return sgState.sourceTypes;
     if (tbl === 'el') return sgState.elementTypes;
+    if (tbl === 'bgm') return sgState.bgmTypes;
+    if (tbl === 'sfx') return sgState.sfxTypes;
     return sgState.animationTypes;
   }
 
   function getOrigListByTableKey(tbl) {
     if (tbl === 'src') return sgState.origSourceTypes;
     if (tbl === 'el') return sgState.origElementTypes;
+    if (tbl === 'bgm') return sgState.origBgmTypes;
+    if (tbl === 'sfx') return sgState.origSfxTypes;
     return sgState.origAnimationTypes;
   }
 
@@ -2069,10 +2119,26 @@ function initSourceSuggester() {
     }));
   }
 
+  function getValidBgmsList() {
+    return sgState.bgmTypes.map(b => ({
+      code: b.code,
+      label: `${b.label || b.code} (${b.code})`,
+      title: b.description || ''
+    }));
+  }
+
+  function getValidSfxsList() {
+    return sgState.sfxTypes.map(s => ({
+      code: s.code,
+      label: `${s.label || s.code} (${s.code})`,
+      title: s.description || ''
+    }));
+  }
+
   function syncClassificationsEverywhere() {
     // 1. Đồng bộ badge tổng số lượng (3 bảng)
     if (sgDom.clsSummary) {
-      sgDom.clsSummary.textContent = `${sgState.sourceTypes.length} Source · ${sgState.elementTypes.length} Lớp phủ · ${sgState.animationTypes.length} Animation`;
+      sgDom.clsSummary.textContent = `${sgState.sourceTypes.length} Source · ${sgState.elementTypes.length} Lớp phủ · ${sgState.animationTypes.length} Animation · ${sgState.bgmTypes.length} BGM · ${sgState.sfxTypes.length} SFX`;
     }
 
     // 2. Đồng bộ Dropdown #sp-loai ở Tab ✂️ Cắt Clip (Tool B)
@@ -2114,7 +2180,23 @@ function initSourceSuggester() {
 
     const rulesAnimGrid = $('#rules-anim-grid');
     if (rulesAnimGrid) {
-      rulesAnimGrid.innerHTML = sgState.animationTypes.map(a => {
+      // Bảng 4: Sound nền in tab Rules
+    const rulesBgmGrid = $('#rules-bgm-grid');
+    if (rulesBgmGrid) {
+      rulesBgmGrid.innerHTML = sgState.bgmTypes.map(b => {
+        return `<div class="rules-loai-item"><span class="rules-loai-code">${b.code}</span><span class="rules-loai-label">${b.label || b.code}</span></div>`;
+      }).join('');
+    }
+
+    // Bảng 5: Sound Effect in tab Rules
+    const rulesSfxGrid = $('#rules-sfx-grid');
+    if (rulesSfxGrid) {
+      rulesSfxGrid.innerHTML = sgState.sfxTypes.map(s => {
+        return `<div class="rules-loai-item"><span class="rules-loai-code">${s.code}</span><span class="rules-loai-label">${s.label || s.code}</span></div>`;
+      }).join('');
+    }
+
+    rulesAnimGrid.innerHTML = sgState.animationTypes.map(a => {
         const safeCode = String(a.code || '').replace(/</g, '&lt;');
         const safeLbl = String(a.label || '').replace(/</g, '&lt;');
         const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
@@ -2216,10 +2298,44 @@ function initSourceSuggester() {
     renderClassificationTables();
   }
 
+  function setBgmLocked(locked) {
+    sgState.bgmLocked = Boolean(locked);
+    if (sgDom.bgmStatus) {
+      sgDom.bgmStatus.textContent = sgState.bgmLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
+      sgDom.bgmStatus.classList.toggle('unsaved', !sgState.bgmLocked);
+    }
+    if (sgDom.btnEditBgm) sgDom.btnEditBgm.style.display = sgState.bgmLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnAddBgm) sgDom.btnAddBgm.style.display = sgState.bgmLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnCancelBgm) sgDom.btnCancelBgm.style.display = sgState.bgmLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveBgm) sgDom.btnSaveBgm.style.display = sgState.bgmLocked ? 'none' : 'inline-flex';
+    const bgmDelCols = document.querySelectorAll('.sg-bgm-col-del');
+    bgmDelCols.forEach(th => { th.style.display = sgState.bgmLocked ? 'none' : 'table-cell'; });
+    if (!sgState.bgmLocked && sgState.clsCollapsed) setClsCollapsed(false);
+    renderClassificationTables();
+  }
+
+  function setSfxLocked(locked) {
+    sgState.sfxLocked = Boolean(locked);
+    if (sgDom.sfxStatus) {
+      sgDom.sfxStatus.textContent = sgState.sfxLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
+      sgDom.sfxStatus.classList.toggle('unsaved', !sgState.sfxLocked);
+    }
+    if (sgDom.btnEditSfx) sgDom.btnEditSfx.style.display = sgState.sfxLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnAddSfx) sgDom.btnAddSfx.style.display = sgState.sfxLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnCancelSfx) sgDom.btnCancelSfx.style.display = sgState.sfxLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveSfx) sgDom.btnSaveSfx.style.display = sgState.sfxLocked ? 'none' : 'inline-flex';
+    const sfxDelCols = document.querySelectorAll('.sg-sfx-col-del');
+    sfxDelCols.forEach(th => { th.style.display = sgState.sfxLocked ? 'none' : 'table-cell'; });
+    if (!sgState.sfxLocked && sgState.clsCollapsed) setClsCollapsed(false);
+    renderClassificationTables();
+  }
+
   function setClsLocked(locked) {
     setSrcLocked(locked);
     setElLocked(locked);
     setAnimLocked(locked);
+    setBgmLocked(locked);
+    setSfxLocked(locked);
   }
 
   let pendingImgTarget = null; // { tbl: 'src' | 'el' | 'anim', idx: number }
@@ -2389,9 +2505,8 @@ function initSourceSuggester() {
 
     if (sgDom.modalClsImgCode) sgDom.modalClsImgCode.textContent = item.code || '';
     if (sgDom.modalClsImgTitle) {
-      const prefix = activeLightbox.tbl === 'src'
-        ? '📂 Source: '
-        : (activeLightbox.tbl === 'el' ? '🖼️ Lớp phủ Design: ' : '🎬 Animation: ');
+      const prefixMap = { src: '📂 Source: ', el: '🖼️ Lớp phủ Design: ', anim: '🎬 Animation: ', bgm: '🎵 Sound nền: ', sfx: '🔊 Sound Effect: ' };
+      const prefix = prefixMap[activeLightbox.tbl] || '';
       sgDom.modalClsImgTitle.textContent = `${prefix}${item.label || item.code || ''} (${idx + 1}/${list.length})`;
     }
     if (sgDom.modalClsImgDesc) {
@@ -2458,6 +2573,44 @@ function initSourceSuggester() {
     if (sgDom.modalClsImg) {
       sgDom.modalClsImg.style.display = 'none';
     }
+  }
+
+  // Shared audio element for preview in classification tables
+  let sharedClsAudio = null;
+  let sharedClsAudioCode = null;
+
+  function toggleAudioPreview(tbl, code, param) {
+    if (!param) return;
+    const subDir = tbl === 'bgm' ? 'Background' : 'SFX';
+    const audioUrl = `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Sounds/${subDir}/${encodeURIComponent(param)}`;
+
+    if (sharedClsAudio && sharedClsAudioCode === code) {
+      sharedClsAudio.pause();
+      sharedClsAudio = null;
+      sharedClsAudioCode = null;
+      renderClassificationTables();
+      return;
+    }
+    if (sharedClsAudio) { try { sharedClsAudio.pause(); } catch(_) {} }
+    sharedClsAudio = new Audio(audioUrl);
+    sharedClsAudioCode = code;
+    sharedClsAudio.volume = tbl === 'bgm' ? 0.35 : 0.7;
+    sharedClsAudio.play().catch(err => { sgLog(`Không phát được audio: ${err.message}`, 'error'); });
+    sharedClsAudio.addEventListener('ended', () => {
+      sharedClsAudioCode = null;
+      renderClassificationTables();
+    }, { once: true });
+    renderClassificationTables();
+  }
+
+  function renderAudioCellHtml(tbl, idx, item) {
+    const param = String(item.param || '').trim();
+    const code = String(item.code || '');
+    const isPlaying = sharedClsAudioCode === code;
+    if (code === 'auto' || code === 'none' || !param) {
+      return `<td class="sg-cls-img-cell" style="text-align:center; color:var(--text-tertiary); font-size:0.7rem;">—</td>`;
+    }
+    return `<td class="sg-cls-img-cell"><div class="sg-audio-cell"><button type="button" class="sg-audio-play-btn ${isPlaying ? 'is-playing' : ''}" data-tbl="${tbl}" data-idx="${idx}" data-code="${code}" data-param="${param.replace(/"/g, '&quot;')}" title="${isPlaying ? 'Dừng phát' : 'Nghe thử'}">${isPlaying ? '⏹ Dừng' : '▶ Nghe'}</button></div></td>`;
   }
 
   function renderClassificationTables() {
@@ -2558,6 +2711,135 @@ function initSourceSuggester() {
         </tr>
       `;
     }).join('');
+
+    // --- BẢNG 4: SOUND NỀN (BGM) ---
+    if (sgDom.clsBgmTbody) {
+      const bgmLocked = sgState.bgmLocked;
+      sgDom.clsBgmTbody.innerHTML = sgState.bgmTypes.map((b, idx) => {
+        const safeCode = String(b.code || '').replace(/"/g, '&quot;');
+        const safeLabel = String(b.label || '').replace(/"/g, '&quot;');
+        const safeParam = String(b.param || '').replace(/"/g, '&quot;');
+        const safeDesc = String(b.description || '').replace(/"/g, '&quot;');
+        const audioCell = renderAudioCellHtml('bgm', idx, b);
+        if (bgmLocked) {
+          return `<tr>`
+            + `<td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy '${safeCode}'">${safeCode}</span></td>`
+            + `<td style="font-weight:600; color:#22d3ee;">${safeLabel}</td>`
+            + `<td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>`
+            + `<td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>`
+            + audioCell
+            + `</tr>`;
+        }
+        return `<tr data-bgm-idx="${idx}">`
+          + `<td><input type="text" class="sg-cls-input code-font sg-bgm-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: bgm_default"></td>`
+          + `<td><input type="text" class="sg-cls-input sg-bgm-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên nhạc..."></td>`
+          + `<td><input type="text" class="sg-cls-input sg-bgm-param" data-idx="${idx}" value="${safeParam}" placeholder="File .mp3 trong Sounds/Background/"></td>`
+          + `<td><input type="text" class="sg-cls-input sg-bgm-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng..."></td>`
+          + audioCell
+          + `<td style="text-align:center;"><button class="sg-example-del sg-bgm-del" data-idx="${idx}" title="Xóa">✕</button></td>`
+          + `</tr>`;
+      }).join('');
+    }
+
+    // --- BẢNG 5: SOUND EFFECT (SFX) ---
+    if (sgDom.clsSfxTbody) {
+      const sfxLocked = sgState.sfxLocked;
+      sgDom.clsSfxTbody.innerHTML = sgState.sfxTypes.map((s, idx) => {
+        const safeCode = String(s.code || '').replace(/"/g, '&quot;');
+        const safeLabel = String(s.label || '').replace(/"/g, '&quot;');
+        const safeParam = String(s.param || '').replace(/"/g, '&quot;');
+        const safeDesc = String(s.description || '').replace(/"/g, '&quot;');
+        const audioCell = renderAudioCellHtml('sfx', idx, s);
+        if (sfxLocked) {
+          return `<tr>`
+            + `<td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy '${safeCode}'">${safeCode}</span></td>`
+            + `<td style="font-weight:600; color:#f472b6;">${safeLabel}</td>`
+            + `<td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>`
+            + `<td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>`
+            + audioCell
+            + `</tr>`;
+        }
+        return `<tr data-sfx-idx="${idx}">`
+          + `<td><input type="text" class="sg-cls-input code-font sg-sfx-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: whoosh"></td>`
+          + `<td><input type="text" class="sg-cls-input sg-sfx-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên SFX..."></td>`
+          + `<td><input type="text" class="sg-cls-input sg-sfx-param" data-idx="${idx}" value="${safeParam}" placeholder="File .mp3 trong Sounds/SFX/"></td>`
+          + `<td><input type="text" class="sg-cls-input sg-sfx-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng..."></td>`
+          + audioCell
+          + `<td style="text-align:center;"><button class="sg-example-del sg-sfx-del" data-idx="${idx}" title="Xóa">✕</button></td>`
+          + `</tr>`;
+      }).join('');
+    }
+
+    // Events cho nút Nghe audio
+    if (sgDom.clsCard) {
+      sgDom.clsCard.querySelectorAll('.sg-audio-play-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          toggleAudioPreview(btn.dataset.tbl, btn.dataset.code, btn.dataset.param);
+        });
+      });
+    }
+
+    // Events cho edit BGM inputs
+    if (!sgState.bgmLocked && sgDom.clsBgmTbody) {
+      sgDom.clsBgmTbody.querySelectorAll('.sg-bgm-code').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.bgmTypes[Number(inp.dataset.idx)].code = inp.value; });
+      });
+      sgDom.clsBgmTbody.querySelectorAll('.sg-bgm-label').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.bgmTypes[Number(inp.dataset.idx)].label = inp.value; });
+      });
+      sgDom.clsBgmTbody.querySelectorAll('.sg-bgm-param').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.bgmTypes[Number(inp.dataset.idx)].param = inp.value; });
+      });
+      sgDom.clsBgmTbody.querySelectorAll('.sg-bgm-desc').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.bgmTypes[Number(inp.dataset.idx)].description = inp.value; });
+      });
+      sgDom.clsBgmTbody.querySelectorAll('.sg-bgm-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sgState.bgmTypes.splice(Number(btn.dataset.idx), 1);
+          renderClassificationTables();
+        });
+      });
+    }
+
+    // Events cho edit SFX inputs
+    if (!sgState.sfxLocked && sgDom.clsSfxTbody) {
+      sgDom.clsSfxTbody.querySelectorAll('.sg-sfx-code').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sfxTypes[Number(inp.dataset.idx)].code = inp.value; });
+      });
+      sgDom.clsSfxTbody.querySelectorAll('.sg-sfx-label').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sfxTypes[Number(inp.dataset.idx)].label = inp.value; });
+      });
+      sgDom.clsSfxTbody.querySelectorAll('.sg-sfx-param').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sfxTypes[Number(inp.dataset.idx)].param = inp.value; });
+      });
+      sgDom.clsSfxTbody.querySelectorAll('.sg-sfx-desc').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sfxTypes[Number(inp.dataset.idx)].description = inp.value; });
+      });
+      sgDom.clsSfxTbody.querySelectorAll('.sg-sfx-del').forEach(btn => {
+        btn.addEventListener('click', () => {
+          sgState.sfxTypes.splice(Number(btn.dataset.idx), 1);
+          renderClassificationTables();
+        });
+      });
+    }
+
+    // Filter pills visibility
+    const filter = sgState.clsFilter || 'all';
+    const panelMap = { src: '#sg-cls-panel-src', el: '#sg-cls-panel-el', anim: '#sg-cls-panel-anim', bgm: '#sg-cls-panel-bgm', sfx: '#sg-cls-panel-sfx' };
+    const resizerMap = { 'sg-cls-inner-1': ['src','el'], 'sg-cls-inner-2': ['el','anim'], 'sg-cls-inner-3': ['anim','bgm'], 'sg-cls-inner-4': ['bgm','sfx'] };
+    Object.entries(panelMap).forEach(([key, sel]) => {
+      const panel = document.querySelector(sel);
+      if (panel) panel.style.display = (filter === 'all' || filter === key) ? '' : 'none';
+    });
+    // Hide/show inner resizers based on filter
+    Object.entries(resizerMap).forEach(([tabKey, panels]) => {
+      const resizer = document.querySelector(`.inner-split-resizer[data-tab-key="${tabKey}"]`);
+      if (resizer) {
+        const showResizer = filter === 'all' || panels.some(p => p === filter);
+        resizer.style.display = showResizer && filter === 'all' ? '' : 'none';
+      }
+    });
 
     // Events cho cột Ảnh ví dụ (hoạt động cả khi khóa lẫn khi mở khóa)
     if (sgDom.clsCard) {
@@ -2761,7 +3043,117 @@ function initSourceSuggester() {
       sgDom.rulesStatus.textContent = sgState.rulesLocked ? '🔒 Đang khóa' : '🔓 Đang chỉnh sửa';
       sgDom.rulesStatus.classList.toggle('unsaved', !sgState.rulesLocked);
     }
-    if (sgDom.btnEditRules) sgDom.btnEditRules.style.display = sgState.rulesLocked ? 'inline-flex' : 'none';
+  
+  // --- Sự kiện cho Bảng 4: Sound nền (BGM) ---
+  if (sgDom.btnEditBgm) {
+    sgDom.btnEditBgm.addEventListener('click', () => {
+      sgState.origBgmTypes = JSON.parse(JSON.stringify(sgState.bgmTypes));
+      setBgmLocked(false);
+    });
+  }
+  if (sgDom.btnCancelBgm) {
+    sgDom.btnCancelBgm.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.bgmTypes) !== JSON.stringify(sgState.origBgmTypes);
+      if (changed) {
+        const ok = await askConfirm('Hủy thay đổi Bảng 4 (Sound nền)? Các sửa đổi sẽ mất.', { title: '⚠️ Hủy thay đổi Bảng 4' });
+        if (!ok) return;
+      }
+      sgState.bgmTypes = JSON.parse(JSON.stringify(sgState.origBgmTypes));
+      setBgmLocked(true);
+      renderClassificationTables();
+    });
+  }
+  if (sgDom.btnAddBgm) {
+    sgDom.btnAddBgm.addEventListener('click', () => {
+      sgState.bgmTypes.push({
+        code: `bgm_moi_${sgState.bgmTypes.length + 1}`,
+        label: 'Nhạc nền mới',
+        param: '',
+        description: ''
+      });
+      renderClassificationTables();
+    });
+  }
+  if (sgDom.btnSaveBgm) {
+    sgDom.btnSaveBgm.addEventListener('click', async () => {
+      try {
+        const ok = await askConfirm(
+          `Bạn có muốn lưu Bảng 4 (${sgState.bgmTypes.length} loại Sound nền) vào hệ thống không?`,
+          { title: '💾 Lưu Bảng 4: Sound nền' }
+        );
+        if (!ok) return;
+        await persistAllClassificationTables();
+        setBgmLocked(true);
+        syncClassificationsEverywhere();
+        sgLog(`✅ Đã lưu Bảng 4 (${sgState.bgmTypes.length} Sound nền) trên toàn hệ thống!`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu Bảng 4: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // --- Sự kiện cho Bảng 5: Sound Effect (SFX) ---
+  if (sgDom.btnEditSfx) {
+    sgDom.btnEditSfx.addEventListener('click', () => {
+      sgState.origSfxTypes = JSON.parse(JSON.stringify(sgState.sfxTypes));
+      setSfxLocked(false);
+    });
+  }
+  if (sgDom.btnCancelSfx) {
+    sgDom.btnCancelSfx.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.sfxTypes) !== JSON.stringify(sgState.origSfxTypes);
+      if (changed) {
+        const ok = await askConfirm('Hủy thay đổi Bảng 5 (Sound Effect)? Các sửa đổi sẽ mất.', { title: '⚠️ Hủy thay đổi Bảng 5' });
+        if (!ok) return;
+      }
+      sgState.sfxTypes = JSON.parse(JSON.stringify(sgState.origSfxTypes));
+      setSfxLocked(true);
+      renderClassificationTables();
+    });
+  }
+  if (sgDom.btnAddSfx) {
+    sgDom.btnAddSfx.addEventListener('click', () => {
+      sgState.sfxTypes.push({
+        code: `sfx_moi_${sgState.sfxTypes.length + 1}`,
+        label: 'SFX mới',
+        param: '',
+        description: ''
+      });
+      renderClassificationTables();
+    });
+  }
+  if (sgDom.btnSaveSfx) {
+    sgDom.btnSaveSfx.addEventListener('click', async () => {
+      try {
+        const ok = await askConfirm(
+          `Bạn có muốn lưu Bảng 5 (${sgState.sfxTypes.length} loại Sound Effect) vào hệ thống không?`,
+          { title: '💾 Lưu Bảng 5: Sound Effect' }
+        );
+        if (!ok) return;
+        await persistAllClassificationTables();
+        setSfxLocked(true);
+        syncClassificationsEverywhere();
+        sgLog(`✅ Đã lưu Bảng 5 (${sgState.sfxTypes.length} Sound Effect) trên toàn hệ thống!`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu Bảng 5: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // --- Sự kiện cho Filter Pills ---
+  const filterBar = document.getElementById('sg-cls-filter-bar');
+  if (filterBar) {
+    filterBar.addEventListener('click', (e) => {
+      const pill = e.target.closest('.sg-filter-pill');
+      if (!pill) return;
+      sgState.clsFilter = pill.dataset.filter || 'all';
+      filterBar.querySelectorAll('.sg-filter-pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      renderClassificationTables();
+    });
+  }
+
+  if (sgDom.btnEditRules) sgDom.btnEditRules.style.display = sgState.rulesLocked ? 'inline-flex' : 'none';
     if (sgDom.btnCancelRules) sgDom.btnCancelRules.style.display = sgState.rulesLocked ? 'none' : 'inline-flex';
     if (sgDom.btnSaveRules) sgDom.btnSaveRules.style.display = sgState.rulesLocked ? 'none' : 'inline-flex';
 
@@ -2886,6 +3278,19 @@ function initSourceSuggester() {
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curAnim ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
+      const validBgms = getValidBgmsList();
+      const validSfxs = getValidSfxsList();
+      const curBgm = r.bgm || 'auto';
+      const curSfx = r.sfx || 'auto';
+
+      const optsBgm = validBgms.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curBgm ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
+      const optsSfx = validSfxs.map(o =>
+        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curSfx ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
       return `
         <tr class="${isLow ? 'sg-row-low-conf' : ''}" data-idx="${idx}">
           <td style="font-family:var(--font-mono); font-size:0.74rem; color:var(--text-secondary);">
@@ -2914,6 +3319,16 @@ function initSourceSuggester() {
           <td>
             <select class="sg-select sg-sel-anim" data-idx="${idx}">
               ${optsAnim}
+            </select>
+          </td>
+          <td>
+            <select class="sg-select sg-sel-bgm" data-idx="${idx}">
+              ${optsBgm}
+            </select>
+          </td>
+          <td>
+            <select class="sg-select sg-sel-sfx" data-idx="${idx}">
+              ${optsSfx}
             </select>
           </td>
           <td>
@@ -2960,6 +3375,22 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].anim = sel.value;
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-sel-bgm').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        sgState.rows[i].bgm = sel.value;
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-sel-sfx').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        sgState.rows[i].sfx = sel.value;
         sgState.rows[i].confidence = 1.0;
       });
     });
@@ -3027,7 +3458,13 @@ function initSourceSuggester() {
             })));
           }
         }
-        saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
+        if (Array.isArray(res.bgm_types) && res.bgm_types.length > 0) {
+          sgState.bgmTypes = res.bgm_types;
+        }
+        if (Array.isArray(res.sfx_types) && res.sfx_types.length > 0) {
+          sgState.sfxTypes = res.sfx_types;
+        }
+        saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes, sgState.bgmTypes, sgState.sfxTypes);
         if (sgDom.rulesInput) {
           sgState.rulesOriginalText = res.rules || '';
           sgDom.rulesInput.value = res.rules || '';
@@ -3059,6 +3496,8 @@ function initSourceSuggester() {
         loai_source: r.loai_source || 'rai_1',
         element: r.element || 'auto',
         anim: r.anim || 'auto',
+        bgm: r.bgm || 'auto',
+        sfx: r.sfx || 'auto',
         thoi_ky: r.thoi_ky || defTk || '',
         confidence: null,
         reason: '',
@@ -3132,17 +3571,39 @@ function initSourceSuggester() {
       }))
       .filter(a => a.code);
 
+    sgState.bgmTypes = sgState.bgmTypes
+      .map(b => ({
+        code: String(b.code || '').trim(),
+        label: String(b.label || b.code || '').trim(),
+        param: String(b.param || '').trim(),
+        description: String(b.description || '').trim(),
+        image: ''
+      }))
+      .filter(b => b.code);
+
+    sgState.sfxTypes = sgState.sfxTypes
+      .map(s => ({
+        code: String(s.code || '').trim(),
+        label: String(s.label || s.code || '').trim(),
+        param: String(s.param || '').trim(),
+        description: String(s.description || '').trim(),
+        image: ''
+      }))
+      .filter(s => s.code);
+
     const srcImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image).map(x => [x.code, x.image]));
     const elImgMap = Object.fromEntries(sgState.elementTypes.filter(x => x.image).map(x => [x.code, x.image]));
     const animImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [x.code, x.image]));
 
-    saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
+    saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes, sgState.bgmTypes, sgState.sfxTypes);
 
     if (typeof window.api.suggesterSaveClassifications === 'function') {
       const res = await window.api.suggesterSaveClassifications({
         source_types: sgState.sourceTypes,
         element_types: sgState.elementTypes,
-        animation_types: sgState.animationTypes
+        animation_types: sgState.animationTypes,
+        bgm_types: sgState.bgmTypes,
+        sfx_types: sgState.sfxTypes
       });
       if (res && res.error) throw new Error(res.error);
       if (Array.isArray(res.source_types)) {
@@ -3154,7 +3615,9 @@ function initSourceSuggester() {
       if (Array.isArray(res.animation_types)) {
         sgState.animationTypes = res.animation_types.map(x => ({ ...x, group: 'anim', image: x.image || animImgMap[x.code] || '' }));
       }
-      saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
+      if (Array.isArray(res.bgm_types)) sgState.bgmTypes = res.bgm_types;
+      if (Array.isArray(res.sfx_types)) sgState.sfxTypes = res.sfx_types;
+      saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes, sgState.bgmTypes, sgState.sfxTypes);
     }
   }
 
@@ -3640,6 +4103,8 @@ function initSourceSuggester() {
 
         sgState.rows = (res.rows || []).map(r => ({
           ...r,
+          bgm: r.bgm || 'auto',
+          sfx: r.sfx || 'auto',
           note: ''
         }));
         renderTable();

@@ -44,14 +44,15 @@ Code_AI/
 │   ├── timeline_validator.py        # Validate timeline JSON
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
-│   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại Source theo phong cách (RAG Embedding + Rules)
+│   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại 5 bảng (Source/Element/Anim/BGM/SFX) theo phong cách (RAG Embedding + Rules)
 │   ├── token_tracker.py             # Đếm & lưu số lượng Token Gemini API đã sử dụng theo từng API Key
-│   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro
+│   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro — V1/V2 Source, V3 Element, V4 Texture, A1 Voice, A2 BGM, A3 SFX
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
-├── templates/                       # Template JSX, preset effects, element map
-│   ├── classifications.json         # Bảng Phân loại Source & Animation động (cập nhật trực tiếp từ UI)
+├── templates/                       # Template JSX, preset effects, element map, sound map
+│   ├── classifications.json         # Bảng Phân loại 5 bảng: Source, Element, Animation, BGM, SFX (cập nhật trực tiếp từ UI)
 │   ├── element_map.json             # Mapping element_id → file overlay/texture
+│   ├── sound_map.json               # Mapping bgm/sfx code → file âm thanh (Background/ + SFX/)
 │   ├── source_style_rules.txt       # Quy tắc phong cách chọn Source của user
 │   └── source_examples.json         # Kho ví dụ câu thoại → loai_source (kèm vector embedding)
 ├── output/                          # Thư mục chứa .jsx và .aep output
@@ -322,6 +323,7 @@ try {
 | 2026-11-10 | Thêm 2 bảng **Phân loại Source** và **Phân loại Animation & Lớp phủ** hiển thị trực tiếp trên tab `💡 Gợi ý Source - Animation` (và đồng bộ sang tab `📋 Quy tắc`). Tạo `templates/classifications.json`, thêm API `/api/source-suggester/save-classifications` + IPC `suggester-save-classifications`. Đồng bộ động dữ liệu 2 bảng này sang AI Prompt (`source_suggester.py`), Dropdown Timeline, Tool B (`clip_splitter.py`) và Tool A (`premiere_xml_generator.py` + `element_map.json`). | Cho phép user xem, thêm, sửa, xóa và mô tả các loại Source & Animation ngay trên giao diện, sau đó toàn bộ App tự động lấy danh sách mới nhất ra sử dụng. |
 | 2026-11-10 | Nâng cấp hệ thống Resizer & Responsive cho toàn bộ các Container lớn và nhỏ trên khắp Project (`.split-resizer`, `.inner-split-resizer`, `.v-split-resizer`, `.th-col-resizer` + CSS `@container` queries). Thêm lỗi #22 và quy tắc #14 vào `AGENTS.md`. | Cho phép user kéo rộng ngang giữa Bảng 1 ↔ Bảng 2, kéo dài dọc mọi khung bảng/textarea/log trên tất cả các tab, kéo rộng từng cột bảng và tự động co giãn responsive khi thu hẹp khung. |
 | 2026-11-11 | Tái cấu trúc hệ thống Phân loại thành **3 bảng độc lập** (`Bảng 1: Phân loại Source`, `Bảng 2: Lớp phủ Design`, `Bảng 3: Phân loại Animation`) thay vì gộp chung Lớp phủ & Animation. Cập nhật `templates/classifications.json` lưu 3 mảng (`source_types`, `element_types`, `animation_types`), đồng bộ toàn bộ 21 file trong `D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Elements` vào `element_map.json` và Bảng 2. Mỗi bảng có nút `🔒 Đang khóa` / `✏️ Chỉnh sửa` / `＋ Thêm` / `✖ Hủy` / `💾 Lưu` riêng ở góc phải, cột `Ảnh / Video` (hỗ trợ cả ảnh và video 5–10s kèm Lightbox & hover-play), nút `📐 Đổi bố cục` (xếp dọc 3 bảng hoặc xếp ngang 3 cột), và đồng bộ sang `#tab-rules` + `#sg-table`. | Phản ánh đúng tư duy dựng video của user: mỗi đoạn Voice gồm 3 thành phần tách biệt: **Source** (Clip/Ảnh trên V1/V2) + **Lớp phủ Design** (Khung TV, giấy cũ, bảng số liệu trên V3/V4) + **Animation** (Chuyển động Zoom In/Out/Static trong đoạn đó). |
+| 2026-11-11 | Thêm **Bảng 4: Sound nền (BGM — Track A2)** và **Bảng 5: Sound Effect (SFX — Track A3)** vào toàn bộ hệ thống. Tạo `templates/sound_map.json` (10 BGM + 8 SFX). Cập nhật `source_suggester.py` (5 bảng, AI gợi ý BGM/SFX), `premiere_xml_generator.py` (Track A2 BGM merge liền mạch + Track A3 SFX, `_load_sound_map()`, `_make_audio_clip_item()`), `main.py` (truyền `sound_root`/`sound_map_path`). UI: filter pills 5 bảng, inline `▶ Nghe thử` audio preview, 2 cột `🎵 Sound nền` và `🔊 Sound Effect` dropdown trong bảng Timeline. Cập nhật `classifications.json` lưu 5 mảng. | Mô hình đối tượng **Time** đầy đủ 6 thuộc tính: Voice + Source + Lớp phủ + Animation + Sound nền + Sound Effect. BGM tự động merge các dòng liên tiếp cùng mã thành 1 clip liền mạch trên A2 (gain 0.15). SFX đặt tại điểm bắt đầu mỗi row trên A3 (gain 0.6, tối đa 3s). |
 
 ---
 
@@ -417,10 +419,19 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
   "srt_path": "...",
   "element_dir": "...",
   "texture_id": "paper_texture",
-  "enable_animations": true
+  "enable_animations": true,
+  "sound_root": "D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh\\Sounds",
+  "sound_map_path": null
 }
 ```
-Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total_transitions": N, "animations_enabled": true, "missing": [...] }`
+Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total_transitions": N, "total_bgm_clips": N, "total_sfx_clips": N, "animations_enabled": true, "missing": [...] }`
+
+### Audio Tracks:
+- **A1:** Voice chính (full-length clipitem)
+- **A2:** BGM (nhạc nền) — merge consecutive rows có cùng `bgm` code thành 1 audio clip liền mạch, audio gain 0.15
+- **A3:** SFX (hiệu ứng âm thanh) — đặt tại `f_in` mỗi row, tối đa 3s, audio gain 0.6
+- **sound_map.json:** Mapping `bgm_code` / `sfx_code` → file path (Background/ + SFX/)
+- **auto_sfx_by_loai:** SFX tự động theo loại source (vd: `anh_chung_bao` → `camera_shutter`)
 
 ### Animation (enable_animations=True, mặc định):
 - **Ken Burns zoom:** Scale keyframes 100%↔108% xen kẽ trên V1/V2 clips (effectid: `basic`)

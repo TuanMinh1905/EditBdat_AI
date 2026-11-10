@@ -434,11 +434,15 @@ ipcMain.handle('suggester-get-state', async () => {
     let sourceTypes = [];
     let elementTypes = [];
     let animationTypes = [];
+    let bgmTypes = [];
+    let sfxTypes = [];
     if (fs.existsSync(clsPath)) {
       const clsRaw = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
       sourceTypes = Array.isArray(clsRaw.source_types) ? clsRaw.source_types : [];
       elementTypes = Array.isArray(clsRaw.element_types) ? clsRaw.element_types : [];
       animationTypes = Array.isArray(clsRaw.animation_types) ? clsRaw.animation_types : [];
+      bgmTypes = Array.isArray(clsRaw.bgm_types) ? clsRaw.bgm_types : [];
+      sfxTypes = Array.isArray(clsRaw.sfx_types) ? clsRaw.sfx_types : [];
     }
     return {
       success: true,
@@ -450,6 +454,8 @@ ipcMain.handle('suggester-get-state', async () => {
       source_types: sourceTypes,
       element_types: elementTypes,
       animation_types: animationTypes,
+      bgm_types: bgmTypes,
+      sfx_types: sfxTypes,
       classifications_path: clsPath,
     };
   } catch (err) {
@@ -471,12 +477,13 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
     const persistMedia = (prefix, code, val) => {
       if (!val || typeof val !== 'string' || val === '__none__') return val || '';
       try {
-        if (val.startsWith('data:video/')) {
+        if (val.startsWith('data:video/') || val.startsWith('data:audio/')) {
           const parts = val.split(',');
           if (parts.length === 2) {
-            const mime = parts[0].split(';')[0].replace('data:video/', '').trim().toLowerCase();
-            const extMap = { mp4: '.mp4', webm: '.webm', quicktime: '.mov', ogg: '.ogv' };
-            const ext = extMap[mime] || '.mp4';
+            const isAudio = val.startsWith('data:audio/');
+            const mime = parts[0].split(';')[0].replace(isAudio ? 'data:audio/' : 'data:video/', '').trim().toLowerCase();
+            const extMap = { mp4: '.mp4', webm: '.webm', quicktime: '.mov', ogg: '.ogv', mpeg: '.mp3', mp3: '.mp3', wav: '.wav', 'x-wav': '.wav', aac: '.aac', flac: '.flac' };
+            const ext = extMap[mime] || (isAudio ? '.mp3' : '.mp4');
             const outPath = path.join(clsMediaDir, `${prefix}_${code}${ext}`);
             fs.writeFileSync(outPath, Buffer.from(parts[1], 'base64'));
             const urlPath = outPath.replace(/\\/g, '/').split('/').map(s => s.includes(':') ? s : encodeURIComponent(s)).join('/');
@@ -487,7 +494,7 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
       return val;
     };
 
-    let current = { source_types: [], element_types: [], animation_types: [] };
+    let current = { source_types: [], element_types: [], animation_types: [], bgm_types: [], sfx_types: [] };
     if (fs.existsSync(clsPath)) {
       current = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
     }
@@ -509,12 +516,26 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
         image: persistMedia('anim', it.code || 'item', it.image),
       }));
     }
+    if (params && Array.isArray(params.bgm_types)) {
+      current.bgm_types = params.bgm_types.map(it => ({
+        ...it,
+        image: persistMedia('bgm', it.code || 'item', it.image),
+      }));
+    }
+    if (params && Array.isArray(params.sfx_types)) {
+      current.sfx_types = params.sfx_types.map(it => ({
+        ...it,
+        image: persistMedia('sfx', it.code || 'item', it.image),
+      }));
+    }
     fs.writeFileSync(clsPath, JSON.stringify(current, null, 2), 'utf-8');
     return {
       success: true,
       source_types: current.source_types,
       element_types: current.element_types,
       animation_types: current.animation_types,
+      bgm_types: current.bgm_types,
+      sfx_types: current.sfx_types,
       classifications_path: clsPath,
     };
   } catch (err) {

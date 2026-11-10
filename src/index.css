@@ -3011,6 +3011,99 @@ body.is-resizing * {
   color: #38bdf8;
 }
 
+.sg-cls-panel-head.head-bgm {
+  border-left: 3px solid #22d3ee;
+  background: linear-gradient(135deg, rgba(34,211,238,0.1) 0%, transparent 70%);
+}
+.sg-cls-panel-head.head-bgm code {
+  color: #22d3ee;
+}
+.sg-cls-panel-head.head-sfx {
+  border-left: 3px solid #f472b6;
+  background: linear-gradient(135deg, rgba(244,114,182,0.1) 0%, transparent 70%);
+}
+.sg-cls-panel-head.head-sfx code {
+  color: #f472b6;
+}
+
+/* Filter bar */
+.sg-cls-filter-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 6px 0 10px;
+}
+.sg-filter-pill {
+  padding: 4px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(139,92,246,0.25);
+  background: rgba(139,92,246,0.08);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
+.sg-filter-pill:hover {
+  background: rgba(139,92,246,0.18);
+  color: var(--text-primary);
+}
+.sg-filter-pill.active {
+  background: var(--accent-primary);
+  color: #fff;
+  border-color: var(--accent-primary);
+  font-weight: 600;
+}
+
+/* Audio preview button in classification tables */
+.sg-audio-play-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba(34,211,238,0.3);
+  background: rgba(34,211,238,0.1);
+  color: #22d3ee;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 200ms ease;
+  white-space: nowrap;
+}
+.sg-audio-play-btn:hover {
+  background: rgba(34,211,238,0.25);
+}
+.sg-audio-play-btn.is-playing {
+  background: rgba(239,68,68,0.15);
+  border-color: rgba(239,68,68,0.4);
+  color: #ef4444;
+}
+.sg-audio-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  border: 1px dashed rgba(139,92,246,0.3);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 200ms ease;
+  margin-left: 4px;
+}
+.sg-audio-upload-btn:hover {
+  border-color: rgba(139,92,246,0.6);
+  color: var(--accent-primary);
+}
+.sg-audio-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+
 .sg-cls-panel-head code {
   color: #a78bfa;
   font-family: var(--font-mono);
@@ -3253,6 +3346,18 @@ body.is-resizing-v * {
   min-width: 200px;
   margin-bottom: 0 !important;
 }
+
+.rules-cls-bgm {
+  flex: 1;
+  min-width: 190px;
+  flex-shrink: 0;
+}
+.rules-cls-sfx {
+  flex: 1;
+  min-width: 190px;
+  flex-shrink: 0;
+}
+
 
 /* Container Queries & Responsive cho các Container nhỏ */
 .sg-left,

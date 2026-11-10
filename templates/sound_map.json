@@ -1,0 +1,88 @@
+{
+  "_comment": "Mapping sound_id -> file âm thanh trong D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh\\Sounds (Background & SFX)",
+  "bgm": {
+    "bgm_default": {
+      "file": "Background/nhạc nền background.mp3",
+      "description": "Nhạc nền chủ đạo mặc định của kênh"
+    },
+    "bgm_momentum": {
+      "file": "Background/chestnutmusicstudios-05-momentum-589472.mp3",
+      "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — chuỗi pha bóng tốc độ, phản công, cao trào"
+    },
+    "bgm_dark_ambient": {
+      "file": "Background/cinematic-soul-dark-ambient-background-music-617907.mp3",
+      "description": "Nhạc nền trầm lắng, u tối, điện ảnh — khủng hoảng, thất bại, chấn thương"
+    },
+    "bgm_freedom": {
+      "file": "Background/good_b_music-price-of-freedom-33106.mp3",
+      "description": "Nhạc nền hào hùng, xúc động — nâng cúp vô địch, khoảnh khắc huyền thoại"
+    },
+    "bgm_nastelbom": {
+      "file": "Background/nastelbom-background-music-617075.mp3",
+      "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — mở bài hoặc giải thích bối cảnh"
+    },
+    "bgm_mid_1": {
+      "file": "Background/mid.mp3",
+      "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa 1"
+    },
+    "bgm_mid_2": {
+      "file": "Background/mid2.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 2"
+    },
+    "bgm_mid_3": {
+      "file": "Background/mid3.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 3"
+    },
+    "bgm_mid_4": {
+      "file": "Background/mid4.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 4"
+    },
+    "bgm_mid_5": {
+      "file": "Background/mid5.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 5"
+    }
+  },
+  "sfx": {
+    "whoosh": {
+      "file": "SFX/whoosh.mp3",
+      "description": "Tiếng gió lướt nhanh khi chuyển cảnh"
+    },
+    "camera_shutter": {
+      "file": "SFX/camera_shutter.mp3",
+      "description": "Tiếng tách máy ảnh khi hiện mặt báo / ảnh khoảnh khắc"
+    },
+    "data_beep": {
+      "file": "SFX/data_beep.mp3",
+      "description": "Tiếng nhảy số điện tử khi hiện bảng thống kê"
+    },
+    "crowd_cheer": {
+      "file": "SFX/crowd_cheer.mp3",
+      "description": "Tiếng cổ động viên hò reo vang dội"
+    },
+    "whistle": {
+      "file": "SFX/whistle.mp3",
+      "description": "Tiếng còi trọng tài"
+    },
+    "tv_glitch": {
+      "file": "SFX/tv_glitch.mp3",
+      "description": "Tiếng bật tivi CRT / nhiễu sóng nhẹ"
+    },
+    "film_projector": {
+      "file": "SFX/film_projector.mp3",
+      "description": "Tiếng máy chiếu phim 8mm cổ điển"
+    },
+    "impact_boom": {
+      "file": "SFX/impact_boom.mp3",
+      "description": "Tiếng trống trầm / Cinematic Hit tạo điểm nhấn"
+    }
+  },
+  "auto_sfx_by_loai": {
+    "anh_chung_bao": "camera_shutter",
+    "anh_thoi_diem": "camera_shutter",
+    "anh_thong_so": "data_beep",
+    "khan_dai": "crowd_cheer",
+    "rai_4": "crowd_cheer",
+    "phong_van": "tv_glitch"
+  }
+}
+
