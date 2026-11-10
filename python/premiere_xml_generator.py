@@ -19,6 +19,7 @@ import unicodedata
 import xml.etree.ElementTree as ET
 from urllib.parse import quote
 from datetime import timedelta
+from pathlib import Path
 
 
 # ---------------------------------------------------------------------------
@@ -549,36 +550,62 @@ def _make_audio_clip_item(
     return ci
 
 
+def contained_asset_path(root, relative):
+    """Require a mapped relative path inside the selected resource directory."""
+    if not root or not relative:
+        raise ValueError('Chưa chọn thư mục hoặc mapping chưa có tên file')
+    base = Path(root).resolve()
+    rel = Path(relative)
+    target = (base / rel).resolve()
+    if rel.is_absolute() or rel.drive or target == base or not target.is_relative_to(base):
+        raise ValueError('File nằm ngoài thư mục tài nguyên đã chọn')
+    return target
+
+
+def resolve_element_ids(loai_source, value, auto_map):
+    """Resolve CSV element codes identically for verification and XML export."""
+    value = (value or '').strip()
+    if value.lower() == 'none':
+        return []
+    if value and value.lower() != 'auto':
+        return [code.strip() for code in value.split('+') if code.strip()]
+    return [auto_map[loai.strip()] for loai in re.split(r'[+,;]', loai_source or '')
+            if auto_map.get(loai.strip())]
+
+
+def resolve_sound_code(kind, value, loai_source, auto_sfx):
+    """Resolve auto/none sound codes using the same rules in both workflows."""
+    code = (value or '').strip().lower() or 'auto'
+    if code == 'none':
+        return None
+    if code != 'auto':
+        return code
+    if kind == 'bgm':
+        return 'bgm_default'
+    for loai in re.split(r'[+,;]', loai_source or ''):
+        mapped = auto_sfx.get(loai.strip()) or auto_sfx.get(norm(loai.strip()))
+        if mapped:
+            return mapped
+    return None
+
+
 def _resolve_element(loai_source, csv_element_value, auto_map, elements, element_dir):
     """
     Tra ve list element dicts cho mot cau/y.
     csv_element_value: gia tri tu cot 'element' trong CSV (co the la None/empty/none/ten_element/nhieu element cach + ).
     Tra ve: list of dict {path, track, scope, is_image, opacity} hoac [].
     """
-    # Neu CSV ghi 'none' -> bo qua element
-    csv_val = (csv_element_value or "").strip()
-    if csv_val.lower() == "none":
-        return []
-
-    # Danh sach element ids can resolve
-    element_ids = []
-    if csv_val:
-        # User chi dinh cu the: co the la nhieu element cach dau '+'
-        element_ids = [e.strip() for e in csv_val.split("+") if e.strip()]
-    else:
-        # Auto-map: tim theo loai_source
-        loai_list = [l.strip() for l in re.split(r"[+,;]", loai_source or "")]
-        for loai in loai_list:
-            mapped = auto_map.get(loai)
-            if mapped:
-                element_ids.append(mapped)
+    element_ids = resolve_element_ids(loai_source, csv_element_value, auto_map)
 
     results = []
     for eid in element_ids:
         el_def = elements.get(eid)
         if el_def is None:
             continue  # eid la 'none' hoac khong tim thay
-        el_file = os.path.join(element_dir, el_def["file"]) if element_dir else ""
+        try:
+            el_file = str(contained_asset_path(element_dir, el_def.get('file')))
+        except (ValueError, OSError):
+            el_file = ''
         results.append(
             {
                 "element_id": eid,
@@ -940,6 +967,24 @@ def generate_xml(
     ET.SubElement(track_v2, "enabled").text = "TRUE"
     ET.SubElement(track_v2, "locked").text = "FALSE"
 
+    # Missing optional resources must not create offline media in the exported XML.
+    skipped_assets = []
+
+    def available_asset(kind, code, definition, root):
+        try:
+            if not definition:
+                raise ValueError('Mã chưa có trong mapping')
+            path = contained_asset_path(root, definition.get('file'))
+            if not path.is_file():
+                raise ValueError(f'Không tìm thấy file: {path}')
+            return str(path)
+        except (ValueError, OSError) as exc:
+            warning = f'{kind}/{code}: {exc}'
+            if warning not in skipped_assets:
+                skipped_assets.append(warning)
+                log(f'[A] Bỏ qua {warning}')
+            return None
+
     # Track V3: Element overlays (per-clip) — chi tao khi co element_dir
     track_v3 = None
     track_v4 = None
@@ -1123,16 +1168,21 @@ def generate_xml(
 
         # --- Element overlays tren V3 (per-clip) ---
         if element_dir and track_v3 is not None:
-            csv_element_val = sp.get("element", "").strip()
+            csv_element_val = (sp.get("element") or "").strip()
             if csv_element_val.lower() == "auto":
                 csv_element_val = ""
             el_items = _resolve_element(
                 loai_str, csv_element_val, auto_map, elements, element_dir
             )
+            for code in resolve_element_ids(loai_str, csv_element_val, auto_map):
+                if elements.get(code) is None:
+                    available_asset('element', code, None, element_dir)
             for el in el_items:
                 # Neu user chi dinh truc tiep trong CSV (vd film_grain cho doan hoi uc), van cho phep dat tren V3 theo clip
                 if el["scope"] != "clip" and not csv_element_val:
                     continue  # full-scope xu ly rieng ben duoi khi khong phai per-row override
+                if not available_asset('element', el['element_id'], elements.get(el['element_id']), element_dir):
+                    continue
                 el_dur = dur  # cung duration voi cau thoai
                 ci = _make_clip_item(
                     clip_index,
@@ -1179,10 +1229,9 @@ def generate_xml(
         tex_ids = [t.strip() for t in texture_id.split("+") if t.strip()]
         for tid in tex_ids:
             tex_def = elements.get(tid)
-            if tex_def is None:
-                log(f"[A] WARN: texture_id '{tid}' khong tim thay trong element_map")
+            tex_path = available_asset('texture', tid, tex_def, element_dir)
+            if not tex_path:
                 continue
-            tex_path = os.path.join(element_dir, tex_def["file"])
             tex_is_img = tex_def.get("is_image", True)
             tex_opacity = tex_def.get("opacity", 15)
             ci = _make_clip_item(
@@ -1224,18 +1273,16 @@ def generate_xml(
         # 1. Resolve bgm code → absolute path, merge consecutive same-bgm
         bgm_segments = []  # list of {bgm_code, f_start, f_end, path}
         for br in bgm_sfx_rows:
-            bgm_code = br["bgm"]
-            if bgm_code in ("none", ""):
+            bgm_code = resolve_sound_code('bgm', br['bgm'], br['loai_source'], auto_sfx_by_loai)
+            if not bgm_code:
                 continue
-            # auto → bgm_default
-            if bgm_code == "auto":
-                bgm_code = "bgm_default"
             bgm_def = bgm_map.get(bgm_code)
-            if bgm_def is None:
+            bgm_path = available_asset('bgm', bgm_code, bgm_def, sound_root)
+            if not bgm_path:
                 continue
-            bgm_path = os.path.join(sound_root, bgm_def["file"])
             # Merge: neu segment truoc co cung bgm_code thi noi dai
-            if bgm_segments and bgm_segments[-1]["bgm_code"] == bgm_code:
+            if (bgm_segments and bgm_segments[-1]["bgm_code"] == bgm_code
+                    and bgm_segments[-1]['f_end'] == br['f_in']):
                 bgm_segments[-1]["f_end"] = br["f_out"]
             else:
                 bgm_segments.append({
@@ -1270,26 +1317,14 @@ def generate_xml(
 
         # 2. SFX tren Track A3
         for br in bgm_sfx_rows:
-            sfx_code = br["sfx"]
-            if sfx_code in ("none", ""):
+            sfx_code = resolve_sound_code('sfx', br['sfx'], br['loai_source'], auto_sfx_by_loai)
+            if not sfx_code:
                 continue
-            # auto → tra theo auto_sfx_by_loai
-            if sfx_code == "auto":
-                # Tim tu loai_source
-                loai_list = [l.strip() for l in re.split(r"[+,;]", br.get("loai_source", ""))]
-                resolved = None
-                for loai in loai_list:
-                    resolved = auto_sfx_by_loai.get(loai) or auto_sfx_by_loai.get(norm(loai))
-                    if resolved:
-                        break
-                if not resolved:
-                    continue
-                sfx_code = resolved
 
             sfx_def = sfx_map.get(sfx_code)
-            if sfx_def is None:
+            sfx_path = available_asset('sfx', sfx_code, sfx_def, sound_root)
+            if not sfx_path:
                 continue
-            sfx_path = os.path.join(sound_root, sfx_def["file"])
             sfx_dur = min(br["f_out"] - br["f_in"], fps * 3)  # SFX toi da 3s
             if sfx_dur <= 0:
                 continue
@@ -1364,6 +1399,7 @@ def generate_xml(
         "total_transitions": transition_count,
         "total_bgm_clips": bgm_clip_count,
         "total_sfx_clips": sfx_clip_count,
+        "skipped_assets": skipped_assets,
         "animations_enabled": enable_animations,
     }
 

@@ -9,7 +9,7 @@
   },
   "elements": {
     "tv_retro": {
-      "file": "tv FRAME2.png",
+      "file": "tv_retro.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -17,7 +17,7 @@
       "note": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn"
     },
     "tv_green_frame": {
-      "file": "ChatGPT Image 20_46_49 15 thg 8, 2026.png",
+      "file": "tv_green_frame.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -25,7 +25,7 @@
       "note": "Khung màn hình xanh viền đen (TV / Monitor Green Screen)"
     },
     "tv_crt_gemini": {
-      "file": "Gemini_Generated_Image_xf3xbcxf3xbcxf3x.png",
+      "file": "tv_crt_gemini.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -33,7 +33,7 @@
       "note": "Khung TV CRT cổ điển trong phòng tối (Green Screen)"
     },
     "tv_sony": {
-      "file": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
+      "file": "tv_sony.mp4",
       "track": "V3",
       "scope": "clip",
       "is_image": false,
@@ -41,7 +41,7 @@
       "note": "Khung TV Sony cổ điển trên bàn gỗ (Video)"
     },
     "tv_dolly": {
-      "file": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
+      "file": "tv_dolly.webm",
       "track": "V3",
       "scope": "clip",
       "is_image": false,
@@ -49,7 +49,7 @@
       "note": "Hiệu ứng TV retro dolly-in (Video)"
     },
     "film_grain": {
-      "file": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
+      "file": "film_grain.mp4",
       "track": "V4",
       "scope": "full",
       "is_image": false,
@@ -57,7 +57,7 @@
       "note": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức"
     },
     "scout_frame": {
-      "file": "scout frame.png",
+      "file": "scout_frame.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -65,7 +65,7 @@
       "note": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)"
     },
     "stats_table": {
-      "file": "Comparison Table List Infographic Graph.png",
+      "file": "stats_table.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -73,7 +73,7 @@
       "note": "Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)"
     },
     "stats_table_1": {
-      "file": "Comparison Table List Infographic Graph (1).png",
+      "file": "stats_table_1.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -81,7 +81,7 @@
       "note": "Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)"
     },
     "stats_table_2": {
-      "file": "Comparison Table List Infographic Graph (2).png",
+      "file": "stats_table_2.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -89,7 +89,7 @@
       "note": "Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)"
     },
     "stats_table_3": {
-      "file": "Comparison Table List Infographic Graph (3).png",
+      "file": "stats_table_3.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -97,7 +97,7 @@
       "note": "Bảng thống kê / vòng tròn mẫu 3 (Đen xám)"
     },
     "stats_table_4": {
-      "file": "Comparison Table List Infographic Graph (4).png",
+      "file": "stats_table_4.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -105,7 +105,7 @@
       "note": "Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)"
     },
     "stats_table_5": {
-      "file": "Comparison Table List Infographic Graph (5).png",
+      "file": "stats_table_5.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -113,7 +113,7 @@
       "note": "Bảng thống kê / vòng tròn mẫu 5 (Tím)"
     },
     "circle_gold": {
-      "file": "5.png",
+      "file": "circle_gold.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -121,7 +121,7 @@
       "note": "Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu"
     },
     "circle_blue": {
-      "file": "o.png",
+      "file": "circle_blue.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
@@ -129,7 +129,7 @@
       "note": "Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)"
     },
     "paper_texture": {
-      "file": "paper texture.png",
+      "file": "paper_texture.png",
       "track": "V4",
       "scope": "full",
       "is_image": true,
@@ -137,7 +137,7 @@
       "note": "Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu"
     },
     "paper_texture_2": {
-      "file": "paper texture 2.png",
+      "file": "paper_texture_2.png",
       "track": "V4",
       "scope": "full",
       "is_image": true,
@@ -145,7 +145,7 @@
       "note": "Lớp phủ giấy cũ 2 tối (paper texture 2.png)"
     },
     "texture_dark": {
-      "file": "textture.png",
+      "file": "texture_dark.png",
       "track": "V4",
       "scope": "full",
       "is_image": true,
@@ -153,7 +153,7 @@
       "note": "Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương"
     },
     "texture_2": {
-      "file": "texture2.png",
+      "file": "texture_2.png",
       "track": "V4",
       "scope": "full",
       "is_image": true,
@@ -161,7 +161,7 @@
       "note": "Lớp phủ nền sáng (texture2.png) cho toàn video"
     },
     "grid_orange": {
-      "file": "vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4",
+      "file": "grid_orange.mp4",
       "track": "V4",
       "scope": "full",
       "is_image": false,

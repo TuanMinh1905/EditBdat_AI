@@ -3772,4 +3772,23 @@ body.is-resizing-v * {
     width: 100% !important;
   }
 }
-
+.asset-verify-box {
+  width: min(1000px, 94vw);
+  min-width: min(360px, 94vw);
+  max-width: 96vw;
+  max-height: 92vh;
+  resize: both;
+  overflow: auto;
+  container-type: inline-size;
+  flex-shrink: 0;
+}
+.asset-verify-box .modal-body { min-height: 0; overflow: auto; }
+.asset-verify-table-wrap { height: 320px; overflow: auto; }
+.asset-verify-table { width: 100%; table-layout: fixed; }
+.asset-verify-table td { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.asset-verify-table th:nth-child(3) { width: 40%; }
+.asset-verify-missing { color: var(--error, #f87171); }
+@container (max-width: 550px) {
+  .asset-verify-box .modal-footer { flex-direction: column; align-items: stretch; }
+  .asset-verify-table { min-width: 530px; }
+}

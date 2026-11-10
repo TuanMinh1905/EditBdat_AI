@@ -441,3 +441,28 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - **API param:** `enable_animations` (boolean, default true)
 - **UI:** Checkbox "Bật Animation" trong tab Gen XML (card #10)
 
+
+## 12. Plan 3 — Xác minh và chuẩn hóa tài nguyên (2026-11-11)
+
+### File bổ sung
+- `python/asset_service.py`: kiểm tra tài nguyên theo mapping, tổng hợp mã dùng trong CSV.
+- `python/rename_assets.py`: dry-run mặc định, `--apply` đổi tên + đồng bộ JSON/JS, backup/rollback; không ghi đè file đích.
+- `python/test_assets.py`, `src/testAssetVerification.js`: kiểm thử backend và luồng UI.
+- `doc/Plan_3_Implementation.md`: hướng dẫn sử dụng, tình trạng thư viện và backup.
+
+### Quy tắc tích hợp
+- `POST /api/verify-assets` và `POST /api/asset-thumbnail` đi qua `preload.js` → IPC `verify-assets`/`asset-previews` → Flask.
+- URL GET preview chỉ stream tài nguyên đã đăng ký từ mapping, hỗ trợ HTTP Range; không expose endpoint đọc đường dẫn tùy ý.
+- Preview, verifier và Gen XML dùng chung `element_dir`/`sound_root`. Resolver `auto`/`none` và kiểm tra đường dẫn dùng chung với generator.
+- Theo yêu cầu user ngày 2026-11-11, file Element/BGM/SFX thiếu không chặn xuất XML. Modal cho phép hủy hoặc tiếp tục; khi tiếp tục generator bỏ qua file thiếu và trả `skipped_assets`. Không sinh file âm thanh giả để lấp chỗ trống.
+- Mapping thực tế sau migration: `tv_retro.png`, `stats_table.png`, `scout_frame.png`, `tv_sony.mp4`, các Element khác có tên theo mã; BGM là `Background/<code>.mp3`.
+- 21 Element + 10 BGM có file; 8 SFX chưa có file tại thời điểm triển khai.
+- Các mô tả tên file Element cũ trong mục 11 là lịch sử trước migration; nguồn hiện tại là `templates/element_map.json`.
+- BGM chỉ merge cùng mã khi frame cuối đoạn trước bằng frame đầu đoạn sau, giữ khoảng `none`.
+- Cần khởi động lại app sau thay đổi main/preload/backend; `Ctrl+R` chỉ tải lại UI.
+
+### Lịch sử cập nhật
+| Ngày | Thay đổi | Lý do |
+|---|---|---|
+| 2026-11-11 | Hoàn tất Plan 3: đổi tên 30 file, đồng bộ mapping, preview qua API, modal xác minh trước Gen XML, thêm Sounds picker, bỏ qua file tài nguyên thiếu và kiểm thử hồi quy | Mã phân loại trỏ đúng file; vẫn dựng thử được khi chưa đủ tài nguyên |
+

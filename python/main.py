@@ -8,6 +8,8 @@ import os
 import json
 import argparse
 import traceback
+import secrets
+from pathlib import Path
 from datetime import datetime
 
 # Fix Windows console encoding for Vietnamese/Unicode
@@ -24,7 +26,7 @@ if sys.platform == 'win32':
             pass
     os.environ['PYTHONIOENCODING'] = 'utf-8'
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file, abort
 from flask_cors import CORS
 
 # Add parent dir to path
@@ -38,6 +40,7 @@ from clip_splitter import ClipSplitter
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
 from token_tracker import get_usage, reset_usage
+from asset_service import verify_assets, list_assets, MEDIA_EXTENSIONS
 
 app = Flask(__name__)
 CORS(app)
@@ -599,6 +602,57 @@ def api_clip_catalog():
 # CONG CU A — Premiere XML Generator
 # =============================================================================
 
+@app.route('/api/verify-assets', methods=['POST'])
+def api_verify_assets():
+    """Check mapped files before exporting, without creating an XML file."""
+    try:
+        data = request.get_json() or {}
+        result = verify_assets(
+            data.get('source_plan_csv') or data.get('csv_path'),
+            data.get('element_dir'), data.get('sound_root'),
+            data.get('texture_id'), data.get('sound_map_path'))
+        return jsonify(result)
+    except (ValueError, OSError) as exc:
+        log(f'[Assets] {exc}')
+        return jsonify(error=str(exc)), 400
+    except Exception as exc:
+        log(f'[Assets] {exc}')
+        return jsonify(error=str(exc)), 500
+
+
+_asset_preview_paths = {}
+
+
+@app.route('/api/asset-thumbnail', methods=['POST'])
+def api_asset_previews():
+    """Register mapped media only; return URLs usable by image/video/audio tags."""
+    try:
+        data = request.get_json() or {}
+        items = list_assets(data.get('element_dir'), data.get('sound_root'))
+        for item in items:
+            path = Path(item['path']) if item['path'] else None
+            if item['exists'] and path.suffix.lower() in MEDIA_EXTENSIONS:
+                # Reuse tokens so refreshing previews does not invalidate playing media.
+                token = next((k for k, v in _asset_preview_paths.items() if v == path), None)
+                if token is None:
+                    token = secrets.token_urlsafe(24)
+                    _asset_preview_paths[token] = path
+                item['url'] = f'/api/asset-thumbnail/{token}/asset{path.suffix.lower()}'
+        return jsonify(items=items)
+    except Exception as exc:
+        log(f'[Assets] {exc}')
+        return jsonify(error=str(exc)), 400
+
+
+@app.route('/api/asset-thumbnail/<token>/<filename>', methods=['GET'])
+def api_asset_thumbnail(token, filename):
+    """Stream registered media with range support for video/audio seeking."""
+    path = _asset_preview_paths.get(token)
+    if path is None or filename != f'asset{path.suffix.lower()}' or not path.is_file():
+        abort(404)
+    return send_file(path, conditional=True)
+
+
 @app.route('/api/premiere/generate-xml', methods=['POST'])
 def api_premiere_generate():
     """
@@ -662,6 +716,7 @@ def api_premiere_generate():
             "total_transitions": result.get('total_transitions', 0),
             "total_bgm_clips"  : result.get('total_bgm_clips', 0),
             "total_sfx_clips"  : result.get('total_sfx_clips', 0),
+            "skipped_assets"   : result.get('skipped_assets', []),
             "animations"       : result.get('animations_enabled', False),
             "missing"          : result['missing'],
         })
@@ -946,4 +1001,3 @@ if __name__ == '__main__':
     except OSError as e:
         log(f"Cannot start server: {str(e)}")
         sys.exit(1)
-

@@ -20,7 +20,7 @@
     },
     {
       "code": "rai_4",
-      "label": "Rải 4 / Danh hiệu",
+      "label": "Rải 4",
       "description": "Những đoạn đặc biệt như Video Kevin De Bruyne : Bước ra sân từ đường hầm , ăn mừng cùng CĐV, tri ân CĐV khán đài, Ăn mừng sau trận cùng đồng đội",
       "image": ""
     },
@@ -91,140 +91,140 @@
     {
       "code": "tv_retro",
       "label": "📺 Khung Sofa TV",
-      "param": "tv FRAME2.png",
+      "param": "tv_retro.png",
       "description": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn",
       "image": ""
     },
     {
       "code": "tv_green_frame",
       "label": "📺 Khung màn hình xanh",
-      "param": "ChatGPT Image 20_46_49 15 thg 8, 2026.png",
+      "param": "tv_green_frame.png",
       "description": "Khung màn hình xanh viền đen (TV / Monitor Green Screen)",
       "image": ""
     },
     {
       "code": "tv_crt_gemini",
       "label": "📺 TV CRT cổ điển",
-      "param": "Gemini_Generated_Image_xf3xbcxf3xbcxf3x.png",
+      "param": "tv_crt_gemini.png",
       "description": "Khung TV CRT cổ điển trong phòng tối (Green Screen)",
       "image": ""
     },
     {
       "code": "tv_sony",
       "label": "📺 TV Sony bàn gỗ",
-      "param": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
+      "param": "tv_sony.mp4",
       "description": "Khung TV Sony cổ điển trên bàn gỗ (Video)",
       "image": ""
     },
     {
       "code": "tv_dolly",
       "label": "📺 TV Dolly In",
-      "param": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
+      "param": "tv_dolly.webm",
       "description": "Hiệu ứng TV retro dolly-in (Video)",
       "image": ""
     },
     {
       "code": "film_grain",
       "label": "🎞️ Phim 8mm hồi ức",
-      "param": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
+      "param": "film_grain.mp4",
       "description": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức",
       "image": ""
     },
     {
       "code": "scout_frame",
       "label": "📋 Hồ sơ Scout",
-      "param": "scout frame.png",
+      "param": "scout_frame.png",
       "description": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)",
       "image": ""
     },
     {
       "code": "stats_table",
       "label": "📊 Bảng / Vòng gốc (Vàng nâu)",
-      "param": "Comparison Table List Infographic Graph.png",
+      "param": "stats_table.png",
       "description": "Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)",
       "image": ""
     },
     {
       "code": "stats_table_1",
       "label": "📊 Bảng / Vòng mẫu 1 (Xanh đậm)",
-      "param": "Comparison Table List Infographic Graph (1).png",
+      "param": "stats_table_1.png",
       "description": "Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)",
       "image": ""
     },
     {
       "code": "stats_table_2",
       "label": "📊 Bảng / Vòng mẫu 2 (Đỏ đậm)",
-      "param": "Comparison Table List Infographic Graph (2).png",
+      "param": "stats_table_2.png",
       "description": "Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)",
       "image": ""
     },
     {
       "code": "stats_table_3",
       "label": "📊 Bảng / Vòng mẫu 3 (Đen xám)",
-      "param": "Comparison Table List Infographic Graph (3).png",
+      "param": "stats_table_3.png",
       "description": "Bảng thống kê / vòng tròn mẫu 3 (Đen xám)",
       "image": ""
     },
     {
       "code": "stats_table_4",
       "label": "📊 Bảng / Vòng mẫu 4 (Xanh lá)",
-      "param": "Comparison Table List Infographic Graph (4).png",
+      "param": "stats_table_4.png",
       "description": "Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)",
       "image": ""
     },
     {
       "code": "stats_table_5",
       "label": "📊 Bảng / Vòng mẫu 5 (Tím)",
-      "param": "Comparison Table List Infographic Graph (5).png",
+      "param": "stats_table_5.png",
       "description": "Bảng thống kê / vòng tròn mẫu 5 (Tím)",
       "image": ""
     },
     {
       "code": "circle_gold",
       "label": "🌑 Viền tối góc xanh (5.png)",
-      "param": "5.png",
+      "param": "circle_gold.png",
       "description": "Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu",
       "image": ""
     },
     {
       "code": "circle_blue",
       "label": "🔵 Vòng tròn xanh (o.png)",
-      "param": "o.png",
+      "param": "circle_blue.png",
       "description": "Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)",
       "image": ""
     },
     {
       "code": "paper_texture",
       "label": "📜 Giấy cũ 1 (Sáng)",
-      "param": "paper texture.png",
+      "param": "paper_texture.png",
       "description": "Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu",
       "image": ""
     },
     {
       "code": "paper_texture_2",
       "label": "📜 Giấy cũ 2 (Tối)",
-      "param": "paper texture 2.png",
+      "param": "paper_texture_2.png",
       "description": "Lớp phủ giấy cũ 2 tối (paper texture 2.png)",
       "image": ""
     },
     {
       "code": "texture_dark",
       "label": "🌑 Phủ xám tối (textture.png)",
-      "param": "textture.png",
+      "param": "texture_dark.png",
       "description": "Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương",
       "image": ""
     },
     {
       "code": "texture_2",
       "label": "⬜ Phủ nền sáng (texture2.png)",
-      "param": "texture2.png",
+      "param": "texture_2.png",
       "description": "Lớp phủ nền sáng (texture2.png) cho toàn video",
       "image": ""
     },
     {
       "code": "grid_orange",
       "label": "🟧 Lưới cam (Video)",
-      "param": "vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4",
+      "param": "grid_orange.mp4",
       "description": "Nền lưới cam chuyển động (grid animation video)",
       "image": ""
     },
@@ -284,70 +284,70 @@
     {
       "code": "bgm_default",
       "label": "🎵 Nhạc nền chuẩn SofaZone",
-      "param": "nhạc nền background.mp3",
+      "param": "bgm_default.mp3",
       "description": "Nhạc nền chủ đạo mặc định của kênh (dẫn chuyện chung, phân tích chiến thuật)",
       "image": ""
     },
     {
       "code": "bgm_momentum",
       "label": "🎵 Momentum (Nhịp độ nhanh)",
-      "param": "chestnutmusicstudios-05-momentum-589472.mp3",
+      "param": "bgm_momentum.mp3",
       "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — hợp cho chuỗi pha bóng tốc độ, phản công, cao trào",
       "image": ""
     },
     {
       "code": "bgm_dark_ambient",
       "label": "🎵 Dark Ambient (Trầm / Bí ẩn)",
-      "param": "cinematic-soul-dark-ambient-background-music-617907.mp3",
+      "param": "bgm_dark_ambient.mp3",
       "description": "Nhạc nền trầm lắng, u tối, điện ảnh — hợp khi kể về khủng hoảng, thất bại, chấn thương, góc khuất",
       "image": ""
     },
     {
       "code": "bgm_freedom",
       "label": "🎵 Price of Freedom (Hào hùng)",
-      "param": "good_b_music-price-of-freedom-33106.mp3",
+      "param": "bgm_freedom.mp3",
       "description": "Nhạc nền hào hùng, xúc động — hợp cho đoạn nâng cúp vô địch, khoảnh khắc huyền thoại, kết bài",
       "image": ""
     },
     {
       "code": "bgm_nastelbom",
       "label": "🎵 Nastelbom (Kể chuyện)",
-      "param": "nastelbom-background-music-617075.mp3",
+      "param": "bgm_nastelbom.mp3",
       "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — hợp cho phần mở bài hoặc giải thích bối cảnh",
       "image": ""
     },
     {
       "code": "bgm_mid_1",
       "label": "🎵 Nhạc nền Mid 1",
-      "param": "mid.mp3",
+      "param": "bgm_mid_1.mp3",
       "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa (mid.mp3)",
       "image": ""
     },
     {
       "code": "bgm_mid_2",
       "label": "🎵 Nhạc nền Mid 2",
-      "param": "mid2.mp3",
+      "param": "bgm_mid_2.mp3",
       "description": "Nhạc nền phân tích nhịp vừa 2 (mid2.mp3)",
       "image": ""
     },
     {
       "code": "bgm_mid_3",
       "label": "🎵 Nhạc nền Mid 3",
-      "param": "mid3.mp3",
+      "param": "bgm_mid_3.mp3",
       "description": "Nhạc nền phân tích nhịp vừa 3 (mid3.mp3)",
       "image": ""
     },
     {
       "code": "bgm_mid_4",
       "label": "🎵 Nhạc nền Mid 4",
-      "param": "mid4.mp3",
+      "param": "bgm_mid_4.mp3",
       "description": "Nhạc nền phân tích nhịp vừa 4 (mid4.mp3)",
       "image": ""
     },
     {
       "code": "bgm_mid_5",
       "label": "🎵 Nhạc nền Mid 5",
-      "param": "mid5.mp3",
+      "param": "bgm_mid_5.mp3",
       "description": "Nhạc nền phân tích nhịp vừa 5 (mid5.mp3)",
       "image": ""
     }

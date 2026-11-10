@@ -662,6 +662,15 @@
               fade in/out 10 frames trên V3. Transitions: Cross Dissolve + Dip to Black.</p>
           </div>
 
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🎵 11. Thư mục Sounds (Background / SFX)</span></div>
+            <div class="sp-video-row">
+              <input type="text" id="pg-sound-root" class="sp-path-input" readonly aria-label="Thư mục Sounds" />
+              <button class="btn-icon" id="pg-btn-sound-root" title="Chọn thư mục Sounds">📂</button>
+            </div>
+            <p class="sp-hint">Dùng chung cho nghe thử, xác minh tài nguyên và xuất BGM/SFX.</p>
+          </div>
+
           <!-- Nút Generate -->
           <button class="btn-generate" id="pg-btn-generate" style="width:100%; margin-top:4px;">
             <div class="btn-generate-content">
@@ -1541,6 +1550,29 @@
         <span class="sp-hint" style="margin-right:auto;">💡 Hỗ trợ cả <strong>Ảnh</strong> (PNG/JPG/GIF) và <strong>Video hiệu ứng 5–10s</strong> (MP4/WebM/MOV). Nhấn <strong>← / →</strong> để chuyển dòng.</span>
         <button class="btn-secondary" id="cls-img-btn-remove" style="color:var(--error); border-color:rgba(239,68,68,0.3);">🗑️ Xóa Ảnh/Video</button>
         <button class="btn-primary" id="cls-img-btn-replace">📂 Tải Ảnh / Video khác</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-verify-assets" style="display:none; z-index:2200;">
+    <div class="modal-box asset-verify-box" role="dialog" aria-modal="true" aria-labelledby="asset-verify-title">
+      <div class="modal-header">
+        <h3 id="asset-verify-title">Xác minh tài nguyên trước Gen XML</h3>
+        <button class="modal-close" id="asset-verify-close" aria-label="Đóng">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="asset-verify-summary" role="status"></p>
+        <div id="asset-verify-table-wrap" class="asset-verify-table-wrap">
+          <table class="sg-cls-table asset-verify-table">
+            <thead><tr><th>Trạng thái</th><th>Nhóm / Mã</th><th>File thực tế</th><th>Dùng tại</th></tr></thead>
+            <tbody id="asset-verify-tbody"></tbody>
+          </table>
+        </div>
+        <div class="v-split-resizer" data-vkey="asset-verify" data-target="#asset-verify-table-wrap" data-min-h="120" data-max-h="600"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="asset-verify-cancel">Hủy để kiểm tra lại</button>
+        <button class="btn-primary" id="asset-verify-continue">Gen XML</button>
       </div>
     </div>
   </div>

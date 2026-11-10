@@ -9,6 +9,8 @@
 
 ## 1. Tổng quan Project & Mô hình Đối tượng "Time" (6 Thuộc Tính)
 
+**Tiến độ mới nhất (2026-11-11 — Plan 3):** Đã chuẩn hóa tên 20 Element + 10 BGM theo mã, giữ `intro.mp4`. Có API preview `/api/asset-thumbnail`, API xác minh `/api/verify-assets`, modal kiểm tra trước Gen XML và ô chọn Sounds dùng chung cho preview/xuất. 21 Element + 10 BGM có file; 8 SFX chưa có file. Khi user chọn tiếp tục, generator bỏ qua lớp phủ/âm thanh thiếu và ghi `skipped_assets`, vẫn xuất XML. Chi tiết/bản sao lưu: [Plan_3_Implementation.md](Plan_3_Implementation.md).
+
 **AE AI Tool** là ứng dụng desktop tự động hóa quy trình hậu kỳ video cho kênh YouTube **SofaZone** (kênh phân tích bóng đá chuyên sâu mang phong cách tư liệu hoài niệm / vintage).
 
 ### 🎯 Mô hình đối tượng "Time" (Mỗi đoạn thời gian trong kịch bản):

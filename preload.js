@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('api', {
   selectSrtFile: () => ipcRenderer.invoke('select-srt-file'),
   selectVoiceFile: () => ipcRenderer.invoke('select-voice-file'),
   premiereGenerateXml: (params) => ipcRenderer.invoke('premiere-generate-xml', params),
+  verifyAssets: (params) => ipcRenderer.invoke('verify-assets', params),
+  assetPreviews: (params) => ipcRenderer.invoke('asset-previews', params),
 
   // Tool 1: Source Suggester (Gợi ý Source)
   saveCsvFile: (defaultPath) => ipcRenderer.invoke('save-csv-file', defaultPath),
@@ -60,4 +62,3 @@ contextBridge.exposeInMainWorld('api', {
   resetTokenUsage: (params) => ipcRenderer.invoke('reset-token-usage', params),
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });
-

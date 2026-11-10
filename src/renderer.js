@@ -1322,6 +1322,68 @@ function initClipSplitter() {
 // TOOL A — PREMIERE XML GENERATOR UI
 // ============================================================
 
+const ASSET_DEFAULT_ROOT = 'D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh';
+
+function getAssetRoots() {
+  return {
+    element_dir: localStorage.getItem('pg_element_dir') || `${ASSET_DEFAULT_ROOT}\\Elements`,
+    sound_root: localStorage.getItem('pg_sound_root') || `${ASSET_DEFAULT_ROOT}\\Sounds`,
+  };
+}
+
+function confirmAssetVerification(report) {
+  const modal = $('#modal-verify-assets');
+  const tbody = $('#asset-verify-tbody');
+  const summary = $('#asset-verify-summary');
+  const proceed = $('#asset-verify-continue');
+  const cancel = $('#asset-verify-cancel');
+  const close = $('#asset-verify-close');
+  const previousFocus = document.activeElement;
+  tbody.replaceChildren();
+  report.items.forEach(item => {
+    const row = document.createElement('tr');
+    if (!item.exists) row.className = 'asset-verify-missing';
+    [item.exists ? '✅ Có file' : `❌ ${item.message}`, `${item.kind} / ${item.code}`,
+      item.path || item.file || '(Chưa có mapping)', item.references.join(', ')].forEach(text => {
+      const cell = document.createElement('td');
+      cell.textContent = text;
+      row.appendChild(cell);
+    });
+    tbody.appendChild(row);
+  });
+  summary.textContent = report.all_ok
+    ? `✅ Đã kiểm tra ${report.total} tài nguyên trong CSV và texture: đủ file.`
+    : `⚠️ ${report.ok}/${report.total} tài nguyên có file. ${report.missing} mục cần kiểm tra. Nếu tiếp tục, các lớp phủ hoặc âm thanh thiếu sẽ được bỏ qua để vẫn xuất XML.`;
+  proceed.textContent = report.all_ok ? 'Gen XML' : 'Vẫn tiếp tục Gen XML';
+  modal.style.display = 'flex';
+  cancel.focus();
+  return new Promise(resolve => {
+    const finish = accepted => {
+      modal.style.display = 'none';
+      proceed.onclick = cancel.onclick = close.onclick = modal.onclick = null;
+      document.removeEventListener('keydown', onKey, true);
+      previousFocus?.focus();
+      resolve(accepted);
+    };
+    const onKey = event => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        finish(false);
+      } else if (event.key === 'Tab') {
+        const buttons = [close, cancel, proceed];
+        const index = buttons.indexOf(document.activeElement);
+        event.preventDefault();
+        buttons[(index + (event.shiftKey ? 2 : 1)) % buttons.length].focus();
+      }
+    };
+    document.addEventListener('keydown', onKey, true);
+    proceed.onclick = () => finish(true);
+    cancel.onclick = close.onclick = () => finish(false);
+    modal.onclick = event => { if (event.target === modal) finish(false); };
+  });
+}
+
 function initPremiereGen() {
   const DEFAULT_SOURCE_ROOT = 'D:\\Edit SofaZone\\02_Kho_Source\\02_Clip_Da_Cat';
   const DEFAULT_CATALOG_CSV = 'D:\\Edit SofaZone\\02_Kho_Source\\02_Clip_Da_Cat\\catalog.csv';
@@ -1337,6 +1399,7 @@ function initPremiereGen() {
     outputDir: null,
     lastXmlPath: null,
     elementDir: localStorage.getItem('pg_element_dir') || DEFAULT_ELEMENT_DIR,
+    soundRoot: getAssetRoots().sound_root,
     textureId: null,
     enableAnimations: true,
     isGenerating: false,
@@ -1381,6 +1444,8 @@ function initPremiereGen() {
     // Element overlay fields
     elementDir: $('#pg-element-dir'),
     btnElementDir: $('#pg-btn-element-dir'),
+    soundRoot: $('#pg-sound-root'),
+    btnSoundRoot: $('#pg-btn-sound-root'),
     textureSelect: $('#pg-texture-select'),
     chkElement: $('#pgc-element'),
     chkTexture: $('#pgc-texture'),
@@ -1533,6 +1598,8 @@ function initPremiereGen() {
         const d = await window.api.selectDirectory();
         if (!d) return;
         pgState.elementDir = d;
+        localStorage.setItem('pg_element_dir', d);
+        window.dispatchEvent(new Event('asset-roots-changed'));
         if (pg.elementDir) pg.elementDir.value = d;
         if (pg.chkElement) {
           pg.chkElement.textContent = `✅ Element: ${d.replace(/\\/g, '/').split('/').pop()}`;
@@ -1562,6 +1629,19 @@ function initPremiereGen() {
       pgLog(`Texture: ${pgState.textureId || '(không dùng)'}`, 'info');
     });
   }
+
+  if (pg.soundRoot) pg.soundRoot.value = pgState.soundRoot;
+  if (pg.btnSoundRoot) pg.btnSoundRoot.addEventListener('click', async () => {
+    try {
+      const directory = await window.api.selectDirectory();
+      if (!directory) return;
+      pgState.soundRoot = directory;
+      localStorage.setItem('pg_sound_root', directory);
+      if (pg.soundRoot) pg.soundRoot.value = directory;
+      window.dispatchEvent(new Event('asset-roots-changed'));
+    } catch (err) { pgLog(`Lỗi chọn thư mục Sounds: ${err.message}`, 'error'); }
+  });
+  if (pg.soundRoot) pg.soundRoot.addEventListener('click', () => pg.btnSoundRoot?.click());
 
   // Animation toggle
   if (pg.enableAnimations) {
@@ -1596,7 +1676,7 @@ function initPremiereGen() {
       try {
         const projectName = (pg.projectName.value.trim() || 'Premiere_Timeline').replace(/[^a-zA-Z0-9_\-À-ỹ]/g, '_');
 
-        pgLog(`Đang gen XML: ${projectName}.xml ...`, 'info');
+        pgLog('Đang xác minh mã tài nguyên và file thực tế...', 'info');
 
         const params = {
           timeline_csv: pgState.timelineCsv,
@@ -1608,20 +1688,30 @@ function initPremiereGen() {
           project_name: projectName,
           srt_path: pgState.srt || null,
           element_dir: pgState.elementDir || null,
+          sound_root: pgState.soundRoot || null,
           texture_id: pgState.textureId || null,
           enable_animations: pgState.enableAnimations,
         };
 
+        const verification = await window.api.verifyAssets(params);
+        if (verification.error) throw new Error(verification.error);
+        if (!await confirmAssetVerification(verification)) {
+          pgLog('Đã hủy Gen XML để kiểm tra tài nguyên.', 'info');
+          return;
+        }
+        pgLog(`Đang gen XML: ${projectName}.xml ...`, 'info');
         const result = await window.api.premiereGenerateXml(params);
         if (result.error) throw new Error(result.error);
 
         pgState.lastXmlPath = result.output_path || (pgState.outputDir + '/' + projectName + '.xml');
         const totalClips = result.total_clips || 0;
         const missing = result.missing || [];
+        const skippedAssets = result.skipped_assets || [];
+        skippedAssets.forEach(message => pgLog(`⚠️ Đã bỏ qua ${message}`, 'warn'));
 
         const totalElements = result.total_elements || 0;
         const totalTransitions = result.total_transitions || 0;
-        const animEnabled = result.animations_enabled || false;
+        const animEnabled = result.animations_enabled ?? result.animations ?? false;
 
         // Hiện kết quả thành công
         pg.resultCard.style.display = 'block';
@@ -1629,6 +1719,8 @@ function initPremiereGen() {
           🎬 <strong>${totalClips} clip</strong> đã được đặt vào timeline<br>
           📄 File: <code style="font-size:10px">${pgState.lastXmlPath}</code><br>
           ${totalElements > 0 ? `🎨 <strong>${totalElements} element</strong> overlay (V3/V4)<br>` : ''}
+          🎵 ${result.total_bgm_clips || 0} BGM · ${result.total_sfx_clips || 0} SFX<br>
+          ${skippedAssets.length ? `⚠️ Đã bỏ qua ${skippedAssets.length} tài nguyên chưa có file (xem log)<br>` : ''}
           ${animEnabled ? `🎬 Animation: Ken Burns zoom + Opacity fade + ${totalTransitions} transitions<br>` : ''}
           ${missing.length > 0 ? `⚠️ <span style="color:#fbbf24">${missing.length} câu thiếu source</span>` : '✅ Đủ source cho tất cả câu'}
         `;
@@ -1820,27 +1912,27 @@ const DEFAULT_SOURCE_TYPES = [
 const DEFAULT_ELEMENT_TYPES = [
   { code: 'auto', group: 'element', label: '✨ Tự động (Auto)', param: '', description: 'Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame)' },
   { code: 'none', group: 'element', label: '🚫 Không phủ (None)', param: '', description: 'Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)' },
-  { code: 'tv_retro', group: 'element', label: '📺 Khung Sofa TV', param: 'tv FRAME2.png', description: 'Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn' },
-  { code: 'tv_green_frame', group: 'element', label: '📺 Khung màn hình xanh', param: 'ChatGPT Image 20_46_49 15 thg 8, 2026.png', description: 'Khung màn hình xanh viền đen (TV / Monitor Green Screen)' },
-  { code: 'tv_crt_gemini', group: 'element', label: '📺 TV CRT cổ điển', param: 'Gemini_Generated_Image_xf3xbcxf3xbcxf3x.png', description: 'Khung TV CRT cổ điển trong phòng tối (Green Screen)' },
-  { code: 'tv_sony', group: 'element', label: '📺 TV Sony bàn gỗ', param: 'large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4', description: 'Khung TV Sony cổ điển trên bàn gỗ (Video)' },
-  { code: 'tv_dolly', group: 'element', label: '📺 TV Dolly In', param: 'Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm', description: 'Hiệu ứng TV retro dolly-in (Video)' },
-  { code: 'film_grain', group: 'element', label: '🎞️ Phim 8mm hồi ức', param: '8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4', description: 'Khung phim nhựa 8mm cổ điển — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức' },
-  { code: 'scout_frame', group: 'element', label: '📋 Hồ sơ Scout', param: 'scout frame.png', description: 'Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)' },
-  { code: 'stats_table', group: 'element', label: '📊 Bảng / Vòng gốc (Vàng nâu)', param: 'Comparison Table List Infographic Graph.png', description: 'Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)' },
-  { code: 'stats_table_1', group: 'element', label: '📊 Bảng / Vòng mẫu 1 (Xanh đậm)', param: 'Comparison Table List Infographic Graph (1).png', description: 'Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)' },
-  { code: 'stats_table_2', group: 'element', label: '📊 Bảng / Vòng mẫu 2 (Đỏ đậm)', param: 'Comparison Table List Infographic Graph (2).png', description: 'Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)' },
-  { code: 'stats_table_3', group: 'element', label: '📊 Bảng / Vòng mẫu 3 (Đen xám)', param: 'Comparison Table List Infographic Graph (3).png', description: 'Bảng thống kê / vòng tròn mẫu 3 (Đen xám)' },
-  { code: 'stats_table_4', group: 'element', label: '📊 Bảng / Vòng mẫu 4 (Xanh lá)', param: 'Comparison Table List Infographic Graph (4).png', description: 'Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)' },
-  { code: 'stats_table_5', group: 'element', label: '📊 Bảng / Vòng mẫu 5 (Tím)', param: 'Comparison Table List Infographic Graph (5).png', description: 'Bảng thống kê / vòng tròn mẫu 5 (Tím)' },
-  { code: 'circle_gold', group: 'element', label: '🌑 Viền tối góc xanh (5.png)', param: '5.png', description: 'Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu' },
-  { code: 'circle_blue', group: 'element', label: '🔵 Vòng tròn xanh (o.png)', param: 'o.png', description: 'Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)' },
-  { code: 'paper_texture', group: 'element', label: '📜 Giấy cũ 1 (Sáng)', param: 'paper texture.png', description: 'Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu' },
-  { code: 'paper_texture_2', group: 'element', label: '📜 Giấy cũ 2 (Tối)', param: 'paper texture 2.png', description: 'Lớp phủ giấy cũ 2 tối (paper texture 2.png)' },
-  { code: 'texture_dark', group: 'element', label: '🌑 Phủ xám tối (textture.png)', param: 'textture.png', description: 'Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương' },
-  { code: 'texture_2', group: 'element', label: '⬜ Phủ nền sáng (texture2.png)', param: 'texture2.png', description: 'Lớp phủ nền sáng (texture2.png) cho toàn video' },
-  { code: 'grid_orange', group: 'element', label: '🟧 Lưới cam (Video)', param: 'vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4', description: 'Nền lưới cam chuyển động (grid animation video)' },
-  { code: 'intro', group: 'element', label: '🎬 Video Intro (intro.mp4)', param: 'intro.mp4', description: 'Video Intro mở đầu (intro.mp4)' }
+  { code: 'tv_retro', group: 'element', label: '📺 Khung Sofa TV', param: "tv_retro.png", description: 'Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn' },
+  { code: 'tv_green_frame', group: 'element', label: '📺 Khung màn hình xanh', param: "tv_green_frame.png", description: 'Khung màn hình xanh viền đen (TV / Monitor Green Screen)' },
+  { code: 'tv_crt_gemini', group: 'element', label: '📺 TV CRT cổ điển', param: "tv_crt_gemini.png", description: 'Khung TV CRT cổ điển trong phòng tối (Green Screen)' },
+  { code: 'tv_sony', group: 'element', label: '📺 TV Sony bàn gỗ', param: "tv_sony.mp4", description: 'Khung TV Sony cổ điển trên bàn gỗ (Video)' },
+  { code: 'tv_dolly', group: 'element', label: '📺 TV Dolly In', param: "tv_dolly.webm", description: 'Hiệu ứng TV retro dolly-in (Video)' },
+  { code: 'film_grain', group: 'element', label: '🎞️ Phim 8mm hồi ức', param: "film_grain.mp4", description: 'Khung phim nhựa 8mm cổ điển — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức' },
+  { code: 'scout_frame', group: 'element', label: '📋 Hồ sơ Scout', param: "scout_frame.png", description: 'Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)' },
+  { code: 'stats_table', group: 'element', label: '📊 Bảng / Vòng gốc (Vàng nâu)', param: "stats_table.png", description: 'Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)' },
+  { code: 'stats_table_1', group: 'element', label: '📊 Bảng / Vòng mẫu 1 (Xanh đậm)', param: "stats_table_1.png", description: 'Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)' },
+  { code: 'stats_table_2', group: 'element', label: '📊 Bảng / Vòng mẫu 2 (Đỏ đậm)', param: "stats_table_2.png", description: 'Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)' },
+  { code: 'stats_table_3', group: 'element', label: '📊 Bảng / Vòng mẫu 3 (Đen xám)', param: "stats_table_3.png", description: 'Bảng thống kê / vòng tròn mẫu 3 (Đen xám)' },
+  { code: 'stats_table_4', group: 'element', label: '📊 Bảng / Vòng mẫu 4 (Xanh lá)', param: "stats_table_4.png", description: 'Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)' },
+  { code: 'stats_table_5', group: 'element', label: '📊 Bảng / Vòng mẫu 5 (Tím)', param: "stats_table_5.png", description: 'Bảng thống kê / vòng tròn mẫu 5 (Tím)' },
+  { code: 'circle_gold', group: 'element', label: '🌑 Viền tối góc xanh (5.png)', param: "circle_gold.png", description: 'Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu' },
+  { code: 'circle_blue', group: 'element', label: '🔵 Vòng tròn xanh (o.png)', param: "circle_blue.png", description: 'Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)' },
+  { code: 'paper_texture', group: 'element', label: '📜 Giấy cũ 1 (Sáng)', param: "paper_texture.png", description: 'Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu' },
+  { code: 'paper_texture_2', group: 'element', label: '📜 Giấy cũ 2 (Tối)', param: "paper_texture_2.png", description: 'Lớp phủ giấy cũ 2 tối (paper texture 2.png)' },
+  { code: 'texture_dark', group: 'element', label: '🌑 Phủ xám tối (textture.png)', param: "texture_dark.png", description: 'Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương' },
+  { code: 'texture_2', group: 'element', label: '⬜ Phủ nền sáng (texture2.png)', param: "texture_2.png", description: 'Lớp phủ nền sáng (texture2.png) cho toàn video' },
+  { code: 'grid_orange', group: 'element', label: '🟧 Lưới cam (Video)', param: "grid_orange.mp4", description: 'Nền lưới cam chuyển động (grid animation video)' },
+  { code: 'intro', group: 'element', label: '🎬 Video Intro (intro.mp4)', param: "intro.mp4", description: 'Video Intro mở đầu (intro.mp4)' }
 ];
 
 const DEFAULT_ANIMATION_TYPES = [
@@ -1853,7 +1945,7 @@ const DEFAULT_ANIMATION_TYPES = [
 const DEFAULT_BGM_TYPES = [
   { code: 'auto', label: '✨ Tự động (Auto)', param: '', description: 'Tự động chọn nhạc nền theo Đoạn & mạch cảm xúc' },
   { code: 'none', label: '🔇 Không nhạc nền', param: '', description: 'Tắt nhạc nền ở đoạn này' },
-  { code: 'bgm_default', label: '🎵 Nhạc nền chuẩn SofaZone', param: 'nhạc nền background.mp3', description: 'Nhạc nền chủ đạo mặc định' }
+  { code: 'bgm_default', label: '🎵 Nhạc nền chuẩn SofaZone', param: "bgm_default.mp3", description: 'Nhạc nền chủ đạo mặc định' }
 ];
 
 const DEFAULT_SFX_TYPES = [
@@ -2340,6 +2432,26 @@ function initSourceSuggester() {
 
   let pendingImgTarget = null; // { tbl: 'src' | 'el' | 'anim', idx: number }
   let activeLightbox = null;   // { tbl: 'src' | 'el' | 'anim', idx: number }
+  let assetPreviews = new Map();
+  let assetPreviewRequest = 0;
+
+  async function refreshAssetPreviews() {
+    const requestId = ++assetPreviewRequest;
+    try {
+      const result = await window.api.assetPreviews(getAssetRoots());
+      if (result.error) throw new Error(result.error);
+      if (requestId !== assetPreviewRequest) return;
+      assetPreviews = new Map(result.items.map(item => [`${item.kind}/${item.code}`, item]));
+      renderClassificationTables();
+    } catch (err) { sgLog(`Không tải được preview tài nguyên: ${err.message}`, 'error'); }
+  }
+  window.addEventListener('asset-roots-changed', () => {
+    if (sharedClsAudio) sharedClsAudio.pause();
+    sharedClsAudio = null;
+    sharedClsAudioCode = null;
+    assetPreviews.clear();
+    refreshAssetPreviews();
+  });
 
   function isVideoMediaUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -2358,12 +2470,8 @@ function initSourceSuggester() {
     if (!item) return '';
     if (item.image && item.image !== '__none__') return item.image;
     if (item.image === '__none__') return '';
-    // Nếu là Lớp phủ Design (Bảng 2: el) có sẵn file ảnh hoặc video (.png/.jpg/.mp4/.webm) trong thư mục cố định Elements, tự động lấy làm minh họa mặc định
-    if ((tbl === 'el' || item.group === 'element') && item.param) {
-      const p = String(item.param).trim();
-      if (/\.(png|jpe?g|webp|gif|bmp|mp4|webm|mov|mkv)$/i.test(p)) {
-        return `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Elements/${encodeURIComponent(p)}`;
-      }
+    if (tbl === 'el' || item.group === 'element') {
+      return assetPreviews.get(`element/${item.code}`)?.url || '';
     }
     return '';
   }
@@ -2581,8 +2689,8 @@ function initSourceSuggester() {
 
   function toggleAudioPreview(tbl, code, param) {
     if (!param) return;
-    const subDir = tbl === 'bgm' ? 'Background' : 'SFX';
-    const audioUrl = `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Sounds/${subDir}/${encodeURIComponent(param)}`;
+    const audioUrl = assetPreviews.get(`${tbl}/${code}`)?.url;
+    if (!audioUrl) { sgLog(`Chưa tìm thấy file âm thanh: ${code}`, 'error'); return; }
 
     if (sharedClsAudio && sharedClsAudioCode === code) {
       sharedClsAudio.pause();
@@ -2595,7 +2703,13 @@ function initSourceSuggester() {
     sharedClsAudio = new Audio(audioUrl);
     sharedClsAudioCode = code;
     sharedClsAudio.volume = tbl === 'bgm' ? 0.35 : 0.7;
-    sharedClsAudio.play().catch(err => { sgLog(`Không phát được audio: ${err.message}`, 'error'); });
+    sharedClsAudio.play().catch(err => {
+      sgLog(`Không phát được audio: ${err.message}`, 'error');
+      if (sharedClsAudioCode === code) {
+        sharedClsAudioCode = null;
+        renderClassificationTables();
+      }
+    });
     sharedClsAudio.addEventListener('ended', () => {
       sharedClsAudioCode = null;
       renderClassificationTables();
@@ -2609,6 +2723,10 @@ function initSourceSuggester() {
     const isPlaying = sharedClsAudioCode === code;
     if (code === 'auto' || code === 'none' || !param) {
       return `<td class="sg-cls-img-cell" style="text-align:center; color:var(--text-tertiary); font-size:0.7rem;">—</td>`;
+    }
+    const asset = assetPreviews.get(`${tbl}/${code}`);
+    if (asset && !asset.exists) {
+      return '<td class="sg-cls-img-cell asset-verify-missing">❌ Thiếu file</td>';
     }
     return `<td class="sg-cls-img-cell"><div class="sg-audio-cell"><button type="button" class="sg-audio-play-btn ${isPlaying ? 'is-playing' : ''}" data-tbl="${tbl}" data-idx="${idx}" data-code="${code}" data-param="${param.replace(/"/g, '&quot;')}" title="${isPlaying ? 'Dừng phát' : 'Nghe thử'}">${isPlaying ? '⏹ Dừng' : '▶ Nghe'}</button></div></td>`;
   }
@@ -2875,18 +2993,17 @@ function initSourceSuggester() {
           wrap.addEventListener('mouseenter', () => { vidEl.play().catch(() => {}); });
           wrap.addEventListener('mouseleave', () => { try { vidEl.pause(); } catch (_) {} });
           vidEl.addEventListener('error', () => {
-            const list = getListByTableKey(tbl);
-            if (list && list[idx]) list[idx].image = '__none__';
-            renderClassificationTables();
+            wrap.title = 'Không tải được video. Kiểm tra file hoặc codec video.';
+            const badge = wrap.querySelector('.sg-cls-video-badge');
+            if (badge) badge.textContent = '⚠ Không phát được';
           }, { once: true });
         }
         // Nếu ảnh mặc định từ thư mục Elements không tìm thấy trên đĩa, chuyển thành nút + Thêm gọn gàng
         const imgEl = wrap.querySelector('img');
         if (imgEl) {
           imgEl.addEventListener('error', () => {
-            const list = getListByTableKey(tbl);
-            if (list && list[idx]) list[idx].image = '__none__';
-            renderClassificationTables();
+            imgEl.alt = 'Không tải được ảnh';
+            wrap.title = 'Không tải được ảnh. Kiểm tra lại file tài nguyên.';
           }, { once: true });
         }
       });
@@ -3475,6 +3592,7 @@ function initSourceSuggester() {
         renderExamples();
         setClsLocked(true);
         syncClassificationsEverywhere();
+        await refreshAssetPreviews();
       }
     } catch (e) {
       // Backend có thể chưa sẵn sàng ngay lập tức
@@ -3612,6 +3730,7 @@ function initSourceSuggester() {
       if (Array.isArray(res.element_types)) {
         sgState.elementTypes = res.element_types.map(x => ({ ...x, group: 'element', image: x.image || elImgMap[x.code] || '' }));
       }
+      await refreshAssetPreviews();
       if (Array.isArray(res.animation_types)) {
         sgState.animationTypes = res.animation_types.map(x => ({ ...x, group: 'anim', image: x.image || animImgMap[x.code] || '' }));
       }
@@ -4431,4 +4550,3 @@ function initSplitResizers() {
 
 // Khởi chạy ứng dụng ở dòng cuối cùng sau khi mọi const & function đã được khai báo
 init();
-

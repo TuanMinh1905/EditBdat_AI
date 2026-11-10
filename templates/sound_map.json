@@ -2,78 +2,78 @@
   "_comment": "Mapping sound_id -> file âm thanh trong D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh\\Sounds (Background & SFX)",
   "bgm": {
     "bgm_default": {
-      "file": "Background/nhạc nền background.mp3",
-      "description": "Nhạc nền chủ đạo mặc định của kênh"
+      "file": "Background/bgm_default.mp3",
+      "description": "Nhạc nền chủ đạo mặc định của kênh (dẫn chuyện chung, phân tích chiến thuật)"
     },
     "bgm_momentum": {
-      "file": "Background/chestnutmusicstudios-05-momentum-589472.mp3",
-      "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — chuỗi pha bóng tốc độ, phản công, cao trào"
+      "file": "Background/bgm_momentum.mp3",
+      "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — hợp cho chuỗi pha bóng tốc độ, phản công, cao trào"
     },
     "bgm_dark_ambient": {
-      "file": "Background/cinematic-soul-dark-ambient-background-music-617907.mp3",
-      "description": "Nhạc nền trầm lắng, u tối, điện ảnh — khủng hoảng, thất bại, chấn thương"
+      "file": "Background/bgm_dark_ambient.mp3",
+      "description": "Nhạc nền trầm lắng, u tối, điện ảnh — hợp khi kể về khủng hoảng, thất bại, chấn thương, góc khuất"
     },
     "bgm_freedom": {
-      "file": "Background/good_b_music-price-of-freedom-33106.mp3",
-      "description": "Nhạc nền hào hùng, xúc động — nâng cúp vô địch, khoảnh khắc huyền thoại"
+      "file": "Background/bgm_freedom.mp3",
+      "description": "Nhạc nền hào hùng, xúc động — hợp cho đoạn nâng cúp vô địch, khoảnh khắc huyền thoại, kết bài"
     },
     "bgm_nastelbom": {
-      "file": "Background/nastelbom-background-music-617075.mp3",
-      "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — mở bài hoặc giải thích bối cảnh"
+      "file": "Background/bgm_nastelbom.mp3",
+      "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — hợp cho phần mở bài hoặc giải thích bối cảnh"
     },
     "bgm_mid_1": {
-      "file": "Background/mid.mp3",
-      "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa 1"
+      "file": "Background/bgm_mid_1.mp3",
+      "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa (mid.mp3)"
     },
     "bgm_mid_2": {
-      "file": "Background/mid2.mp3",
-      "description": "Nhạc nền phân tích nhịp vừa 2"
+      "file": "Background/bgm_mid_2.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 2 (mid2.mp3)"
     },
     "bgm_mid_3": {
-      "file": "Background/mid3.mp3",
-      "description": "Nhạc nền phân tích nhịp vừa 3"
+      "file": "Background/bgm_mid_3.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 3 (mid3.mp3)"
     },
     "bgm_mid_4": {
-      "file": "Background/mid4.mp3",
-      "description": "Nhạc nền phân tích nhịp vừa 4"
+      "file": "Background/bgm_mid_4.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 4 (mid4.mp3)"
     },
     "bgm_mid_5": {
-      "file": "Background/mid5.mp3",
-      "description": "Nhạc nền phân tích nhịp vừa 5"
+      "file": "Background/bgm_mid_5.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 5 (mid5.mp3)"
     }
   },
   "sfx": {
     "whoosh": {
       "file": "SFX/whoosh.mp3",
-      "description": "Tiếng gió lướt nhanh khi chuyển cảnh"
+      "description": "Tiếng gió lướt nhanh khi chuyển cảnh, đổi chủ đề hoặc phóng to đột ngột"
     },
     "camera_shutter": {
       "file": "SFX/camera_shutter.mp3",
-      "description": "Tiếng tách máy ảnh khi hiện mặt báo / ảnh khoảnh khắc"
+      "description": "Tiếng tách máy ảnh khi hiện mặt báo (anh_chung_bao), ảnh khoảnh khắc (anh_thoi_diem) hoặc hồ sơ"
     },
     "data_beep": {
       "file": "SFX/data_beep.mp3",
-      "description": "Tiếng nhảy số điện tử khi hiện bảng thống kê"
+      "description": "Tiếng nhảy số điện tử / gõ phím khi hiện bảng thống kê (anh_thong_so / stats_table)"
     },
     "crowd_cheer": {
       "file": "SFX/crowd_cheer.mp3",
-      "description": "Tiếng cổ động viên hò reo vang dội"
+      "description": "Tiếng cổ động viên hò reo vang dội khi ghi bàn, ăn mừng danh hiệu (rai_4, khan_dai)"
     },
     "whistle": {
       "file": "SFX/whistle.mp3",
-      "description": "Tiếng còi trọng tài"
+      "description": "Tiếng còi khai cuộc / mãn cuộc hoặc tình huống phạm lỗi tranh cãi"
     },
     "tv_glitch": {
       "file": "SFX/tv_glitch.mp3",
-      "description": "Tiếng bật tivi CRT / nhiễu sóng nhẹ"
+      "description": "Tiếng bật tivi CRT / nhiễu sóng nhẹ khi xuất hiện khung TV (tv_retro, tv_sony)"
     },
     "film_projector": {
       "file": "SFX/film_projector.mp3",
-      "description": "Tiếng máy chiếu phim 8mm cổ điển"
+      "description": "Tiếng cuộn phim nhựa cổ điển quay đều khi dùng lớp phủ hồi ức (film_grain)"
     },
     "impact_boom": {
       "file": "SFX/impact_boom.mp3",
-      "description": "Tiếng trống trầm / Cinematic Hit tạo điểm nhấn"
+      "description": "Tiếng trống trầm / Cinematic Hit tạo điểm nhấn mạnh cho câu chốt hạ hoặc bước ngoặt lớn"
     }
   },
   "auto_sfx_by_loai": {
@@ -85,4 +85,3 @@
     "phong_van": "tv_glitch"
   }
 }
-

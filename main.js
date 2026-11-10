@@ -374,6 +374,26 @@ ipcMain.handle('select-voice-file', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
+ipcMain.handle('verify-assets', async (event, params) => {
+  try {
+    return await callPython('/api/verify-assets', params);
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
+ipcMain.handle('asset-previews', async (event, params) => {
+  try {
+    const result = await callPython('/api/asset-thumbnail', params);
+    if (result.error) return result;
+    return { ...result, items: result.items.map(item => ({
+      ...item, url: item.url ? `http://127.0.0.1:${PYTHON_PORT}${item.url}` : ''
+    })) };
+  } catch (err) {
+    return { error: err.message };
+  }
+});
+
 ipcMain.handle('premiere-generate-xml', async (event, params) => {
   try {
     const result = await callPython('/api/premiere/generate-xml', params);

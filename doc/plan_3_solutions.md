@@ -2,6 +2,10 @@
 
 > Mục tiêu: Đảm bảo mã (code) trong Bảng 2 (Lớp phủ), Bảng 4 (BGM), Bảng 5 (SFX) luôn trỏ đúng tới file thực tế trên ổ đĩa.
 
+> **Trạng thái 2026-11-11:** Đã triển khai cả 3 giải pháp. Đã đổi tên 20 Element + 10 BGM; `intro.mp4` giữ nguyên. Kiểm tra thực tế: 21 Element và 10 BGM có file; 8 SFX mới có mapping, chưa có file. Theo yêu cầu bổ sung của user, thiếu tài nguyên không chặn xuất XML: cảnh báo trước khi xuất, sau đó bỏ qua lớp phủ/âm thanh thiếu nếu chọn tiếp tục.
+>
+> Chi tiết sử dụng, bản sao lưu và kiểm thử: [Plan_3_Implementation.md](Plan_3_Implementation.md).
+
 ---
 
 ## 🥇 Giải pháp 1: Rename Asset Files = Code
@@ -65,7 +69,7 @@
 | `impact_boom` | `impact_boom.mp3` | `impact_boom.mp3` ← đã đúng |
 
 > [!NOTE]
-> SFX files đã đúng tên rồi. Chỉ cần rename Elements + BGM.
+> Các tên SFX trong mapping đã đúng. Kiểm tra ổ đĩa ngày 2026-11-11 cho thấy chưa có 8 file SFX; script báo thiếu và giữ mapping để bổ sung sau.
 
 ### Sau khi rename, script sẽ tự động cập nhật:
 1. `templates/element_map.json` — đổi field `"file"` cho mỗi element
