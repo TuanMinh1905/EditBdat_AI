@@ -310,6 +310,7 @@ try {
 | 2026-11-10 | Thêm Tool 1 — Source Suggester (`python/source_suggester.py`, `templates/source_style_rules.txt`, `templates/source_examples.json`) + 7 API endpoints trong `main.py` + tab UI "Gợi ý Source" (`#tab-source-suggester`). Hỗ trợ viết quy tắc phong cách riêng, Gemini Embedding (`text-embedding-004`) RAG few-shot, chỉnh sửa inline trên bảng (giới hạn chặt trong `VALID_LOAI`, `VALID_ELEMENTS`, `VALID_ANIMS`), lưu combo (`loai_source` + `element` + `anim`) vào kho ví dụ và xuất `2_CSV_PhanLoaiSource.csv` (7 cột: `doan,cau,y,loai_source,thoi_ky,element,anim`). Đồng bộ `premiere_xml_generator.py` đọc cột `element` và `anim` (`zoom_in`, `zoom_out`, `static`, `auto`). | Giải quyết vấn đề GPT web gán Source/Animation quá màu mè; dạy AI học đồng thời cả tư duy chọn Source lẫn Lớp phủ (Element V3) và Chuyển động (Zoom) của user qua từng video. |
 | 2026-11-10 | Thêm quy tắc #13: Sau mỗi lần chỉnh sửa hoặc viết code mới, tự động commit và push lên Git với commit message bằng tiếng Việt. | Theo yêu cầu của user để luôn đồng bộ code mới nhất lên Git và dễ theo dõi lịch sử thay đổi bằng tiếng Việt. |
 | 2026-11-10 | Sắp xếp lại 6 tab sidebar (`Tạo mới`, `Quy tắc`, `Gợi ý Source - Animation`, `Cắt Clip`, `Gen XML`, `Cài đặt`). Thêm `python/token_tracker.py` + 2 API `/api/token-usage/get`, `/api/token-usage/reset` + IPC (`get-token-usage`, `reset-token-usage`, `open-external`) + UI thống kê Token theo từng API Key trong tab Cài đặt. | Giúp user theo dõi trực tiếp lượng Token Gemini API đã tiêu thụ trong App ngay tại màn hình Cài đặt. |
+| 2026-11-10 | Quy hoạch lại cấu trúc thư mục sản xuất `D:\Edit SofaZone` thành 3 phân khu chuẩn (`01_Tai_Nguyen_Co_Dinh`, `02_Kho_Source`, `03_Projects`). Tự động đồng bộ bản sao `source_style_rules.txt` và `source_examples.json` sang `01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt`. Điền sẵn các đường dẫn cố định (`02_Clip_Da_Cat`, `catalog.csv`, `Elements`) trong `renderer.js`. | Giúp user quản lý file khoa học, không bị rối khi tạo Project video mới và tiết kiệm thao tác chọn lại các đường dẫn cố định. |
 
 ---
 
@@ -331,13 +332,14 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
 ### Catalog schema (14 cột):
 `ten_file, loai, cau_thu, doi_bong, ky_nang, stt, video_nguon, start_s, end_s, duration_s, start_tc, end_tc, fps, ghi_chu`
 
-### Đường dẫn thực tế (máy user):
-- Source clips: `D:\Edit SofaZone\Source\Phân Loại nè\chua_phan_loai\`
-- Catalog: `D:\Edit SofaZone\Source\catalog.csv`
-- Voice: `D:\Edit SofaZone\Test\Voice_PhuDe\Voice_PhuDe.mp4` + `.srt`
-- Timeline CSV: `D:\Edit SofaZone\Test\1_CSV_Timeline.csv`
-- Source plan CSV: `D:\Edit SofaZone\Test\2_CSV_PhanLoaiSource.csv`
-- XML output: `D:\Edit SofaZone\Test\fileXML\`
+### Đường dẫn thực tế chuẩn hóa (máy user):
+- Tài nguyên cố định (Elements): `D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Elements\`
+- Bản sao quy tắc AI (`.txt`, `.json`, `.docx`): `D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt\`
+- Video highlight gốc chưa cắt: `D:\Edit SofaZone\02_Kho_Source\01_Video_Goc_Chua_Cat\`
+- Kho clip đã cắt (Source Root): `D:\Edit SofaZone\02_Kho_Source\02_Clip_Da_Cat\`
+- Catalog tổng hợp: `D:\Edit SofaZone\02_Kho_Source\02_Clip_Da_Cat\catalog.csv`
+- Thư mục mẫu tạo Project mới: `D:\Edit SofaZone\03_Projects\_00_PROJECT_MAU_COPY_RA\`
+- Project #1 (`01_Busi_Ini_Xavi`): `D:\Edit SofaZone\03_Projects\01_Busi_Ini_Xavi\` (`1_KichBan_Voice`, `2_CSV_PhanTich`, `3_XML_Tu_Tool`, `4_Premiere_AE`, `5_Video_ThanhPham`)
 
 ---
 

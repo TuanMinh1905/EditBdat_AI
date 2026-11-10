@@ -590,7 +590,7 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>📁 6. Thư mục Source Element</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-source-root" class="sp-path-input" placeholder="D:\Edit SofaZone\Source..."
+              <input type="text" id="pg-source-root" class="sp-path-input" placeholder="D:\Edit SofaZone\02_Kho_Source\02_Clip_Da_Cat..."
                 readonly />
               <button class="btn-icon" id="pg-btn-source-root" title="Chọn thư mục">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -603,7 +603,7 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>💾 7. Thư mục lưu XML</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-output-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\fileXML..."
+              <input type="text" id="pg-output-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\03_Projects\...\3_XML_Tu_Tool..."
                 readonly />
               <button class="btn-icon" id="pg-btn-output-dir" title="Chọn thư mục">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -617,7 +617,7 @@
             <div class="sp-card-header"><span>🎨 8. Thư mục Element (tùy chọn)</span></div>
             <div class="sp-video-row">
               <input type="text" id="pg-element-dir" class="sp-path-input"
-                placeholder="D:\Edit SofaZone\Test\Element..." readonly />
+                placeholder="D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Elements..." readonly />
               <button class="btn-icon" id="pg-btn-element-dir" title="Chọn thư mục Element">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
@@ -974,20 +974,34 @@
 
         <!-- FOLDER STRUCTURE -->
         <div class="rules-card">
-          <div class="rules-card-header">📁 Cấu trúc thư mục Source (khuyến nghị)</div>
+          <div class="rules-card-header">📁 Cấu trúc thư mục chuẩn (D:\Edit SofaZone)</div>
           <div class="rules-card-body">
-            <pre class="rules-tree">D:\Edit SofaZone\Source\
-├── catalog.csv                   ← Tổng hợp tất cả clip
-├── chua_phan_loai\               ← Clip chưa phân loại
-│   └── chua_phan_loai_Xavi_Spain_Mixed_001.mp4
-├── rai_1\                        ← Clip đã phân loại
-│   ├── rai_1_Xavi_Spain_Skill_001.mp4
-│   └── rai_1_Iniesta_Spain_Bantang_001.mp4
-└── training\
-    └── training_Busquets_Barcelona_Mixed_001.mp4</pre>
+            <pre class="rules-tree">D:\Edit SofaZone\
+├── 01_Tai_Nguyen_Co_Dinh\            ← CỐ ĐỊNH, XÀI CHUNG CHO MỌI BÀI
+│   ├── Elements\                     (21 file khung TV, bảng số liệu, film grain...)
+│   ├── Animation_Examples\           (File mẫu tham khảo Animation)
+│   ├── Fonts\                        (Be Vietnam Pro, Quicksand)
+│   ├── Sounds\                       (Nhạc nền Background .mp3)
+│   └── Quy_Tac_AI_Prompt\            (Bản sao .txt, .json dạy AI & file .docx Prompt)
+│
+├── 02_Kho_Source\                    ← KHO VIDEO GỐC & CLIP ĐÃ CẮT (TÍCH LŨY)
+│   ├── 01_Video_Goc_Chua_Cat\        (Video highlight dài tải từ YouTube về)
+│   └── 02_Clip_Da_Cat\               ← Trỏ cố định ở Tool B & Tool A (Source Root)
+│       ├── catalog.csv               (Sổ cái quản lý toàn bộ clip)
+│       ├── chua_phan_loai\           (Clip mới cắt xong)
+│       ├── rai_1\                    (Clip đã phân loại)
+│       └── anh_thoi_diem\
+│
+└── 03_Projects\                      ← MỖI BÀI DỰNG MỚI LÀ 1 THƯ MỤC RIÊNG
+    ├── _00_PROJECT_MAU_COPY_RA\      (Copy thư mục này ra & đổi tên khi làm bài mới)
+    └── 01_Busi_Ini_Xavi\
+        ├── 1_KichBan_Voice\          (Word kịch bản + Voice.mp4/.mp3 + .srt)
+        ├── 2_CSV_PhanTich\           (1_CSV_Timeline.csv & 2_CSV_PhanLoaiSource.csv)
+        ├── 3_XML_Tu_Tool\            (File .xml sinh từ Tool A)
+        ├── 4_Premiere_AE\            (File .prproj Premiere & .aep After Effects)
+        └── 5_Video_ThanhPham\        (Video xuất ra đăng YouTube)</pre>
             <div class="rules-tip-box">
-              <strong>⚠️ Quan trọng:</strong> Source Root trong Tool A phải trỏ đến thư mục chứa
-              <code>catalog.csv</code> và các thư mục loại clip.
+              <strong>⚠️ Mẹo tiết kiệm thời gian:</strong> Các đường dẫn cố định (<code>02_Clip_Da_Cat</code>, <code>catalog.csv</code>, <code>Elements</code>) đã được điền sẵn mặc định trong App!
             </div>
           </div>
         </div>

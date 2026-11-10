@@ -114,6 +114,7 @@ class SourceSuggester:
 
         self.rules_path = os.path.join(self.templates_dir, "source_style_rules.txt")
         self.examples_path = os.path.join(self.templates_dir, "source_examples.json")
+        self.external_sync_dir = r"D:\Edit SofaZone\01_Tai_Nguyen_Co_Dinh\Quy_Tac_AI_Prompt"
         self._log = log or (lambda msg: print(msg, flush=True))
 
         # Dam bao file ton tai
@@ -123,6 +124,20 @@ class SourceSuggester:
         if not os.path.exists(self.examples_path):
             with open(self.examples_path, "w", encoding="utf-8") as f:
                 f.write("[]\n")
+
+    def _sync_external_backup(self):
+        """Dong bo ban sao source_style_rules.txt va source_examples.json sang 01_Tai_Nguyen_Co_Dinh."""
+        try:
+            if os.path.isdir(self.external_sync_dir):
+                import shutil
+                for src in (self.rules_path, self.examples_path):
+                    if os.path.exists(src):
+                        shutil.copy2(
+                            src,
+                            os.path.join(self.external_sync_dir, os.path.basename(src)),
+                        )
+        except Exception as e:
+            self._log(f"[Suggester] Bo qua dong bo backup ngoai: {str(e)}")
 
     # ------------------------------------------------------------------
     # 1. Quan ly Quy tac phong cach (Style Rules)
@@ -143,6 +158,7 @@ class SourceSuggester:
         """Luu noi dung quy tac phong cach vao file."""
         with open(self.rules_path, "w", encoding="utf-8") as f:
             f.write(rules_text or "")
+        self._sync_external_backup()
         self._log(
             f"[Suggester] Da luu quy tac phong cach ({len(rules_text or '')} ky tu)"
         )
@@ -168,6 +184,7 @@ class SourceSuggester:
         """Luu danh sach vi du xuong file JSON."""
         with open(self.examples_path, "w", encoding="utf-8") as f:
             json.dump(examples, f, ensure_ascii=False, indent=2)
+        self._sync_external_backup()
 
     def get_examples(self):
         """Tra ve danh sach vi du cho UI (loai bo truong embedding nang)."""

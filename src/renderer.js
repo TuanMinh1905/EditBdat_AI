@@ -1006,10 +1006,11 @@ init();
 // ============================================================
 
 function initClipSplitter() {
+  const DEFAULT_CLIP_OUT = 'D:\\Edit SofaZone\\02_Kho_Source\\02_Clip_Da_Cat';
   const spState = {
     videoPath: null,
-    outputDir: null,
-    catalogPath: null,
+    outputDir: localStorage.getItem('sp_output_dir') || DEFAULT_CLIP_OUT,
+    catalogPath: (localStorage.getItem('sp_output_dir') || DEFAULT_CLIP_OUT) + '\\catalog.csv',
     allRows: [],
     isSplitting: false
   };
@@ -1120,6 +1121,9 @@ function initClipSplitter() {
   }
 
   // Chọn thư mục output
+  if (spDom.outputDir && spState.outputDir) {
+    spDom.outputDir.value = spState.outputDir;
+  }
   if (spDom.outputDir && spDom.btnBrowseOut) {
     spDom.outputDir.style.cursor = 'pointer';
     spDom.outputDir.addEventListener('click', () => spDom.btnBrowseOut.click());
@@ -1130,6 +1134,7 @@ function initClipSplitter() {
         const d = await window.api.selectDirectory();
         if (!d) return;
         spState.outputDir = d;
+        localStorage.setItem('sp_output_dir', d);
         spDom.outputDir.value = d;
         spDom.btnSplit.disabled = !spState.videoPath;
         spLog(`Thư mục output: ${d}`, 'info');
@@ -1311,16 +1316,20 @@ function initClipSplitter() {
 // ============================================================
 
 function initPremiereGen() {
+  const DEFAULT_SOURCE_ROOT = 'D:\\Edit SofaZone\\02_Kho_Source\\02_Clip_Da_Cat';
+  const DEFAULT_CATALOG_CSV = 'D:\\Edit SofaZone\\02_Kho_Source\\02_Clip_Da_Cat\\catalog.csv';
+  const DEFAULT_ELEMENT_DIR = 'D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh\\Elements';
+
   const pgState = {
     timelineCsv: null,
     sourceCsv: null,
-    catalogCsv: null,
+    catalogCsv: localStorage.getItem('pg_catalog_csv') || DEFAULT_CATALOG_CSV,
     voice: null,
     srt: null,
-    sourceRoot: null,
+    sourceRoot: localStorage.getItem('pg_source_root') || DEFAULT_SOURCE_ROOT,
     outputDir: null,
     lastXmlPath: null,
-    elementDir: null,
+    elementDir: localStorage.getItem('pg_element_dir') || DEFAULT_ELEMENT_DIR,
     textureId: null,
     enableAnimations: true,
     isGenerating: false,
@@ -1446,6 +1455,29 @@ function initPremiereGen() {
     () => window.api.selectVoiceFile(), '4. Voice');
   bindFilePicker(pg.btnSrt, pg.srt, 'srt', pg.chkSrt,
     () => window.api.selectSrtFile(), '5. SRT', true);
+
+  // Điền sẵn các đường dẫn cố định (Catalog, Source Root, Element Dir)
+  if (pg.catalogCsv && pgState.catalogCsv) {
+    pg.catalogCsv.value = pgState.catalogCsv;
+    if (pg.chkCatalog) {
+      pg.chkCatalog.textContent = '✅ 3. Catalog: catalog.csv';
+      pg.chkCatalog.classList.add('done');
+    }
+  }
+  if (pg.sourceRoot && pgState.sourceRoot) {
+    pg.sourceRoot.value = pgState.sourceRoot;
+    if (pg.chkSourceRoot) {
+      pg.chkSourceRoot.textContent = '✅ Thư mục Source: 02_Clip_Da_Cat';
+      pg.chkSourceRoot.classList.add('done');
+    }
+  }
+  if (pg.elementDir && pgState.elementDir) {
+    pg.elementDir.value = pgState.elementDir;
+    if (pg.chkElement) {
+      pg.chkElement.textContent = '✅ Element: Elements';
+      pg.chkElement.classList.add('done');
+    }
+  }
 
   // Thư mục Source Root
   if (pg.btnSourceRoot) {
