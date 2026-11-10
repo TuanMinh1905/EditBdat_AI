@@ -109,7 +109,7 @@ function getFileType(ext) {
 }
 
 function getFileIcon(type) {
-  switch(type) {
+  switch (type) {
     case 'video': return '🎬';
     case 'audio': return '🎵';
     case 'image': return '🖼️';
@@ -624,6 +624,8 @@ function switchTab(tabName) {
   if (tabPgen) tabPgen.style.display = tabName === 'premiere-gen' ? 'flex' : 'none';
   const tabRules = $('#tab-rules');
   if (tabRules) tabRules.style.display = tabName === 'rules' ? 'flex' : 'none';
+  const tabSuggester = $('#tab-source-suggester');
+  if (tabSuggester) tabSuggester.style.display = tabName === 'source-suggester' ? 'flex' : 'none';
 }
 // --- Event Bindings ---
 function initEvents() {
@@ -801,6 +803,7 @@ async function init() {
   initEvents();
   initClipSplitter();
   initPremiereGen();
+  initSourceSuggester();
   initKyNangDropdown();
   initRules();
   await loadSettings();
@@ -825,35 +828,35 @@ function initClipSplitter() {
 
   // --- DOM refs ---
   const spDom = {
-    videoPath:      $('#sp-video-path'),
-    videoInfo:      $('#sp-video-info'),
-    videoMeta:      $('#sp-video-meta'),
+    videoPath: $('#sp-video-path'),
+    videoInfo: $('#sp-video-info'),
+    videoMeta: $('#sp-video-meta'),
     btnBrowseVideo: $('#sp-btn-browse-video'),
-    loai:           $('#sp-loai'),
-    cauThu:         $('#sp-cau-thu'),
-    doiBong:        $('#sp-doi-bong'),
-    kyNang:         $('#sp-ky-nang'),
-    outputDir:      $('#sp-output-dir'),
-    btnBrowseOut:   $('#sp-btn-browse-output'),
-    threshold:      $('#sp-threshold'),
-    thresholdVal:   $('#sp-threshold-val'),
-    btnAnalyze:     $('#sp-btn-analyze'),
-    btnSplit:       $('#sp-btn-split'),
-    progressWrap:   $('#sp-progress-wrap'),
-    progressFill:   $('#sp-progress-fill'),
-    progressText:   $('#sp-progress-text'),
-    analyzeResult:  $('#sp-analyze-result'),
-    statsGrid:      $('#sp-stats-grid'),
-    cutResult:      $('#sp-cut-result'),
-    resultSummary:  $('#sp-result-summary'),
-    btnOpenFolder:  $('#sp-btn-open-folder-result'),
+    loai: $('#sp-loai'),
+    cauThu: $('#sp-cau-thu'),
+    doiBong: $('#sp-doi-bong'),
+    kyNang: $('#sp-ky-nang'),
+    outputDir: $('#sp-output-dir'),
+    btnBrowseOut: $('#sp-btn-browse-output'),
+    threshold: $('#sp-threshold'),
+    thresholdVal: $('#sp-threshold-val'),
+    btnAnalyze: $('#sp-btn-analyze'),
+    btnSplit: $('#sp-btn-split'),
+    progressWrap: $('#sp-progress-wrap'),
+    progressFill: $('#sp-progress-fill'),
+    progressText: $('#sp-progress-text'),
+    analyzeResult: $('#sp-analyze-result'),
+    statsGrid: $('#sp-stats-grid'),
+    cutResult: $('#sp-cut-result'),
+    resultSummary: $('#sp-result-summary'),
+    btnOpenFolder: $('#sp-btn-open-folder-result'),
     btnOpenCatalog: $('#sp-btn-open-catalog'),
-    catalogCard:    $('#sp-catalog-card'),
-    catalogCount:   $('#sp-catalog-count'),
-    catalogSearch:  $('#sp-catalog-search'),
-    catalogTbody:   $('#sp-catalog-tbody'),
-    logToggle:      $('#sp-log-toggle'),
-    logMessages:    $('#sp-log-messages'),
+    catalogCard: $('#sp-catalog-card'),
+    catalogCount: $('#sp-catalog-count'),
+    catalogSearch: $('#sp-catalog-search'),
+    catalogTbody: $('#sp-catalog-tbody'),
+    logToggle: $('#sp-log-toggle'),
+    logMessages: $('#sp-log-messages'),
   };
 
   // Log riêng cho Tool B
@@ -900,8 +903,8 @@ function initClipSplitter() {
         const parts = base.split('_');
         if (parts.length >= 4) {
           // Tìm loai từ danh sách hợp lệ
-          const VALID_LOAI = ['rai_1','rai_2_1','rai_2_2','rai_3','rai_4','phong_van','training',
-            'binh_luan_chay','khan_dai','anh_thong_so','anh_thoi_diem','anh_chung_bao','sa_ban'];
+          const VALID_LOAI = ['rai_1', 'rai_2_1', 'rai_2_2', 'rai_3', 'rai_4', 'phong_van', 'training',
+            'binh_luan_chay', 'khan_dai', 'anh_thong_so', 'anh_thoi_diem', 'anh_chung_bao', 'sa_ban'];
           // Thử ghép 1, 2, 3 phần đầu làm loai
           let loaiFound = '';
           for (let n = 3; n >= 1; n--) {
@@ -914,7 +917,7 @@ function initClipSplitter() {
             if (rest[0]) spDom.cauThu.value = rest[0];
             if (rest[1]) spDom.doiBong.value = rest[1];
             if (rest[2]) spDom.kyNang.value = rest[2];
-            spLog(`Auto-detect: loai=${loaiFound}, cau_thu=${rest[0]||''}, doi_bong=${rest[1]||''}`, 'info');
+            spLog(`Auto-detect: loai=${loaiFound}, cau_thu=${rest[0] || ''}, doi_bong=${rest[1] || ''}`, 'info');
           }
         }
         // Hiện thông tin nhanh
@@ -966,7 +969,7 @@ function initClipSplitter() {
         const sceneCount = result.stats?.count ?? result.scene_count ?? '?';
         const durSec = result.meta?.duration ?? result.duration_s ?? 0;
         const fpsVal = result.meta?.fps ? Math.round(result.meta.fps) : (result.fps || 30);
-        const dur = durSec ? `${Math.floor(durSec/60)}m${Math.floor(durSec%60)}s` : '?';
+        const dur = durSec ? `${Math.floor(durSec / 60)}m${Math.floor(durSec % 60)}s` : '?';
         spDom.statsGrid.innerHTML = `
           <div class="sp-stat-item"><div class="sp-stat-val">${sceneCount}</div><div class="sp-stat-label">Scene ước tính</div></div>
           <div class="sp-stat-item"><div class="sp-stat-val">${dur}</div><div class="sp-stat-label">Thời lượng</div></div>
@@ -1091,10 +1094,10 @@ function initClipSplitter() {
   function filterCatalog(query) {
     if (!query) { renderCatalogTable(spState.allRows); return; }
     const filtered = spState.allRows.filter(r =>
-      (r.ten_file||'').toLowerCase().includes(query) ||
-      (r.loai||'').toLowerCase().includes(query) ||
-      (r.cau_thu||'').toLowerCase().includes(query) ||
-      (r.ky_nang||'').toLowerCase().includes(query)
+      (r.ten_file || '').toLowerCase().includes(query) ||
+      (r.loai || '').toLowerCase().includes(query) ||
+      (r.cau_thu || '').toLowerCase().includes(query) ||
+      (r.ky_nang || '').toLowerCase().includes(query)
     );
     renderCatalogTable(filtered);
   }
@@ -1104,10 +1107,10 @@ function initClipSplitter() {
     spDom.catalogTbody.innerHTML = rows.map(r => {
       const dur = r.duration_s ? parseFloat(r.duration_s).toFixed(1) + 's' : '?';
       return `<tr>
-        <td title="${r.ten_file||''}">${(r.ten_file||'').substring(0,30)}…</td>
-        <td><span class="sp-loai-badge">${r.loai||''}</span></td>
-        <td>${r.cau_thu||''}</td>
-        <td>${r.ky_nang||''}</td>
+        <td title="${r.ten_file || ''}">${(r.ten_file || '').substring(0, 30)}…</td>
+        <td><span class="sp-loai-badge">${r.loai || ''}</span></td>
+        <td>${r.cau_thu || ''}</td>
+        <td>${r.ky_nang || ''}</td>
         <td class="sp-dur">${dur}</td>
       </tr>`;
     }).join('');
@@ -1131,51 +1134,54 @@ function initPremiereGen() {
     lastXmlPath: null,
     elementDir: null,
     textureId: null,
+    enableAnimations: true,
     isGenerating: false,
   };
 
   // --- DOM refs ---
   const pg = {
-    timelineCsv:    $('#pg-timeline-csv'),
-    sourceCsv:      $('#pg-source-csv'),
-    catalogCsv:     $('#pg-catalog-csv'),
-    voice:          $('#pg-voice'),
-    srt:            $('#pg-srt'),
-    sourceRoot:     $('#pg-source-root'),
-    outputDir:      $('#pg-output-dir'),
-    projectName:    $('#pg-project-name'),
+    timelineCsv: $('#pg-timeline-csv'),
+    sourceCsv: $('#pg-source-csv'),
+    catalogCsv: $('#pg-catalog-csv'),
+    voice: $('#pg-voice'),
+    srt: $('#pg-srt'),
+    sourceRoot: $('#pg-source-root'),
+    outputDir: $('#pg-output-dir'),
+    projectName: $('#pg-project-name'),
     btnTimelineCsv: $('#pg-btn-timeline-csv'),
-    btnSourceCsv:   $('#pg-btn-source-csv'),
-    btnCatalogCsv:  $('#pg-btn-catalog-csv'),
-    btnVoice:       $('#pg-btn-voice'),
-    btnSrt:         $('#pg-btn-srt'),
-    btnSourceRoot:  $('#pg-btn-source-root'),
-    btnOutputDir:   $('#pg-btn-output-dir'),
-    btnGenerate:    $('#pg-btn-generate'),
-    resultCard:     $('#pg-result-card'),
-    resultSummary:  $('#pg-result-summary'),
-    missingCard:    $('#pg-missing-card'),
-    missingCount:   $('#pg-missing-count'),
-    missingList:    $('#pg-missing-list'),
-    btnOpenXml:     $('#pg-btn-open-xml'),
-    btnOpenXmlDir:  $('#pg-btn-open-xml-folder'),
+    btnSourceCsv: $('#pg-btn-source-csv'),
+    btnCatalogCsv: $('#pg-btn-catalog-csv'),
+    btnVoice: $('#pg-btn-voice'),
+    btnSrt: $('#pg-btn-srt'),
+    btnSourceRoot: $('#pg-btn-source-root'),
+    btnOutputDir: $('#pg-btn-output-dir'),
+    btnGenerate: $('#pg-btn-generate'),
+    resultCard: $('#pg-result-card'),
+    resultSummary: $('#pg-result-summary'),
+    missingCard: $('#pg-missing-card'),
+    missingCount: $('#pg-missing-count'),
+    missingList: $('#pg-missing-list'),
+    btnOpenXml: $('#pg-btn-open-xml'),
+    btnOpenXmlDir: $('#pg-btn-open-xml-folder'),
     btnOpenXmlDir2: $('#pg-btn-open-xml-dir'),
-    logToggle:      $('#pg-log-toggle'),
-    logMessages:    $('#pg-log-messages'),
+    logToggle: $('#pg-log-toggle'),
+    logMessages: $('#pg-log-messages'),
     // Checklist
-    chkTimeline:    $('#pgc-timeline'),
-    chkSource:      $('#pgc-source'),
-    chkCatalog:     $('#pgc-catalog'),
-    chkVoice:       $('#pgc-voice'),
-    chkSrt:         $('#pgc-srt'),
-    chkSourceRoot:  $('#pgc-source-root'),
-    chkOutput:      $('#pgc-output'),
+    chkTimeline: $('#pgc-timeline'),
+    chkSource: $('#pgc-source'),
+    chkCatalog: $('#pgc-catalog'),
+    chkVoice: $('#pgc-voice'),
+    chkSrt: $('#pgc-srt'),
+    chkSourceRoot: $('#pgc-source-root'),
+    chkOutput: $('#pgc-output'),
     // Element overlay fields
-    elementDir:     $('#pg-element-dir'),
-    btnElementDir:  $('#pg-btn-element-dir'),
-    textureSelect:  $('#pg-texture-select'),
-    chkElement:     $('#pgc-element'),
-    chkTexture:     $('#pgc-texture'),
+    elementDir: $('#pg-element-dir'),
+    btnElementDir: $('#pg-btn-element-dir'),
+    textureSelect: $('#pg-texture-select'),
+    chkElement: $('#pgc-element'),
+    chkTexture: $('#pgc-texture'),
+    chkAnimation: $('#pgc-animation'),
+    enableAnimations: $('#pg-enable-animations'),
   };
 
   function pgLog(msg, type = 'info') {
@@ -1203,8 +1209,8 @@ function initPremiereGen() {
   function updateGenerateBtn() {
     if (!pg.btnGenerate) return;
     const ready = pgState.timelineCsv && pgState.sourceCsv &&
-                  pgState.catalogCsv && pgState.voice &&
-                  pgState.sourceRoot && pgState.outputDir;
+      pgState.catalogCsv && pgState.voice &&
+      pgState.sourceRoot && pgState.outputDir;
     pg.btnGenerate.disabled = !ready;
   }
 
@@ -1330,12 +1336,26 @@ function initPremiereGen() {
     });
   }
 
+  // Animation toggle
+  if (pg.enableAnimations) {
+    pg.enableAnimations.addEventListener('change', () => {
+      pgState.enableAnimations = pg.enableAnimations.checked;
+      if (pg.chkAnimation) {
+        pg.chkAnimation.textContent = pgState.enableAnimations
+          ? '✅ Animation: BẬT'
+          : '⬜ Animation: TẮT';
+        pg.chkAnimation.classList.toggle('done', pgState.enableAnimations);
+      }
+      pgLog(`Animation: ${pgState.enableAnimations ? 'BẬT' : 'TẮT'}`, 'info');
+    });
+  }
+
   // Nút Generate
   if (pg.btnGenerate) {
     pg.btnGenerate.addEventListener('click', async () => {
       if (pgState.isGenerating) return;
       if (!pgState.timelineCsv || !pgState.sourceCsv || !pgState.catalogCsv ||
-          !pgState.voice || !pgState.sourceRoot || !pgState.outputDir) {
+        !pgState.voice || !pgState.sourceRoot || !pgState.outputDir) {
         pgLog('Chưa đủ input! Cần: 2 CSV, Catalog, Voice, Source folder, Output folder.', 'error');
         return;
       }
@@ -1352,16 +1372,17 @@ function initPremiereGen() {
         pgLog(`Đang gen XML: ${projectName}.xml ...`, 'info');
 
         const params = {
-          timeline_csv:    pgState.timelineCsv,
+          timeline_csv: pgState.timelineCsv,
           source_plan_csv: pgState.sourceCsv,
-          catalog_csv:     pgState.catalogCsv,
-          voice_path:      pgState.voice,
-          source_root:     pgState.sourceRoot,
-          output_dir:      pgState.outputDir,
-          project_name:    projectName,
-          srt_path:        pgState.srt || null,
-          element_dir:     pgState.elementDir || null,
-          texture_id:      pgState.textureId || null,
+          catalog_csv: pgState.catalogCsv,
+          voice_path: pgState.voice,
+          source_root: pgState.sourceRoot,
+          output_dir: pgState.outputDir,
+          project_name: projectName,
+          srt_path: pgState.srt || null,
+          element_dir: pgState.elementDir || null,
+          texture_id: pgState.textureId || null,
+          enable_animations: pgState.enableAnimations,
         };
 
         const result = await window.api.premiereGenerateXml(params);
@@ -1371,16 +1392,20 @@ function initPremiereGen() {
         const totalClips = result.total_clips || 0;
         const missing = result.missing || [];
 
+        const totalElements = result.total_elements || 0;
+        const totalTransitions = result.total_transitions || 0;
+        const animEnabled = result.animations_enabled || false;
+
         // Hiện kết quả thành công
         pg.resultCard.style.display = 'block';
         pg.resultSummary.innerHTML = `
           🎬 <strong>${totalClips} clip</strong> đã được đặt vào timeline<br>
           📄 File: <code style="font-size:10px">${pgState.lastXmlPath}</code><br>
           ${totalElements > 0 ? `🎨 <strong>${totalElements} element</strong> overlay (V3/V4)<br>` : ''}
+          ${animEnabled ? `🎬 Animation: Ken Burns zoom + Opacity fade + ${totalTransitions} transitions<br>` : ''}
           ${missing.length > 0 ? `⚠️ <span style="color:#fbbf24">${missing.length} câu thiếu source</span>` : '✅ Đủ source cho tất cả câu'}
         `;
-        const totalElements = result.total_elements || 0;
-        pgLog(`✅ Gen xong! ${totalClips} clips, ${totalElements} elements, ${missing.length} thiếu source`, 'success');
+        pgLog(`✅ Gen xong! ${totalClips} clips, ${totalElements} elements, ${totalTransitions} transitions, ${missing.length} thiếu source, animation=${animEnabled ? 'ON' : 'OFF'}`, 'success');
 
         // Hiện danh sách thiếu source (nếu có)
         if (missing.length > 0) {
@@ -1536,4 +1561,611 @@ function initRules() {
       if (e.key === 'Enter') doAdd();
     });
   }
+}
+
+// ============================================================
+// TOOL 1 — SOURCE SUGGESTER UI (Gợi ý phân loại Source theo phong cách)
+// ============================================================
+
+const SG_VALID_LOAI = [
+  { code: 'rai_1', label: 'rai_1 (Rải đơn)' },
+  { code: 'rai_2_1', label: 'rai_2_1 (Rải đôi 1)' },
+  { code: 'rai_2_2', label: 'rai_2_2 (Rải đôi 2)' },
+  { code: 'rai_3', label: 'rai_3 (Rải 3)' },
+  { code: 'rai_4', label: 'rai_4 (Rải 4 / Danh hiệu)' },
+  { code: 'phong_van', label: 'phong_van (Phỏng vấn)' },
+  { code: 'training', label: 'training (Tập luyện)' },
+  { code: 'binh_luan_chay', label: 'binh_luan_chay (BLV nói)' },
+  { code: 'khan_dai', label: 'khan_dai (Khán đài)' },
+  { code: 'anh_thong_so', label: 'anh_thong_so (Bảng số liệu)' },
+  { code: 'anh_thoi_diem', label: 'anh_thoi_diem (Ảnh khoảnh khắc)' },
+  { code: 'anh_chung_bao', label: 'anh_chung_bao (Mặt báo)' },
+  { code: 'sa_ban', label: 'sa_ban (Sa bàn)' }
+];
+
+const SG_VALID_ELEMENTS = [
+  { code: 'auto', label: '✨ auto (Tự động)' },
+  { code: 'none', label: '🚫 none (Không phủ)' },
+  { code: 'tv_retro', label: '📺 tv_retro (Khung Sofa TV)' },
+  { code: 'film_grain', label: '🎞️ film_grain (Phim 8mm hồi ức)' },
+  { code: 'scout_frame', label: '📋 scout_frame (Hồ sơ Scout)' },
+  { code: 'stats_table', label: '📊 stats_table (Bảng số liệu)' },
+  { code: 'stats_table_1', label: '📊 stats_table_1 (Bảng mẫu 1)' },
+  { code: 'stats_table_2', label: '📊 stats_table_2 (Bảng mẫu 2)' },
+  { code: 'tv_sony', label: '📺 tv_sony (TV Sony bàn gỗ)' },
+  { code: 'tv_dolly', label: '📺 tv_dolly (TV Dolly In)' },
+  { code: 'circle_gold', label: '🟡 circle_gold (Vòng tròn vàng)' },
+  { code: 'circle_blue', label: '🔵 circle_blue (Vòng tròn xanh)' },
+  { code: 'paper_texture', label: '📜 paper_texture (Giấy cũ)' },
+  { code: 'paper_texture_2', label: '📜 paper_texture_2 (Giấy cũ 2)' },
+  { code: 'texture_dark', label: '🌑 texture_dark (Phủ tối)' },
+  { code: 'grid_orange', label: '🟧 grid_orange (Lưới cam)' }
+];
+
+const SG_VALID_ANIMS = [
+  { code: 'auto', label: '🔄 auto (Mặc định)' },
+  { code: 'zoom_in', label: '🔍 zoom_in (Phóng to)' },
+  { code: 'zoom_out', label: '🔎 zoom_out (Thu nhỏ)' },
+  { code: 'static', label: '⏹️ static (Đứng yên)' }
+];
+
+function initSourceSuggester() {
+  const sgState = {
+    csvPath: localStorage.getItem('sg_timeline_csv') || '',
+    defaultThoiKy: localStorage.getItem('sg_default_thoiky') || '',
+    rulesPath: '',
+    examplesPath: '',
+    rows: [],
+    examples: [],
+    isSuggesting: false
+  };
+
+  const sgDom = {
+    rulesInput: $('#sg-rules-input'),
+    rulesStatus: $('#sg-rules-status'),
+    rulesChar: $('#sg-rules-char'),
+    rulesFilepath: $('#sg-rules-filepath'),
+    btnReloadRules: $('#sg-btn-reload-rules'),
+    btnOpenRules: $('#sg-btn-open-rules'),
+    btnSaveRules: $('#sg-btn-save-rules'),
+    timelineCsv: $('#sg-timeline-csv'),
+    btnBrowseCsv: $('#sg-btn-browse-csv'),
+    defaultThoiKy: $('#sg-default-thoiky'),
+    btnSuggest: $('#sg-btn-suggest'),
+    btnSuggestText: $('#sg-btn-suggest-text'),
+    exampleCount: $('#sg-example-count'),
+    examplesFilepath: $('#sg-examples-filepath'),
+    btnOpenExamples: $('#sg-btn-open-examples'),
+    examplesList: $('#sg-examples-list'),
+    btnClearExamples: $('#sg-btn-clear-examples'),
+    logBox: $('#sg-log-box'),
+    statTotal: $('#sg-stat-total'),
+    statLow: $('#sg-stat-low'),
+    btnLearn: $('#sg-btn-learn'),
+    btnExport: $('#sg-btn-export'),
+    btnFillThoiKy: $('#sg-btn-fill-thoiky'),
+    tbody: $('#sg-tbody')
+  };
+
+  function sgLog(msg, type = 'info') {
+    if (!sgDom.logBox) return;
+    const line = document.createElement('div');
+    line.className = `sp-log-line ${type}`;
+    const t = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    line.textContent = `[${t}] ${msg}`;
+    sgDom.logBox.appendChild(line);
+    sgDom.logBox.scrollTop = sgDom.logBox.scrollHeight;
+  }
+
+  function splitLoaiSource(loaiStr) {
+    if (!loaiStr) return ['rai_1', ''];
+    const parts = String(loaiStr).split('+').map(s => s.trim()).filter(Boolean);
+    return [parts[0] || 'rai_1', parts[1] || ''];
+  }
+
+  function combineLoaiSource(p1, p2) {
+    const a = (p1 || 'rai_1').trim();
+    const b = (p2 || '').trim();
+    if (b && b !== a) return `${a} + ${b}`;
+    return a;
+  }
+
+  function renderExamples() {
+    if (!sgDom.examplesList || !sgDom.exampleCount) return;
+    sgDom.exampleCount.textContent = sgState.examples.length;
+    if (!sgState.examples.length) {
+      sgDom.examplesList.innerHTML = `<div class="sp-hint" style="text-align:center; padding:12px 0;">Chưa có ví dụ nào. Hãy chạy gợi ý hoặc chỉnh sửa bảng rồi bấm "Lưu vào Kho ví dụ".</div>`;
+      return;
+    }
+    const recent = [...sgState.examples].reverse().slice(0, 40);
+    sgDom.examplesList.innerHTML = recent.map(ex => {
+      const safeText = String(ex.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeNote = ex.note ? ` · 💡 ${String(ex.note).replace(/</g, '&lt;')}` : '';
+      const elInfo = ex.element && ex.element !== 'auto' ? ` · 🖼 ${ex.element}` : '';
+      const animInfo = ex.anim && ex.anim !== 'auto' ? ` · 🎬 ${ex.anim}` : '';
+      return `
+        <div class="sg-example-item">
+          <div style="flex:1; min-width:0;">
+            <div class="sg-example-text">"${safeText}"</div>
+            <div class="sg-example-meta">→ ${ex.loai_source}${elInfo}${animInfo}${ex.thoi_ky ? ' | ' + ex.thoi_ky : ''}${safeNote}</div>
+          </div>
+          <button class="sg-example-del" data-ex-id="${ex.id}" title="Xóa mẫu này">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    sgDom.examplesList.querySelectorAll('.sg-example-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.exId;
+        try {
+          const res = await window.api.suggesterDeleteExample({ id });
+          if (res.error) throw new Error(res.error);
+          sgState.examples = res.examples || [];
+          renderExamples();
+          sgLog(`Đã xóa mẫu #${id} khỏi kho ví dụ.`, 'info');
+        } catch (err) {
+          sgLog(`Lỗi xóa mẫu: ${err.message}`, 'error');
+        }
+      });
+    });
+  }
+
+  function updateStats() {
+    if (!sgDom.statTotal || !sgDom.statLow) return;
+    const total = sgState.rows.length;
+    const lowCount = sgState.rows.filter(r => typeof r.confidence === 'number' && r.confidence < 0.7).length;
+    sgDom.statTotal.textContent = total;
+    sgDom.statLow.textContent = lowCount;
+    if (sgDom.btnLearn) sgDom.btnLearn.disabled = total === 0;
+    if (sgDom.btnExport) sgDom.btnExport.disabled = total === 0;
+  }
+
+  function renderTable() {
+    if (!sgDom.tbody) return;
+    updateStats();
+
+    if (!sgState.rows.length) {
+      sgDom.tbody.innerHTML = `
+        <tr>
+          <td colspan="9" class="sg-empty-row">
+            Hãy chọn file <code>1_CSV_Timeline.csv</code> ở cột bên trái để bắt đầu.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    sgDom.tbody.innerHTML = sgState.rows.map((r, idx) => {
+      const [p1, p2] = splitLoaiSource(r.loai_source);
+      const curEl = r.element || 'auto';
+      const curAnim = r.anim || 'auto';
+      const conf = typeof r.confidence === 'number' ? r.confidence : null;
+      const isLow = conf !== null && conf < 0.7;
+      const confPct = conf !== null ? `${Math.round(conf * 100)}%` : '—';
+      const confClass = conf === null ? 'sg-conf-mid' : (conf >= 0.8 ? 'sg-conf-high' : (conf >= 0.7 ? 'sg-conf-mid' : 'sg-conf-low'));
+      const locLabel = [r.doan, r.cau, r.y].filter(Boolean).join('.');
+      const safeText = String(r.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const safeThoiKy = String(r.thoi_ky || '').replace(/"/g, '&quot;');
+      const safeNote = String(r.note || '').replace(/"/g, '&quot;');
+      const safeReason = String(r.reason || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+      const opts1 = SG_VALID_LOAI.map(o =>
+        `<option value="${o.code}" ${o.code === p1 ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
+      const opts2 = `<option value="">-- Không ghép --</option>` + SG_VALID_LOAI.map(o =>
+        `<option value="${o.code}" ${o.code === p2 ? 'selected' : ''}>+ ${o.label}</option>`
+      ).join('');
+
+      const optsEl = SG_VALID_ELEMENTS.map(o =>
+        `<option value="${o.code}" ${o.code === curEl ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
+      const optsAnim = SG_VALID_ANIMS.map(o =>
+        `<option value="${o.code}" ${o.code === curAnim ? 'selected' : ''}>${o.label}</option>`
+      ).join('');
+
+      return `
+        <tr class="${isLow ? 'sg-row-low-conf' : ''}" data-idx="${idx}">
+          <td style="font-family:var(--font-mono); font-size:0.74rem; color:var(--text-secondary);">
+            <div><strong>${locLabel || (idx + 1)}</strong></div>
+            <div style="font-size:0.68rem; opacity:0.75;">${r.start || ''}</div>
+          </td>
+          <td>
+            <div style="line-height:1.4;">${safeText}</div>
+            ${safeReason ? `<div class="sg-reason-hint">🤖 ${safeReason}</div>` : ''}
+          </td>
+          <td>
+            <select class="sg-select sg-sel-p1" data-idx="${idx}">
+              ${opts1}
+            </select>
+          </td>
+          <td>
+            <select class="sg-select sg-sel-p2" data-idx="${idx}">
+              ${opts2}
+            </select>
+          </td>
+          <td>
+            <select class="sg-select sg-sel-element" data-idx="${idx}">
+              ${optsEl}
+            </select>
+          </td>
+          <td>
+            <select class="sg-select sg-sel-anim" data-idx="${idx}">
+              ${optsAnim}
+            </select>
+          </td>
+          <td>
+            <input type="text" class="sg-input sg-inp-thoiky" data-idx="${idx}" value="${safeThoiKy}" placeholder="Euro 2008 · TBN / Xavi">
+          </td>
+          <td>
+            <input type="text" class="sg-input sg-inp-note" data-idx="${idx}" value="${safeNote}" placeholder="Lý do sửa (tùy chọn)...">
+          </td>
+          <td>
+            <span class="sg-conf-badge ${confClass}">${confPct}</span>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Bind inline events
+    sgDom.tbody.querySelectorAll('.sg-sel-p1').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        const p2El = sgDom.tbody.querySelector(`.sg-sel-p2[data-idx="${i}"]`);
+        sgState.rows[i].loai_source = combineLoaiSource(sel.value, p2El ? p2El.value : '');
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-sel-p2').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        const p1El = sgDom.tbody.querySelector(`.sg-sel-p1[data-idx="${i}"]`);
+        sgState.rows[i].loai_source = combineLoaiSource(p1El ? p1El.value : 'rai_1', sel.value);
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-sel-element').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        sgState.rows[i].element = sel.value;
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-sel-anim').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const i = Number(sel.dataset.idx);
+        sgState.rows[i].anim = sel.value;
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-inp-thoiky').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = Number(inp.dataset.idx);
+        sgState.rows[i].thoi_ky = inp.value;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-inp-note').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const i = Number(inp.dataset.idx);
+        sgState.rows[i].note = inp.value;
+      });
+    });
+  }
+
+  async function loadBackendState() {
+    try {
+      const res = await window.api.suggesterGetState();
+      if (res && !res.error) {
+        sgState.rulesPath = res.rules_path || '';
+        sgState.examplesPath = res.examples_path || '';
+        if (sgDom.rulesFilepath && sgState.rulesPath) {
+          sgDom.rulesFilepath.title = sgState.rulesPath;
+          sgDom.rulesFilepath.textContent = `📄 ${sgState.rulesPath}`;
+        }
+        if (sgDom.examplesFilepath && sgState.examplesPath) {
+          sgDom.examplesFilepath.title = sgState.examplesPath;
+          sgDom.examplesFilepath.textContent = `📄 ${sgState.examplesPath}`;
+        }
+        if (sgDom.rulesInput) {
+          sgDom.rulesInput.value = res.rules || '';
+          if (sgDom.rulesChar) sgDom.rulesChar.textContent = `${(res.rules || '').length} ký tự`;
+          if (sgDom.rulesStatus) {
+            sgDom.rulesStatus.textContent = 'Đã đồng bộ';
+            sgDom.rulesStatus.classList.remove('unsaved');
+          }
+        }
+        sgState.examples = res.examples || [];
+        renderExamples();
+      }
+    } catch (e) {
+      // Backend có thể chưa sẵn sàng ngay lập tức
+    }
+  }
+
+  async function loadCsvFile(csvPath) {
+    if (!csvPath) return;
+    try {
+      const res = await window.api.suggesterLoadCsv({ csv_path: csvPath });
+      if (res.error) throw new Error(res.error);
+      sgState.csvPath = csvPath;
+      localStorage.setItem('sg_timeline_csv', csvPath);
+      if (sgDom.timelineCsv) sgDom.timelineCsv.value = csvPath;
+
+      const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
+      sgState.rows = (res.rows || []).map(r => ({
+        ...r,
+        loai_source: r.loai_source || 'rai_1',
+        element: r.element || 'auto',
+        anim: r.anim || 'auto',
+        thoi_ky: r.thoi_ky || defTk || '',
+        confidence: null,
+        reason: '',
+        note: ''
+      }));
+      renderTable();
+      sgLog(`Đã tải ${sgState.rows.length} câu thoại từ ${csvPath.split(/[\\/]/).pop()}`, 'success');
+    } catch (err) {
+      sgLog(`Lỗi đọc CSV: ${err.message}`, 'error');
+    }
+  }
+
+  // Khôi phục giá trị đã lưu
+  if (sgDom.defaultThoiKy && sgState.defaultThoiKy) {
+    sgDom.defaultThoiKy.value = sgState.defaultThoiKy;
+  }
+  if (sgDom.timelineCsv && sgState.csvPath) {
+    sgDom.timelineCsv.value = sgState.csvPath;
+  }
+
+  // Khi rules thay đổi
+  if (sgDom.rulesInput) {
+    sgDom.rulesInput.addEventListener('input', () => {
+      const len = sgDom.rulesInput.value.length;
+      if (sgDom.rulesChar) sgDom.rulesChar.textContent = `${len} ký tự`;
+      if (sgDom.rulesStatus) {
+        sgDom.rulesStatus.textContent = 'Chưa lưu';
+        sgDom.rulesStatus.classList.add('unsaved');
+      }
+    });
+  }
+
+  // Lưu quy tắc
+  if (sgDom.btnSaveRules) {
+    sgDom.btnSaveRules.addEventListener('click', async () => {
+      try {
+        const rules = sgDom.rulesInput ? sgDom.rulesInput.value : '';
+        const res = await window.api.suggesterSaveRules({ rules });
+        if (res.error) throw new Error(res.error);
+        if (sgDom.rulesStatus) {
+          sgDom.rulesStatus.textContent = 'Đã lưu ✓';
+          sgDom.rulesStatus.classList.remove('unsaved');
+        }
+        sgLog('Đã lưu quy tắc phong cách vào file source_style_rules.txt.', 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu quy tắc: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Đọc lại từ file .txt (nếu user sửa bằng tay ngoài app)
+  if (sgDom.btnReloadRules) {
+    sgDom.btnReloadRules.addEventListener('click', async () => {
+      await loadBackendState();
+      sgLog('Đã đọc lại nội dung mới nhất từ file source_style_rules.txt.', 'info');
+    });
+  }
+
+  // Mở trực tiếp file .txt
+  if (sgDom.btnOpenRules) {
+    sgDom.btnOpenRules.addEventListener('click', async () => {
+      if (!sgState.rulesPath) await loadBackendState();
+      if (sgState.rulesPath) {
+        window.api.openFile(sgState.rulesPath);
+      } else {
+        sgLog('Chưa lấy được đường dẫn file .txt (backend chưa sẵn sàng).', 'error');
+      }
+    });
+  }
+
+  // Mở trực tiếp file .json
+  if (sgDom.btnOpenExamples) {
+    sgDom.btnOpenExamples.addEventListener('click', async () => {
+      if (!sgState.examplesPath) await loadBackendState();
+      if (sgState.examplesPath) {
+        window.api.openFile(sgState.examplesPath);
+      } else {
+        sgLog('Chưa lấy được đường dẫn file .json (backend chưa sẵn sàng).', 'error');
+      }
+    });
+  }
+
+  // Chọn file Timeline CSV
+  if (sgDom.btnBrowseCsv) {
+    sgDom.btnBrowseCsv.addEventListener('click', async () => {
+      const filePath = await window.api.selectCsvFile();
+      if (!filePath) return;
+      await loadCsvFile(filePath);
+    });
+  }
+
+  // Lưu default thoi_ky
+  if (sgDom.defaultThoiKy) {
+    sgDom.defaultThoiKy.addEventListener('input', () => {
+      sgState.defaultThoiKy = sgDom.defaultThoiKy.value;
+      localStorage.setItem('sg_default_thoiky', sgState.defaultThoiKy);
+    });
+  }
+
+  // Điền nhanh Thời kỳ cho các dòng trống
+  if (sgDom.btnFillThoiKy) {
+    sgDom.btnFillThoiKy.addEventListener('click', () => {
+      if (!sgState.rows.length) return;
+      const firstVal = (sgDom.defaultThoiKy && sgDom.defaultThoiKy.value.trim()) ||
+        (sgState.rows.find(r => r.thoi_ky && r.thoi_ky.trim()) || {}).thoi_ky || '';
+      if (!firstVal) {
+        sgLog('Hãy nhập Thời kỳ ở ô Mặc định hoặc ở dòng đầu tiên trước khi điền nhanh.', 'warn');
+        return;
+      }
+      let filled = 0;
+      sgState.rows.forEach(r => {
+        if (!r.thoi_ky || !r.thoi_ky.trim()) {
+          r.thoi_ky = firstVal;
+          filled++;
+        }
+      });
+      renderTable();
+      sgLog(`Đã điền Thời kỳ "${firstVal}" cho ${filled} dòng trống.`, 'info');
+    });
+  }
+
+  // Bấm nút AI Gợi ý Source
+  if (sgDom.btnSuggest) {
+    sgDom.btnSuggest.addEventListener('click', async () => {
+      if (sgState.isSuggesting) return;
+      if (!sgState.rows.length && !sgState.csvPath) {
+        sgLog('Vui lòng chọn file 1_CSV_Timeline.csv trước!', 'error');
+        return;
+      }
+
+      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
+      if (!apiKey) {
+        sgLog('Chưa có Gemini API Key! Vui lòng vào tab Cài đặt để nhập API Key.', 'error');
+        return;
+      }
+
+      sgState.isSuggesting = true;
+      sgDom.btnSuggest.disabled = true;
+      if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '⏳ AI đang phân tích theo phong cách của bạn...';
+      sgLog(`Đang gửi ${sgState.rows.length} câu thoại cho Gemini (kèm ${sgState.examples.length} mẫu ví dụ)...`, 'info');
+
+      try {
+        const rulesText = sgDom.rulesInput ? sgDom.rulesInput.value : '';
+        const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
+
+        const res = await window.api.suggesterSuggest({
+          rows: sgState.rows,
+          csv_path: sgState.csvPath,
+          api_key: apiKey,
+          default_thoi_ky: defTk,
+          rules: rulesText
+        });
+
+        if (res.error) throw new Error(res.error);
+
+        if (sgDom.rulesStatus) {
+          sgDom.rulesStatus.textContent = 'Đã đồng bộ';
+          sgDom.rulesStatus.classList.remove('unsaved');
+        }
+
+        sgState.rows = (res.rows || []).map(r => ({
+          ...r,
+          note: ''
+        }));
+        renderTable();
+
+        const lowCount = sgState.rows.filter(r => typeof r.confidence === 'number' && r.confidence < 0.7).length;
+        sgLog(`Hoàn tất gợi ý ${sgState.rows.length} câu! Có ${lowCount} câu cần bạn xem kỹ (tô vàng).`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi AI gợi ý: ${err.message}`, 'error');
+      } finally {
+        sgState.isSuggesting = false;
+        sgDom.btnSuggest.disabled = false;
+        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '🤖 AI Gợi ý Source theo phong cách của tôi';
+      }
+    });
+  }
+
+  // Bấm nút Lưu vào Kho ví dụ (Dạy AI)
+  if (sgDom.btnLearn) {
+    sgDom.btnLearn.addEventListener('click', async () => {
+      if (!sgState.rows.length) return;
+      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
+      sgDom.btnLearn.disabled = true;
+      sgLog(`Đang lưu ${sgState.rows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
+      try {
+        const res = await window.api.suggesterSaveExamples({
+          items: sgState.rows,
+          api_key: apiKey
+        });
+        if (res.error) throw new Error(res.error);
+        sgState.examples = res.examples || [];
+        renderExamples();
+        sgLog(`Đã dạy AI thành công! (+${res.added} mẫu mới, cập nhật ${res.updated} mẫu, tổng kho: ${res.total} mẫu).`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu kho ví dụ: ${err.message}`, 'error');
+      } finally {
+        sgDom.btnLearn.disabled = false;
+      }
+    });
+  }
+
+  // Xóa toàn bộ kho ví dụ
+  if (sgDom.btnClearExamples) {
+    sgDom.btnClearExamples.addEventListener('click', async () => {
+      if (!sgState.examples.length) return;
+      if (!confirm(`Bạn có chắc muốn xóa toàn bộ ${sgState.examples.length} mẫu ví dụ đã học?`)) return;
+      try {
+        const res = await window.api.suggesterDeleteExample({ clear_all: true });
+        if (res.error) throw new Error(res.error);
+        sgState.examples = [];
+        renderExamples();
+        sgLog('Đã xóa toàn bộ kho ví dụ.', 'info');
+      } catch (err) {
+        sgLog(`Lỗi: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Xuất file 2_CSV_PhanLoaiSource.csv
+  if (sgDom.btnExport) {
+    sgDom.btnExport.addEventListener('click', async () => {
+      if (!sgState.rows.length) return;
+      let defaultOut = '2_CSV_PhanLoaiSource.csv';
+      if (sgState.csvPath) {
+        const dir = sgState.csvPath.replace(/[\\/][^\\/]+$/, '');
+        const sep = sgState.csvPath.includes('\\') ? '\\' : '/';
+        defaultOut = `${dir}${sep}2_CSV_PhanLoaiSource.csv`;
+      }
+      const savePath = await window.api.saveCsvFile(defaultOut);
+      if (!savePath) return;
+
+      try {
+        const res = await window.api.suggesterExportCsv({
+          rows: sgState.rows,
+          output_path: savePath
+        });
+        if (res.error) throw new Error(res.error);
+        sgLog(`Đã xuất file thành công: ${res.output_path}`, 'success');
+
+        // Tự động điền đường dẫn sang ô CSV #2 của Tab Gen XML (Tool A)
+        const pgSourceCsvInput = $('#pg-source-csv');
+        if (pgSourceCsvInput) {
+          pgSourceCsvInput.value = res.output_path;
+          pgSourceCsvInput.dispatchEvent(new Event('input'));
+          sgLog('Đã tự động gắn file vừa xuất vào mục "2. CSV Phân loại Source" bên tab Gen XML!', 'info');
+        }
+      } catch (err) {
+        sgLog(`Lỗi xuất CSV: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // Khi backend kết nối xong, tự động tải rules + examples + csv (nếu có)
+  window.api.onBackendReady(async (ready) => {
+    if (ready) {
+      await loadBackendState();
+      if (sgState.csvPath) {
+        await loadCsvFile(sgState.csvPath);
+      }
+    }
+  });
+
+  // Thử tải ngay nếu backend đã chạy
+  loadBackendState();
 }

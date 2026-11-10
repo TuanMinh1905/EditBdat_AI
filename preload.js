@@ -43,5 +43,15 @@ contextBridge.exposeInMainWorld('api', {
   selectSrtFile: () => ipcRenderer.invoke('select-srt-file'),
   selectVoiceFile: () => ipcRenderer.invoke('select-voice-file'),
   premiereGenerateXml: (params) => ipcRenderer.invoke('premiere-generate-xml', params),
+
+  // Tool 1: Source Suggester (Gợi ý Source)
+  saveCsvFile: (defaultPath) => ipcRenderer.invoke('save-csv-file', defaultPath),
+  suggesterGetState: () => ipcRenderer.invoke('suggester-get-state'),
+  suggesterSaveRules: (params) => ipcRenderer.invoke('suggester-save-rules', params),
+  suggesterLoadCsv: (params) => ipcRenderer.invoke('suggester-load-csv', params),
+  suggesterSuggest: (params) => ipcRenderer.invoke('suggester-suggest', params),
+  suggesterSaveExamples: (params) => ipcRenderer.invoke('suggester-save-examples', params),
+  suggesterDeleteExample: (params) => ipcRenderer.invoke('suggester-delete-example', params),
+  suggesterExportCsv: (params) => ipcRenderer.invoke('suggester-export-csv', params),
 });
 

@@ -24,8 +24,8 @@ File FCP XML → Import vào Premiere Pro → Timeline có sẵn voice + clip + 
     ▼ [Element/Overlay — ĐÃ LÀM ✅]
 Tự động chèn lớp phủ (TV frame, paper texture, bảng thống kê) lên timeline V3/V4
     │
-    ▼ [Tiếp theo — Animation]  ← CHƯA LÀM
-Text chạy, transition, hiệu ứng chuyển cảnh
+    ▼ [Animation — ĐÃ LÀM ✅]
+Ken Burns zoom, Opacity fade, Transitions (Cross Dissolve, Dip to Black)
 ```
 
 ### Tech Stack (KHÔNG ĐƯỢC THAY ĐỔI):
@@ -51,11 +51,15 @@ Text chạy, transition, hiệu ứng chuyển cảnh
 
 ### ✅ Tool A — Premiere XML Generator (`python/premiere_xml_generator.py`)
 - **Chức năng:** Đọc 2 CSV + catalog + voice + SRT → sinh FCP XML (xmeml v4) → import Premiere
-- **Output XML:** Voice trên A1, clips video trên V1/V2, markers đánh dấu đoạn/câu
-- **Pick clips fallback 3 mức:** (loai+cau_thu+ky_nang) → (loai+cau_thu) → (loai)
+- **Output XML:** Voice trên A1, clips video trên V1/V2, elements trên V3/V4, markers đánh dấu đoạn/câu
+- **Pick clips fallback 4 mức:** (loai+cau_thu+ky_nang) → (loai+cau_thu) → (loai) → (any clip)
+- **Animation System** (enable_animations=True, mặc định):
+  - Ken Burns zoom: Scale keyframes 100%↔108% xen kẽ trên V1/V2 clips
+  - Opacity fade: Fade in 10f + fade out 10f trên V3 elements
+  - Transitions: Cross Dissolve giữa clips cùng đoạn, Dip to Black ở ranh giới
 - **API:** `POST /api/premiere/generate-xml`
-- **UI:** Tab "Gen XML" với form chọn 7 file/folder + nút Generate
-- **Đã test thành công:** Import XML vào Premiere → Offline All → thấy sequence + voice + clips + markers
+- **UI:** Tab "Gen XML" với form chọn 10 inputs + checkbox Animation + nút Generate
+- **Đã test thành công:** Animation chạy mượt trong Premiere (user confirmed 2026-11-10)
 
 ### ✅ Tab Quy tắc (Rules)
 - Tab hiển thị format đặt tên, VALID_LOAI (14 loại), danh sách Kỹ năng (thêm/xóa custom), cấu trúc thư mục, quy trình 4 bước
@@ -73,7 +77,7 @@ Text chạy, transition, hiệu ứng chuyển cảnh
 ### Backend (python/):
 - `main.py` — Flask API server, port 5599
 - `clip_splitter.py` — Tool B
-- `premiere_xml_generator.py` — Tool A (~653 dòng)
+- `premiere_xml_generator.py` — Tool A (~1022 dòng, animation + image/voice media fix)
 
 ### IPC Bridge:
 - `main.js` — Electron main process + IPC handlers
@@ -193,14 +197,33 @@ V1: Video clip chính
 A1: Voice
 ```
 
-### 🟡 #2 — Fix nhỏ còn lại
+### ✅ #2 — Animation System (ĐÃ HOÀN THÀNH ✅)
+
+**Đã triển khai ngày 2026-11-09 ~ 2026-11-10 (session 3):**
+
+1. ✅ **Ken Burns zoom** — Scale keyframes 100%↔108% xen kẽ trên V1/V2 clips (effectid: `basic`)
+2. ✅ **Opacity fade** — Fade in 10 frames + fade out 10 frames trên V3 elements (effectid: `opacity`)
+3. ✅ **Transitions** — Cross Dissolve giữa clips cùng đoạn, Dip to Black ở ranh giới đoạn + đầu/cuối video
+4. ✅ **User confirmed:** "Tôi đã thấy Animation chạy rồi, Khá mượt và khá ổn"
+5. ✅ **Critical fix #20:** PNG image `<file>` elements had `<audio>` but NO `<video>` in `<media>` block → Premiere "File Import Failure". Fix: ALL files now get `<video>` with `<samplecharacteristics>`. Only non-image files get `<audio>`.
+6. ✅ **Fix #21:** Voice file (mp4) in audio track had no `<video>` in `<media>` block → Added `<video><samplecharacteristics>` with width/height.
+7. ✅ **Pick clips fallback level 4:** Ultimate fallback — use any clip from catalog when no type matches.
+8. ✅ **Premiere track behavior:** Premiere auto-removes empty tracks and renumbers. Elements on V3/V4 DO render correctly.
+
+**Animation settings:**
+- `enable_animations` param (default: `true`)
+- CLI flag: `--no-animations` để tắt
+- Ken Burns zoom chỉ áp dụng cho video clips (V1/V2)
+- Opacity fade chỉ áp dụng cho elements (V3)
+- Transitions áp dụng giữa clips cùng đoạn (Cross Dissolve) và ranh giới đoạn (Dip to Black)
+
+### 🟡 #3 — Fix nhỏ còn lại
 - File `Xavi_Ini_Busi_VoiceTest.mp3` vẫn bị lock ở `D:\Edit SofaZone\Test\` (cần user xóa thủ công)
 - Tab Quy tắc cần restart app để thấy (đã fix CSS nhưng user chưa confirm)
 
-### 🟢 #3 — Việc cần làm tiếp
-- **Test trên app UI** (user chạy `npm start` → thử tab Gen XML với Element Dir + Texture)
-- **Import XML vào Premiere** → kiểm tra V3/V4 tracks hiện đúng
-- Animation: Text chạy, transition (có thể qua After Effects JSX hoặc Premiere motion graphics template)
+### 🟢 #4 — Việc cần làm tiếp
+- ✅ **App Integration** — Đã thêm "Enable Animations" checkbox vào tab Gen XML (card #10)
+- **Full pipeline test trên app UI** (user chạy `npm start` → test toàn bộ flow)
 - Session persistence cho Tool A (lưu đường dẫn vào session.json)
 - Tool B: UI reclassify clips sau khi cắt
 - Premiere Effect Presets (.prfpset) cho override thủ công sau khi import
@@ -220,6 +243,10 @@ A1: Voice
 | Tool B "Phân tích trước" hiện `undefined` | Fix: đọc `result.stats.count` thay vì `result.scene_count` |
 | Tool B "Cắt Clip" gửi sai `output_root` | Fix: gửi `out_root` khớp Flask |
 | Tool B "Cắt Clip" đọc sai `clips_created` | Fix: đọc `result.total_clips` |
+| **Session 3 (2026-11-10)** | |
+| Premiere "File Import Failure" cho XML có ảnh/stillframe (#20) | Fix `_make_clip_item()`: ALL files get `<video>` trong media. Chỉ non-image files get `<audio>` |
+| Voice file (mp4) thiếu `<video>` trong media block (#21) | Thêm `<video><samplecharacteristics>` cho voice media block |
+| V3/V4 elements không hiện trên timeline Premiere | Premiere auto-removes empty tracks. Elements render correctly (verified) |
 
 ---
 

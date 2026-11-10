@@ -36,6 +36,7 @@ from timeline_validator import TimelineValidator
 from jsx_generator import JSXGenerator
 from clip_splitter import ClipSplitter
 from premiere_xml_generator import generate_xml
+from source_suggester import SourceSuggester
 
 app = Flask(__name__)
 CORS(app)
@@ -56,6 +57,7 @@ media_analyzer = MediaAnalyzer()
 validator = TimelineValidator()
 jsx_generator = JSXGenerator()
 clip_splitter = ClipSplitter(log=log)
+source_suggester = SourceSuggester(log=log)
 
 
 @app.route('/api/health', methods=['GET'])
@@ -643,22 +645,188 @@ def api_premiere_generate():
             srt_path        = data.get('srt_path') or None,
             element_dir     = data.get('element_dir') or None,
             texture_id      = data.get('texture_id') or None,
+            enable_animations = data.get('enable_animations', True),
             log             = log,
         )
 
         log("[STEP] xml : done")
         log("[PROGRESS] 100")
         return jsonify({
-            "success"        : True,
-            "output_path"    : result['output'],
-            "total_clips"    : result['total_clips'],
-            "total_elements" : result.get('total_elements', 0),
-            "missing"        : result['missing'],
+            "success"          : True,
+            "output_path"      : result['output'],
+            "total_clips"      : result['total_clips'],
+            "total_elements"   : result.get('total_elements', 0),
+            "total_transitions": result.get('total_transitions', 0),
+            "animations"       : result.get('animations_enabled', False),
+            "missing"          : result['missing'],
         })
 
     except Exception as e:
         log(f"Loi premiere-generate: {str(e)}")
         traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# CONG CU 1 — Source Suggester (Goi y phan loai Source theo phong cach)
+# =============================================================================
+
+@app.route('/api/source-suggester/get-state', methods=['POST'])
+def api_suggester_get_state():
+    """Tra ve quy tac phong cach va danh sach vi du trong kho."""
+    try:
+        rules = source_suggester.get_rules()
+        examples = source_suggester.get_examples()
+        return jsonify({
+            "success": True,
+            "rules": rules,
+            "examples": examples,
+            "total_examples": len(examples),
+            "rules_path": source_suggester.rules_path,
+            "examples_path": source_suggester.examples_path,
+        })
+    except Exception as e:
+        log(f"Loi suggester-get-state: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/save-rules', methods=['POST'])
+def api_suggester_save_rules():
+    """Luu quy tac phong cach cua user vao templates/source_style_rules.txt."""
+    try:
+        data = request.get_json() or {}
+        rules_text = data.get('rules', '')
+        source_suggester.save_rules(rules_text)
+        return jsonify({"success": True})
+    except Exception as e:
+        log(f"Loi suggester-save-rules: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/load-csv', methods=['POST'])
+def api_suggester_load_csv():
+    """Doc file 1_CSV_Timeline.csv de hien thi len bang."""
+    try:
+        data = request.get_json() or {}
+        csv_path = data.get('csv_path', '')
+        if not csv_path or not os.path.exists(csv_path):
+            return jsonify({"error": f"Khong tim thay file CSV: {csv_path}"}), 400
+        rows = source_suggester.load_timeline_csv(csv_path)
+        return jsonify({
+            "success": True,
+            "rows": rows,
+            "total": len(rows),
+        })
+    except Exception as e:
+        log(f"Loi suggester-load-csv: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/suggest', methods=['POST'])
+def api_suggester_suggest():
+    """
+    Goi Gemini 3.8 Flash + Embedding RAG de goi y loai_source cho tung dong.
+    Body: {
+        "rows": [...],             // hoac "csv_path"
+        "csv_path": "...",
+        "api_key": "...",
+        "default_thoi_ky": "...",
+        "rules": "..."             // tuy chon: luu luon rules truoc khi goi
+    }
+    """
+    try:
+        data = request.get_json() or {}
+        api_key = data.get('api_key', '')
+        default_thoi_ky = data.get('default_thoi_ky', '')
+
+        if 'rules' in data and data['rules'] is not None:
+            source_suggester.save_rules(data['rules'])
+
+        rows = data.get('rows')
+        if not rows:
+            csv_path = data.get('csv_path', '')
+            if not csv_path or not os.path.exists(csv_path):
+                return jsonify({"error": "Chua chon file Timeline CSV hoac danh sach dong trong."}), 400
+            rows = source_suggester.load_timeline_csv(csv_path)
+
+        results = source_suggester.suggest_from_timeline(
+            timeline_rows=rows,
+            api_key=api_key,
+            default_thoi_ky=default_thoi_ky,
+        )
+        return jsonify({
+            "success": True,
+            "rows": results,
+            "total": len(results),
+        })
+    except Exception as e:
+        log(f"Loi suggester-suggest: {str(e)}")
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/save-examples', methods=['POST'])
+def api_suggester_save_examples():
+    """Luu cac dong da duyet/sua vao kho vi du (kem tao vector embedding)."""
+    try:
+        data = request.get_json() or {}
+        items = data.get('items', [])
+        api_key = data.get('api_key', '')
+        stats = source_suggester.add_examples(items, api_key=api_key)
+        examples = source_suggester.get_examples()
+        return jsonify({
+            "success": True,
+            "added": stats["added"],
+            "updated": stats["updated"],
+            "total": stats["total"],
+            "examples": examples,
+        })
+    except Exception as e:
+        log(f"Loi suggester-save-examples: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/delete-example', methods=['POST'])
+def api_suggester_delete_example():
+    """Xoa 1 vi du hoac xoa tat ca kho vi du."""
+    try:
+        data = request.get_json() or {}
+        if data.get('clear_all'):
+            source_suggester.clear_examples()
+        else:
+            ex_id = data.get('id')
+            source_suggester.delete_example(ex_id)
+        examples = source_suggester.get_examples()
+        return jsonify({
+            "success": True,
+            "examples": examples,
+            "total": len(examples),
+        })
+    except Exception as e:
+        log(f"Loi suggester-delete-example: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/source-suggester/export-csv', methods=['POST'])
+def api_suggester_export_csv():
+    """Xuat bang ket qua ra file 2_CSV_PhanLoaiSource.csv."""
+    try:
+        data = request.get_json() or {}
+        rows = data.get('rows', [])
+        output_path = data.get('output_path', '')
+        if not rows:
+            return jsonify({"error": "Khong co du lieu dong de xuat CSV."}), 400
+        if not output_path:
+            return jsonify({"error": "Chua chon duong dan luu file CSV."}), 400
+
+        out = source_suggester.export_source_plan_csv(rows, output_path)
+        return jsonify({
+            "success": True,
+            "output_path": out,
+            "total": len(rows),
+        })
+    except Exception as e:
+        log(f"Loi suggester-export-csv: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 

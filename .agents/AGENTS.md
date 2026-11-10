@@ -33,7 +33,7 @@ Code_AI/
 ├── main.js                          # Electron main process
 ├── preload.js                       # IPC bridge (contextBridge)
 ├── src/                             # ── FRONTEND ──
-│   ├── index.html                   # UI chính (5 tab: Tạo mới, Cắt Clip, Gen XML, Quy tắc, Cài đặt)
+│   ├── index.html                   # UI chính (6 tab: Tạo mới, Quy tắc, Gợi ý Source - Animation, Cắt Clip, Gen XML, Cài đặt)
 │   ├── index.css                    # CSS duy nhất (design system)
 │   └── renderer.js                  # UI logic chính
 ├── python/                          # ── BACKEND ──
@@ -44,11 +44,14 @@ Code_AI/
 │   ├── timeline_validator.py        # Validate timeline JSON
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
+│   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại Source theo phong cách (RAG Embedding + Rules)
 │   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
 ├── templates/                       # Template JSX, preset effects, element map
-│   └── element_map.json             # Mapping element_id → file overlay/texture
+│   ├── element_map.json             # Mapping element_id → file overlay/texture
+│   ├── source_style_rules.txt       # Quy tắc phong cách chọn Source của user
+│   └── source_examples.json         # Kho ví dụ câu thoại → loai_source (kèm vector embedding)
 ├── output/                          # Thư mục chứa .jsx và .aep output
 └── doc/                             # Tài liệu, ghi chú
 ```
@@ -150,6 +153,7 @@ def analyze(self, filepath):
     """Phân tích một media file, trả về metadata dict."""
     ...
 
+
 # Error handling bắt buộc
 try:
     result = do_something()
@@ -247,6 +251,8 @@ try {
 | 17 | Các card trong tab bị ép bẹp (cắt mất nội dung bên trong) và không cuộn được | Flex item có `overflow: hidden` nằm trong flex column (`display: flex; flex-direction: column`) bị `flex-shrink: 1` mặc định ép nhỏ lại vừa chiều cao màn hình | Mọi card (`.rules-card`, `.sp-card`) nằm trong flex column container BẮT BUỘC phải có `flex-shrink: 0;` |
 | 18 | Mọi nút bấm ở các tab sau không hoạt động, trạng thái kẹt ở "Đang kết nối..." | Thẻ `<script src="renderer.js"></script>` đặt TRƯỚC phần tử HTML `#modal-timeline` ở cuối `body`, làm `dom.modalTimelineClose` bị `null` → crash `initEvents()` trước khi chạy `initClipSplitter()` | `<script src="renderer.js"></script>` BẮT BUỘC phải nằm ở dòng cuối cùng trước `</body>`, sau tất cả HTML elements và modals |
 | 19 | `NameError: name 'log' is not defined` khi khởi động `python/main.py` | Khởi tạo global instance `ClipSplitter(log=log)` ở dòng 47 TRƯỚC khi định nghĩa hàm `def log(message):` ở dòng 50 | Trong Python, hàm helper (`def log()`) BẮT BUỘC phải được định nghĩa trước mọi lệnh khởi tạo global instance truyền hàm đó làm tham số |
+| 20 | Premiere "File Import Failure" cho XML có ảnh PNG (stillframe) | PNG `<file>` elements có `<audio>` nhưng KHÔNG có `<video>` trong `<media>` block | Trong `_make_clip_item()`: ALL files phải có `<video>` với `<samplecharacteristics>` (width/height). Chỉ non-image files mới có `<audio>` |
+| 21 | Voice file (.mp4) trên audio track thiếu `<video>` trong media block | Voice `.mp4` chỉ có `<audio>` trong `<media>`, thiếu `<video>` → Premiere có thể báo lỗi | Thêm `<video><samplecharacteristics>` với width/height vào voice file `<media>` block |
 
 **Quy tắc:** Khi gặp lỗi mới và đã fix → thêm vào bảng trên.
 
@@ -296,6 +302,8 @@ try {
 | 2026-11-09 | Thêm `premiere_xml_generator.py` (Tool A — Gen Premiere XML). Thêm 5 API endpoints mới. Tích hợp UI đầy đủ cho Tool B + Tool A. Thêm tab "Quy tắc". Thêm Kỹ năng dropdown với custom option. Thêm lỗi #8–#16. Mở rộng mục 8 (Quy tắc AI) thêm rules 7–10 | Hoàn thiện pipeline: Tool B cắt clip → catalog.csv → Tool A gen XML → import Premiere. Fix nhiều bug Premiere XML, Electron khởi động, CSS tab layout, và patch file JS |
 | 2026-11-09 | Thêm lỗi #17, #18, #19 vào bảng Lỗi đã gặp. Mở rộng mục 8 (Quy tắc AI) thêm quy tắc `flex-shrink: 0` cho card trong flex column, quy tắc #11 (vị trí `<script>` & null-safe DOM), và quy tắc #12 (thứ tự định nghĩa `log()` trong `main.py`) | Phòng tránh triệt để lỗi card bị ép dẹt không cuộn được, lỗi `<script>` đặt trước modal làm chết toàn bộ event listeners, và lỗi `NameError: log is not defined` |
 | 2026-11-09 | Thêm tính năng Element/Overlay Auto-placement. Tạo `templates/element_map.json` (20 elements). Sửa `premiere_xml_generator.py`: thêm tracks V3 (per-clip elements), V4 (full-video texture), `_load_element_map()`, `_resolve_element()`, opacity filter. Sửa `main.py`: thêm `element_dir`, `texture_id` params. Sửa UI: thêm 2 fields (Element Dir + Texture dropdown) vào tab Gen XML. | Tự động đặt overlay/texture lên timeline — auto-map theo loại source (`anh_thong_so→stats_table`, `anh_thoi_diem→scout_frame`, `phong_van→tv_retro`) + CSV override via cột `element` |
+| 2026-11-10 | Thêm Animation System (Ken Burns zoom, Opacity fade, Transitions). Thêm lỗi #20 (image media block), #21 (voice media block). Thêm fallback level 4 trong `pick_clips()`. Thêm checkbox "Bật Animation" vào UI tab Gen XML (card #10). | Animation verified working in Premiere Pro. Fix import failures cho XML có ảnh stillframe. |
+| 2026-11-10 | Thêm Tool 1 — Source Suggester (`python/source_suggester.py`, `templates/source_style_rules.txt`, `templates/source_examples.json`) + 7 API endpoints trong `main.py` + tab UI "Gợi ý Source" (`#tab-source-suggester`). Hỗ trợ viết quy tắc phong cách riêng, Gemini Embedding (`text-embedding-004`) RAG few-shot, chỉnh sửa inline trên bảng (giới hạn chặt trong `VALID_LOAI`, `VALID_ELEMENTS`, `VALID_ANIMS`), lưu combo (`loai_source` + `element` + `anim`) vào kho ví dụ và xuất `2_CSV_PhanLoaiSource.csv` (7 cột: `doan,cau,y,loai_source,thoi_ky,element,anim`). Đồng bộ `premiere_xml_generator.py` đọc cột `element` và `anim` (`zoom_in`, `zoom_out`, `static`, `auto`). | Giải quyết vấn đề GPT web gán Source/Animation quá màu mè; dạy AI học đồng thời cả tư duy chọn Source lẫn Lớp phủ (Element V3) và Chuyển động (Zoom) của user qua từng video. |
 
 ---
 
@@ -367,10 +375,11 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
 - Bỏ trống → auto-map theo `loai_source`
 - Dùng `+` để kết hợp: `tv_retro + paper_texture`
 
-### Pick clips — 3 mức fallback:
+### Pick clips — 4 mức fallback:
 1. `(norm(loai), norm(cau_thu), norm(ky_nang))` — khớp đầy đủ
 2. `(norm(loai), norm(cau_thu))` — bỏ ky_nang
 3. `(norm(loai),)` — chỉ theo loại
+4. `(bất kỳ clip nào còn trong catalog)` — ultimate fallback
 
 ### norm() function:
 `slugify_loose()` → bỏ dấu, bỏ ký tự đặc biệt, lowercase. Dùng cho cả index và lookup để khớp nhất quán.
@@ -388,8 +397,17 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
   "project_name": "...",
   "srt_path": "...",
   "element_dir": "...",
-  "texture_id": "paper_texture"
+  "texture_id": "paper_texture",
+  "enable_animations": true
 }
 ```
-Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "missing": [...] }`
+Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total_transitions": N, "animations_enabled": true, "missing": [...] }`
+
+### Animation (enable_animations=True, mặc định):
+- **Ken Burns zoom:** Scale keyframes 100%↔108% xen kẽ trên V1/V2 clips (effectid: `basic`)
+- **Opacity fade:** Fade in 10 frames + fade out 10 frames trên V3 elements (effectid: `opacity`)
+- **Transitions:** Cross Dissolve giữa clips cùng đoạn, Dip to Black ở ranh giới đoạn + đầu/cuối video
+- **CLI flag:** `--no-animations` để tắt
+- **API param:** `enable_animations` (boolean, default true)
+- **UI:** Checkbox "Bật Animation" trong tab Gen XML (card #10)
 

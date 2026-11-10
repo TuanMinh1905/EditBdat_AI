@@ -383,6 +383,74 @@ ipcMain.handle('premiere-generate-xml', async (event, params) => {
   }
 });
 
+// Tool 1: Source Suggester (Gợi ý phân loại Source)
+ipcMain.handle('save-csv-file', async (event, defaultPath) => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    defaultPath: defaultPath || '2_CSV_PhanLoaiSource.csv',
+    filters: [
+      { name: 'CSV Files', extensions: ['csv'] },
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  return result.canceled ? null : result.filePath;
+});
+
+ipcMain.handle('suggester-get-state', async () => {
+  try {
+    return await callPython('/api/source-suggester/get-state', {});
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-save-rules', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/save-rules', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-load-csv', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/load-csv', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-suggest', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/suggest', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-save-examples', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/save-examples', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-delete-example', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/delete-example', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+ipcMain.handle('suggester-export-csv', async (event, params) => {
+  try {
+    return await callPython('/api/source-suggester/export-csv', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
 // Window controls
 ipcMain.handle('window-minimize', () => mainWindow.minimize());
 ipcMain.handle('window-maximize', () => {

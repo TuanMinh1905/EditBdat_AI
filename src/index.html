@@ -1,27 +1,41 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AE AI Tool</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="index.css">
 </head>
+
 <body>
   <!-- Custom Title Bar -->
   <div class="titlebar" id="titlebar">
     <div class="titlebar-drag">
       <div class="titlebar-logo">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#grad1)"/>
-          <path d="M2 17L12 22L22 17" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M2 12L12 17L22 12" stroke="url(#grad3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="url(#grad1)" />
+          <path d="M2 17L12 22L22 17" stroke="url(#grad2)" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
+          <path d="M2 12L12 17L22 12" stroke="url(#grad3)" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round" />
           <defs>
-            <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="12"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
-            <linearGradient id="grad2" x1="2" y1="17" x2="22" y2="22"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
-            <linearGradient id="grad3" x1="2" y1="12" x2="22" y2="17"><stop stop-color="#8B5CF6"/><stop offset="1" stop-color="#06B6D4"/></linearGradient>
+            <linearGradient id="grad1" x1="2" y1="2" x2="22" y2="12">
+              <stop stop-color="#8B5CF6" />
+              <stop offset="1" stop-color="#06B6D4" />
+            </linearGradient>
+            <linearGradient id="grad2" x1="2" y1="17" x2="22" y2="22">
+              <stop stop-color="#8B5CF6" />
+              <stop offset="1" stop-color="#06B6D4" />
+            </linearGradient>
+            <linearGradient id="grad3" x1="2" y1="12" x2="22" y2="17">
+              <stop stop-color="#8B5CF6" />
+              <stop offset="1" stop-color="#06B6D4" />
+            </linearGradient>
           </defs>
         </svg>
         <span>AE AI Tool</span>
@@ -29,13 +43,20 @@
     </div>
     <div class="titlebar-controls">
       <button class="tb-btn tb-min" id="btn-minimize" title="Minimize">
-        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <line x1="1" y1="6" x2="11" y2="6" stroke="currentColor" stroke-width="1.5" />
+        </svg>
       </button>
       <button class="tb-btn tb-max" id="btn-maximize" title="Maximize">
-        <svg width="12" height="12" viewBox="0 0 12 12"><rect x="1.5" y="1.5" width="9" height="9" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <rect x="1.5" y="1.5" width="9" height="9" stroke="currentColor" stroke-width="1.5" fill="none" />
+        </svg>
       </button>
       <button class="tb-btn tb-close" id="btn-close" title="Close">
-        <svg width="12" height="12" viewBox="0 0 12 12"><line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5"/><line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5"/></svg>
+        <svg width="12" height="12" viewBox="0 0 12 12">
+          <line x1="1" y1="1" x2="11" y2="11" stroke="currentColor" stroke-width="1.5" />
+          <line x1="11" y1="1" x2="1" y2="11" stroke="currentColor" stroke-width="1.5" />
+        </svg>
       </button>
     </div>
   </div>
@@ -46,36 +67,52 @@
     <nav class="sidebar">
       <button class="nav-btn active" data-tab="create" title="Tạo Project">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M12 5v14M5 12h14"/>
+          <path d="M12 5v14M5 12h14" />
         </svg>
         <span>Tạo mới</span>
       </button>
+      <button class="nav-btn" data-tab="rules" title="Quy tắc đặt tên">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <polyline points="14 2 14 8 20 8" />
+          <line x1="16" y1="13" x2="8" y2="13" />
+          <line x1="16" y1="17" x2="8" y2="17" />
+          <polyline points="10 9 9 9 8 9" />
+        </svg>
+        <span>Quy tắc</span>
+      </button>
+      <button class="nav-btn" data-tab="source-suggester" title="Gợi ý Source & Animation bằng AI (Tool 1)">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path
+            d="M12 2a7 7 0 0 1 7 7c0 2.38-1.19 4.47-3 5.74V17a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2v-2.26C6.19 13.47 5 11.38 5 9a7 7 0 0 1 7-7z" />
+          <line x1="9" y1="21" x2="15" y2="21" />
+        </svg>
+        <span>Gợi ý Source - Animation</span>
+      </button>
       <button class="nav-btn" data-tab="clip-splitter" title="Cắt Clip (Tool B)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/>
-          <line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/>
-          <line x1="8.12" y1="8.12" x2="12" y2="12"/>
+          <circle cx="6" cy="6" r="3" />
+          <circle cx="6" cy="18" r="3" />
+          <line x1="20" y1="4" x2="8.12" y2="15.88" />
+          <line x1="14.47" y1="14.48" x2="20" y2="20" />
+          <line x1="8.12" y1="8.12" x2="12" y2="12" />
         </svg>
         <span>Cắt Clip</span>
       </button>
       <button class="nav-btn" data-tab="premiere-gen" title="Gen Premiere XML (Tool A)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/>
-          <line x1="12" y1="17" x2="12" y2="21"/><polygon points="10 8 16 11 10 14 10 8"/>
+          <rect x="2" y="3" width="20" height="14" rx="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+          <polygon points="10 8 16 11 10 14 10 8" />
         </svg>
         <span>Gen XML</span>
       </button>
-      <button class="nav-btn" data-tab="rules" title="Quy tắc đặt tên">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-          <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
-        </svg>
-        <span>Quy tắc</span>
-      </button>
       <button class="nav-btn" data-tab="settings" title="Cài đặt">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+          <circle cx="12" cy="12" r="3" />
+          <path
+            d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
         </svg>
         <span>Cài đặt</span>
       </button>
@@ -93,7 +130,9 @@
         <div class="panel-header">
           <h2>📁 Media Files</h2>
           <button class="btn-icon" id="btn-add-files" title="Thêm files">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </button>
         </div>
 
@@ -101,9 +140,9 @@
           <div class="drop-zone-content">
             <div class="drop-icon">
               <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
-                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
-                <polyline points="17 8 12 3 7 8"/>
-                <line x1="12" y1="3" x2="12" y2="15"/>
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
               </svg>
             </div>
             <p class="drop-title">Kéo thả files vào đây</p>
@@ -128,11 +167,9 @@
         </div>
 
         <div class="prompt-area">
-          <textarea
-            id="prompt-input"
+          <textarea id="prompt-input"
             placeholder="Mô tả cách bạn muốn video được edit...&#10;&#10;Ví dụ: &quot;Ghép 3 video lại, thêm fade transition 1 giây giữa các clip. Video đầu zoom in nhẹ, thêm text 'INTRO' ở giữa màn hình trong 3 giây đầu với font to, màu trắng. Background audio nhạc dùng file nhac.mp3 với volume 60%.&quot;"
-            rows="8"
-          ></textarea>
+            rows="8"></textarea>
           <div class="prompt-footer">
             <span class="char-count" id="char-count">0 ký tự</span>
           </div>
@@ -143,9 +180,12 @@
           <h3>⚡ Preset nhanh</h3>
           <div class="preset-tags">
             <button class="preset-tag" data-preset="Fade transition 1 giây giữa mỗi clip.">Fade Transition</button>
-            <button class="preset-tag" data-preset="Thêm text tiêu đề ở giữa, font to, màu trắng, hiện 3 giây đầu.">Text Intro</button>
+            <button class="preset-tag" data-preset="Thêm text tiêu đề ở giữa, font to, màu trắng, hiện 3 giây đầu.">Text
+              Intro</button>
             <button class="preset-tag" data-preset="Zoom in nhẹ cho mỗi clip (Ken Burns effect).">Ken Burns</button>
-            <button class="preset-tag" data-preset="Cross dissolve 0.5 giây giữa các clip, fade in ở đầu và fade out ở cuối.">Smooth Flow</button>
+            <button class="preset-tag"
+              data-preset="Cross dissolve 0.5 giây giữa các clip, fade in ở đầu và fade out ở cuối.">Smooth
+              Flow</button>
             <button class="preset-tag" data-preset="Slide transition từ trái sang phải giữa các clip.">Slide</button>
           </div>
         </div>
@@ -154,21 +194,18 @@
         <div class="generate-section">
           <div class="project-name-row">
             <label class="project-name-label" for="project-name-input">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+              </svg>
               Tên thư mục output
             </label>
-            <input
-              type="text"
-              id="project-name-input"
-              class="project-name-input"
-              placeholder="VD: Barca_Oct21, TranDau01..."
-              maxlength="60"
-            />
+            <input type="text" id="project-name-input" class="project-name-input"
+              placeholder="VD: Barca_Oct21, TranDau01..." maxlength="60" />
           </div>
           <button class="btn-generate" id="btn-generate" disabled>
             <div class="btn-generate-content">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
               </svg>
               <span>Tạo Project .aep</span>
             </div>
@@ -178,12 +215,22 @@
             </div>
           </button>
           <div class="btn-secondary-row">
-            <button class="btn-secondary-action" id="btn-export-jsx" disabled title="Chỉ xuất script JSX, không chạy After Effects">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            <button class="btn-secondary-action" id="btn-export-jsx" disabled
+              title="Chỉ xuất script JSX, không chạy After Effects">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="12" y1="18" x2="12" y2="12" />
+                <line x1="9" y1="15" x2="15" y2="15" />
+              </svg>
               Xuất JSX
             </button>
-            <button class="btn-secondary-action" id="btn-preview-timeline" disabled title="Xem trước timeline JSON từ AI">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <button class="btn-secondary-action" id="btn-preview-timeline" disabled
+              title="Xem trước timeline JSON từ AI">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
               Preview JSON
             </button>
           </div>
@@ -226,11 +273,17 @@
             <p class="output-path" id="output-path"></p>
             <div class="output-actions">
               <button class="btn-secondary" id="btn-open-aep">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
                 Mở file .aep
               </button>
               <button class="btn-secondary" id="btn-open-folder">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
                 Mở thư mục
               </button>
             </div>
@@ -241,7 +294,10 @@
         <div class="log-section">
           <div class="log-header" id="log-toggle">
             <span>📋 Log</span>
-            <svg class="log-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+            <svg class="log-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
           </div>
           <div class="log-content" id="log-content" style="display: none;">
             <div class="log-messages" id="log-messages">
@@ -267,7 +323,9 @@
             <div class="sp-video-row">
               <input type="text" id="sp-video-path" class="sp-path-input" placeholder="Chọn file video..." readonly />
               <button class="btn-icon" id="sp-btn-browse-video" title="Chọn video">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
             <div class="sp-video-info" id="sp-video-info" style="display:none;">
@@ -331,7 +389,9 @@
             <div class="sp-video-row">
               <input type="text" id="sp-output-dir" class="sp-path-input" placeholder="Chọn thư mục lưu..." readonly />
               <button class="btn-icon" id="sp-btn-browse-output" title="Chọn thư mục">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -352,12 +412,21 @@
           <!-- Nút hành động -->
           <div class="sp-actions">
             <button class="btn-secondary sp-btn" id="sp-btn-analyze">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
               Phân tích trước
             </button>
             <button class="btn-generate sp-btn-primary" id="sp-btn-split" disabled>
               <div class="btn-generate-content">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="6" cy="6" r="3" />
+                  <circle cx="6" cy="18" r="3" />
+                  <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                  <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                  <line x1="8.12" y1="8.12" x2="12" y2="12" />
+                </svg>
                 <span>Cắt Clip</span>
               </div>
               <div class="btn-generate-loading" style="display:none;">
@@ -391,7 +460,11 @@
             <div class="sp-card-header">
               <span>✅ Đã cắt xong</span>
               <button class="btn-icon" id="sp-btn-open-folder-result" title="Mở thư mục">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
               </button>
             </div>
             <div class="sp-result-summary" id="sp-result-summary"></div>
@@ -405,7 +478,8 @@
               <span class="sp-badge" id="sp-catalog-count">0 clips</span>
             </div>
             <div class="sp-catalog-filter">
-              <input type="text" id="sp-catalog-search" placeholder="Tìm theo tên, loại, cầu thủ..." class="sp-search-input" />
+              <input type="text" id="sp-catalog-search" placeholder="Tìm theo tên, loại, cầu thủ..."
+                class="sp-search-input" />
             </div>
             <div class="sp-catalog-table-wrap">
               <table class="sp-catalog-table">
@@ -427,9 +501,13 @@
           <div class="sp-card">
             <div class="sp-card-header log-toggle-header" id="sp-log-toggle">
               <span>📋 Log</span>
-              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
-            <div class="log-messages sp-log-messages" id="sp-log-messages" style="display:none; max-height:180px; overflow-y:auto;"></div>
+            <div class="log-messages sp-log-messages" id="sp-log-messages"
+              style="display:none; max-height:180px; overflow-y:auto;"></div>
           </div>
 
         </div>
@@ -445,9 +523,12 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>📋 1. CSV Timeline</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-timeline-csv" class="sp-path-input" placeholder="1_CSV_Timeline.csv..." readonly />
+              <input type="text" id="pg-timeline-csv" class="sp-path-input" placeholder="1_CSV_Timeline.csv..."
+                readonly />
               <button class="btn-icon" id="pg-btn-timeline-csv" title="Chọn file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -455,9 +536,12 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>📊 2. CSV Phân Loại Source</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-source-csv" class="sp-path-input" placeholder="2_CSV_PhanLoaiSource.csv..." readonly />
+              <input type="text" id="pg-source-csv" class="sp-path-input" placeholder="2_CSV_PhanLoaiSource.csv..."
+                readonly />
               <button class="btn-icon" id="pg-btn-source-csv" title="Chọn file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -467,7 +551,9 @@
             <div class="sp-video-row">
               <input type="text" id="pg-catalog-csv" class="sp-path-input" placeholder="catalog.csv..." readonly />
               <button class="btn-icon" id="pg-btn-catalog-csv" title="Chọn file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -477,7 +563,9 @@
             <div class="sp-video-row">
               <input type="text" id="pg-voice" class="sp-path-input" placeholder="Voice.mp3 / Voice.mp4..." readonly />
               <button class="btn-icon" id="pg-btn-voice" title="Chọn file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -485,9 +573,12 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>💬 5. File SRT phụ đề (tùy chọn)</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-srt" class="sp-path-input" placeholder="Voice.srt (không bắt buộc)..." readonly />
+              <input type="text" id="pg-srt" class="sp-path-input" placeholder="Voice.srt (không bắt buộc)..."
+                readonly />
               <button class="btn-icon" id="pg-btn-srt" title="Chọn file">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -495,9 +586,12 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>📁 6. Thư mục Source Element</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-source-root" class="sp-path-input" placeholder="D:\Edit SofaZone\Source..." readonly />
+              <input type="text" id="pg-source-root" class="sp-path-input" placeholder="D:\Edit SofaZone\Source..."
+                readonly />
               <button class="btn-icon" id="pg-btn-source-root" title="Chọn thư mục">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -505,9 +599,12 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>💾 7. Thư mục lưu XML</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-output-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\fileXML..." readonly />
+              <input type="text" id="pg-output-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\fileXML..."
+                readonly />
               <button class="btn-icon" id="pg-btn-output-dir" title="Chọn thư mục">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -515,16 +612,20 @@
           <div class="sp-card">
             <div class="sp-card-header"><span>🎨 8. Thư mục Element (tùy chọn)</span></div>
             <div class="sp-video-row">
-              <input type="text" id="pg-element-dir" class="sp-path-input" placeholder="D:\Edit SofaZone\Test\Element..." readonly />
+              <input type="text" id="pg-element-dir" class="sp-path-input"
+                placeholder="D:\Edit SofaZone\Test\Element..." readonly />
               <button class="btn-icon" id="pg-btn-element-dir" title="Chọn thư mục Element">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
 
           <div class="sp-card">
             <div class="sp-card-header"><span>🖼️ 9. Texture/Grain Overlay (tùy chọn)</span></div>
-            <select id="pg-texture-select" class="sp-select" style="width:100%;box-sizing:border-box;padding:8px;background:#1a1a2e;color:#e2e8f0;border:1px solid rgba(139,92,246,0.3);border-radius:8px;font-size:13px;">
+            <select id="pg-texture-select" class="sp-select"
+              style="width:100%;box-sizing:border-box;padding:8px;background:#1a1a2e;color:#e2e8f0;border:1px solid rgba(139,92,246,0.3);border-radius:8px;font-size:13px;">
               <option value="">(Không dùng texture)</option>
               <option value="paper_texture">📄 Paper Texture</option>
               <option value="paper_texture_2">📄 Paper Texture 2</option>
@@ -537,13 +638,29 @@
 
           <div class="sp-card">
             <div class="sp-card-header"><span>🏷️ Tên file XML</span></div>
-            <input type="text" id="pg-project-name" class="sp-path-input" placeholder="VD: Xavi_Iniesta_v1" style="width:100%;box-sizing:border-box;" />
+            <input type="text" id="pg-project-name" class="sp-path-input" placeholder="VD: Xavi_Iniesta_v1"
+              style="width:100%;box-sizing:border-box;" />
+          </div>
+
+          <div class="sp-card">
+            <div class="sp-card-header"><span>🎬 10. Animation</span></div>
+            <label
+              style="display:flex;align-items:center;gap:8px;padding:4px 0;cursor:pointer;font-size:13px;color:#e2e8f0;">
+              <input type="checkbox" id="pg-enable-animations" checked
+                style="width:16px;height:16px;accent-color:#8B5CF6;cursor:pointer;" />
+              <span>Bật Animation (Ken Burns zoom + Opacity fade + Transitions)</span>
+            </label>
+            <p style="font-size:11px;color:#a0aec0;margin:4px 0 0;">Ken Burns: zoom nhẹ 100%↔108% trên V1/V2. Opacity:
+              fade in/out 10 frames trên V3. Transitions: Cross Dissolve + Dip to Black.</p>
           </div>
 
           <!-- Nút Generate -->
           <button class="btn-generate" id="pg-btn-generate" style="width:100%; margin-top:4px;">
             <div class="btn-generate-content">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><polygon points="10 8 16 11 10 14 10 8"/></svg>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="3" width="20" height="14" rx="2" />
+                <polygon points="10 8 16 11 10 14 10 8" />
+              </svg>
               <span>🎬 Gen XML cho Premiere</span>
             </div>
             <div class="btn-generate-loading" style="display:none;">
@@ -569,6 +686,7 @@
               <div class="pgen-check" id="pgc-output">⬜ Thư mục Output</div>
               <div class="pgen-check" id="pgc-element">⬜ Element Dir (tùy chọn)</div>
               <div class="pgen-check" id="pgc-texture">⬜ Texture (tùy chọn)</div>
+              <div class="pgen-check" id="pgc-animation">✅ Animation: BẬT</div>
             </div>
           </div>
 
@@ -577,7 +695,11 @@
             <div class="sp-card-header">
               <span>✅ Xuất XML thành công!</span>
               <button class="btn-icon" id="pg-btn-open-xml-folder" title="Mở thư mục">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
               </button>
             </div>
             <div class="sp-result-summary" id="pg-result-summary"></div>
@@ -594,16 +716,21 @@
               <span class="sp-badge" id="pg-missing-count" style="background:#f59e0b;">0</span>
             </div>
             <div class="pgen-missing-list" id="pg-missing-list" style="max-height:200px; overflow-y:auto;"></div>
-            <p style="font-size:11px;color:#a0aec0;margin:8px 0 0;">Các clip này sẽ có marker vàng trong Premiere. Bổ sung source và gen lại.</p>
+            <p style="font-size:11px;color:#a0aec0;margin:8px 0 0;">Các clip này sẽ có marker vàng trong Premiere. Bổ
+              sung source và gen lại.</p>
           </div>
 
           <!-- Log -->
           <div class="sp-card">
             <div class="sp-card-header log-toggle-header" id="pg-log-toggle">
               <span>📋 Log</span>
-              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              <svg class="log-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
             </div>
-            <div class="log-messages sp-log-messages" id="pg-log-messages" style="display:none; max-height:200px; overflow-y:auto;"></div>
+            <div class="log-messages sp-log-messages" id="pg-log-messages"
+              style="display:none; max-height:200px; overflow-y:auto;"></div>
           </div>
 
         </div>
@@ -622,7 +749,10 @@
             <div class="input-with-action">
               <input type="password" id="setting-api-key" placeholder="Nhập Gemini API Key..." />
               <button class="btn-icon" id="btn-toggle-key" title="Hiện/ẩn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                  <circle cx="12" cy="12" r="3" />
+                </svg>
               </button>
             </div>
             <p class="setting-hint">Lấy API key tại <a href="#" id="link-gemini-api">Google AI Studio</a></p>
@@ -634,9 +764,12 @@
           <div class="setting-item">
             <label for="setting-ae-path">Đường dẫn AfterFX.exe</label>
             <div class="input-with-action">
-              <input type="text" id="setting-ae-path" placeholder="C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe" />
+              <input type="text" id="setting-ae-path"
+                placeholder="C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe" />
               <button class="btn-icon" id="btn-browse-ae" title="Chọn file AfterFX.exe">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -647,9 +780,12 @@
           <div class="setting-item">
             <label for="setting-output-dir">Thư mục xuất file</label>
             <div class="input-with-action">
-              <input type="text" id="setting-output-dir" placeholder="C:\Users\GP\Desktop\Edit Bdat\Video Demo\Demo1\Official" />
+              <input type="text" id="setting-output-dir"
+                placeholder="C:\Users\GP\Desktop\Edit Bdat\Video Demo\Demo1\Official" />
               <button class="btn-icon" id="btn-browse-output" title="Chọn thư mục">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -675,7 +811,11 @@
 
         <div class="settings-actions">
           <button class="btn-primary" id="btn-save-settings">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
+              <polyline points="17 21 17 13 7 13 7 21" />
+              <polyline points="7 3 7 8 15 8" />
+            </svg>
             Lưu cài đặt
           </button>
         </div>
@@ -683,91 +823,116 @@
     </main>
 
 
-  <!-- ═══════════════════════════════════════════════
+    <!-- ═══════════════════════════════════════════════
        TAB: QUY TẮC ĐẶT TÊN
   ════════════════════════════════════════════════ -->
-  <main class="main-content rules-content" id="tab-rules" style="display: none;">
-    <div class="rules-container">
+    <main class="main-content rules-content" id="tab-rules" style="display: none;">
+      <div class="rules-container">
 
-      <div class="rules-header">
-        <h2>📋 Quy tắc đặt tên & Tổ chức Source</h2>
-        <p class="rules-subtitle">Hướng dẫn chuẩn để Tool B và Tool A hoạt động chính xác nhất</p>
-      </div>
+        <div class="rules-header">
+          <h2>📋 Quy tắc đặt tên & Tổ chức Source</h2>
+          <p class="rules-subtitle">Hướng dẫn chuẩn để Tool B và Tool A hoạt động chính xác nhất</p>
+        </div>
 
-      <!-- NAMING CONVENTION -->
-      <div class="rules-card">
-        <div class="rules-card-header">🎬 Quy tắc đặt tên Clip (Tool B → catalog.csv)</div>
-        <div class="rules-card-body">
-          <div class="rules-format-box">
-            <span class="rules-label">Format tên file:</span>
-            <code class="rules-code">{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:003}.mp4</code>
+        <!-- NAMING CONVENTION -->
+        <div class="rules-card">
+          <div class="rules-card-header">🎬 Quy tắc đặt tên Clip (Tool B → catalog.csv)</div>
+          <div class="rules-card-body">
+            <div class="rules-format-box">
+              <span class="rules-label">Format tên file:</span>
+              <code class="rules-code">{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:003}.mp4</code>
+            </div>
+            <div class="rules-example-row">
+              <span class="rules-label">Ví dụ:</span>
+              <div class="rules-examples-list">
+                <code class="rules-code rules-example">rai_1_Xavi_Spain_Skill_001.mp4</code>
+                <code class="rules-code rules-example">rai_2_1_Iniesta_Barcelona_Bantang_023.mp4</code>
+                <code class="rules-code rules-example">training_Busquets_Barcelona_Mixed_007.mp4</code>
+              </div>
+            </div>
+            <table class="rules-table">
+              <thead>
+                <tr>
+                  <th>Trường</th>
+                  <th>Quy tắc</th>
+                  <th>Ví dụ</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>loai</code></td>
+                  <td>Chọn từ danh sách VALID_LOAI bên dưới</td>
+                  <td><code>rai_1</code>, <code>training</code></td>
+                </tr>
+                <tr>
+                  <td><code>cau_thu</code></td>
+                  <td>Tên cầu thủ, không dấu, không khoảng trắng</td>
+                  <td><code>Xavi</code>, <code>Busquets</code></td>
+                </tr>
+                <tr>
+                  <td><code>doi_bong</code></td>
+                  <td>Tên đội / thời kỳ, không dấu</td>
+                  <td><code>Spain</code>, <code>Barcelona</code></td>
+                </tr>
+                <tr>
+                  <td><code>ky_nang</code></td>
+                  <td>Loại kỹ năng (xem dropdown Tool B)</td>
+                  <td><code>Mixed</code>, <code>Skill</code>, <code>Bantang</code></td>
+                </tr>
+                <tr>
+                  <td><code>STT</code></td>
+                  <td>Số thứ tự 3 chữ số, tự động tăng</td>
+                  <td><code>001</code>, <code>023</code>, <code>131</code></td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-          <div class="rules-example-row">
-            <span class="rules-label">Ví dụ:</span>
-            <div class="rules-examples-list">
-              <code class="rules-code rules-example">rai_1_Xavi_Spain_Skill_001.mp4</code>
-              <code class="rules-code rules-example">rai_2_1_Iniesta_Barcelona_Bantang_023.mp4</code>
-              <code class="rules-code rules-example">training_Busquets_Barcelona_Mixed_007.mp4</code>
+        </div>
+
+        <!-- VALID LOAI -->
+        <div class="rules-card">
+          <div class="rules-card-header">📂 Danh sách VALID_LOAI (loại clip hợp lệ)</div>
+          <div class="rules-card-body">
+            <div class="rules-loai-grid">
+              <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
+              <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
+              <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
+              <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
+              <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
+              <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
+              <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
+              <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
+              <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
+              <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
+              <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
+              <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
+              <div class="rules-loai-item"><code>sa_ban</code><span>Sà bàn</span></div>
+              <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc
+                  định)</span></div>
             </div>
           </div>
-          <table class="rules-table">
-            <thead>
-              <tr><th>Trường</th><th>Quy tắc</th><th>Ví dụ</th></tr>
-            </thead>
-            <tbody>
-              <tr><td><code>loai</code></td><td>Chọn từ danh sách VALID_LOAI bên dưới</td><td><code>rai_1</code>, <code>training</code></td></tr>
-              <tr><td><code>cau_thu</code></td><td>Tên cầu thủ, không dấu, không khoảng trắng</td><td><code>Xavi</code>, <code>Busquets</code></td></tr>
-              <tr><td><code>doi_bong</code></td><td>Tên đội / thời kỳ, không dấu</td><td><code>Spain</code>, <code>Barcelona</code></td></tr>
-              <tr><td><code>ky_nang</code></td><td>Loại kỹ năng (xem dropdown Tool B)</td><td><code>Mixed</code>, <code>Skill</code>, <code>Bantang</code></td></tr>
-              <tr><td><code>STT</code></td><td>Số thứ tự 3 chữ số, tự động tăng</td><td><code>001</code>, <code>023</code>, <code>131</code></td></tr>
-            </tbody>
-          </table>
         </div>
-      </div>
 
-      <!-- VALID LOAI -->
-      <div class="rules-card">
-        <div class="rules-card-header">📂 Danh sách VALID_LOAI (loại clip hợp lệ)</div>
-        <div class="rules-card-body">
-          <div class="rules-loai-grid">
-            <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
-            <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
-            <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
-            <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
-            <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
-            <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
-            <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
-            <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
-            <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
-            <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
-            <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
-            <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
-            <div class="rules-loai-item"><code>sa_ban</code><span>Sà bàn</span></div>
-            <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+        <!-- KY NANG -->
+        <div class="rules-card">
+          <div class="rules-card-header">⚽ Danh sách Kỹ năng (ky_nang)</div>
+          <div class="rules-card-body">
+            <div class="rules-ky-nang-list" id="rules-ky-nang-list">
+              <!-- Rendered by JS -->
+            </div>
+            <div class="rules-add-row">
+              <input type="text" id="rules-new-ky-nang" placeholder="Thêm kỹ năng mới..." class="rules-add-input" />
+              <button class="rules-add-btn" id="rules-btn-add-ky-nang">＋ Thêm</button>
+            </div>
+            <p class="rules-note">💡 Kỹ năng thêm vào sẽ tự động xuất hiện trong dropdown Tool B</p>
           </div>
         </div>
-      </div>
 
-      <!-- KY NANG -->
-      <div class="rules-card">
-        <div class="rules-card-header">⚽ Danh sách Kỹ năng (ky_nang)</div>
-        <div class="rules-card-body">
-          <div class="rules-ky-nang-list" id="rules-ky-nang-list">
-            <!-- Rendered by JS -->
-          </div>
-          <div class="rules-add-row">
-            <input type="text" id="rules-new-ky-nang" placeholder="Thêm kỹ năng mới..." class="rules-add-input" />
-            <button class="rules-add-btn" id="rules-btn-add-ky-nang">＋ Thêm</button>
-          </div>
-          <p class="rules-note">💡 Kỹ năng thêm vào sẽ tự động xuất hiện trong dropdown Tool B</p>
-        </div>
-      </div>
-
-      <!-- FOLDER STRUCTURE -->
-      <div class="rules-card">
-        <div class="rules-card-header">📁 Cấu trúc thư mục Source (khuyến nghị)</div>
-        <div class="rules-card-body">
-          <pre class="rules-tree">D:\Edit SofaZone\Source\
+        <!-- FOLDER STRUCTURE -->
+        <div class="rules-card">
+          <div class="rules-card-header">📁 Cấu trúc thư mục Source (khuyến nghị)</div>
+          <div class="rules-card-body">
+            <pre class="rules-tree">D:\Edit SofaZone\Source\
 ├── catalog.csv                   ← Tổng hợp tất cả clip
 ├── chua_phan_loai\               ← Clip chưa phân loại
 │   └── chua_phan_loai_Xavi_Spain_Mixed_001.mp4
@@ -776,30 +941,201 @@
 │   └── rai_1_Iniesta_Spain_Bantang_001.mp4
 └── training\
     └── training_Busquets_Barcelona_Mixed_001.mp4</pre>
-          <div class="rules-tip-box">
-            <strong>⚠️ Quan trọng:</strong> Source Root trong Tool A phải trỏ đến thư mục chứa <code>catalog.csv</code> và các thư mục loại clip.
+            <div class="rules-tip-box">
+              <strong>⚠️ Quan trọng:</strong> Source Root trong Tool A phải trỏ đến thư mục chứa
+              <code>catalog.csv</code> và các thư mục loại clip.
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- WORKFLOW -->
-      <div class="rules-card">
-        <div class="rules-card-header">🔄 Quy trình làm việc chuẩn</div>
-        <div class="rules-card-body">
-          <div class="rules-workflow">
-            <div class="rules-step"><div class="rules-step-num">1</div><div class="rules-step-text"><strong>Tool B — Cắt Clip</strong><br>Chọn video nguồn → Điền Cầu thủ, Đội bóng, Kỹ năng, Loại → Cắt → Sinh catalog.csv</div></div>
-            <div class="rules-step-arrow">↓</div>
-            <div class="rules-step"><div class="rules-step-num">2</div><div class="rules-step-text"><strong>Điền 2 CSV</strong><br><code>1_CSV_Timeline.csv</code> (mốc thời gian + lời thoại) và <code>2_CSV_PhanLoaiSource.csv</code> (loại source cho từng câu)</div></div>
-            <div class="rules-step-arrow">↓</div>
-            <div class="rules-step"><div class="rules-step-num">3</div><div class="rules-step-text"><strong>Tool A — Gen XML</strong><br>Nhập 2 CSV + catalog + Voice + SRT → Gen XML → Import vào Premiere</div></div>
-            <div class="rules-step-arrow">↓</div>
-            <div class="rules-step"><div class="rules-step-num">4</div><div class="rules-step-text"><strong>Premiere</strong><br>Import XML → "Offline All" → Locate file → Timeline đầy đủ</div></div>
+        <!-- WORKFLOW -->
+        <div class="rules-card">
+          <div class="rules-card-header">🔄 Quy trình làm việc chuẩn</div>
+          <div class="rules-card-body">
+            <div class="rules-workflow">
+              <div class="rules-step">
+                <div class="rules-step-num">1</div>
+                <div class="rules-step-text"><strong>Tool B — Cắt Clip</strong><br>Chọn video nguồn → Điền Cầu thủ, Đội
+                  bóng, Kỹ năng, Loại → Cắt → Sinh catalog.csv</div>
+              </div>
+              <div class="rules-step-arrow">↓</div>
+              <div class="rules-step">
+                <div class="rules-step-num">2</div>
+                <div class="rules-step-text"><strong>Điền 2 CSV</strong><br><code>1_CSV_Timeline.csv</code> (mốc thời
+                  gian + lời thoại) và <code>2_CSV_PhanLoaiSource.csv</code> (loại source cho từng câu)</div>
+              </div>
+              <div class="rules-step-arrow">↓</div>
+              <div class="rules-step">
+                <div class="rules-step-num">3</div>
+                <div class="rules-step-text"><strong>Tool A — Gen XML</strong><br>Nhập 2 CSV + catalog + Voice + SRT →
+                  Gen XML → Import vào Premiere</div>
+              </div>
+              <div class="rules-step-arrow">↓</div>
+              <div class="rules-step">
+                <div class="rules-step-num">4</div>
+                <div class="rules-step-text"><strong>Premiere</strong><br>Import XML → "Offline All" → Locate file →
+                  Timeline đầy đủ</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
 
-    </div>
-  </main>
+      </div>
+    </main>
+
+    <!-- =================================================================
+         TAB: GỢI Ý SOURCE (Tool 1 — AI học tư duy phân loại Source)
+         ================================================================= -->
+    <main class="main-content suggester-content" id="tab-source-suggester" style="display: none;">
+      <div class="sg-container">
+
+        <!-- CỘT TRÁI: QUY TẮC + INPUT CSV + KHO VÍ DỤ -->
+        <div class="sg-left">
+
+          <!-- Ghi chú phân biệt 2 file .txt và .json -->
+          <div class="sp-card sg-note-box">
+            <div>📌 <strong>Ghi chú cách AI học:</strong></div>
+            <div>• <code>File .txt</code> = <strong>Nguyên tắc bạn dặn AI</strong> (luôn áp dụng cho mọi câu).</div>
+            <div>• <code>File .json</code> = <strong>Bài mẫu bạn đã làm sẵn</strong> (gặp câu nào na ná thì AI lôi bài mẫu tương ứng ra bắt chước).</div>
+          </div>
+
+          <!-- Card 1: Quy tắc phong cách -->
+          <div class="sp-card">
+            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>📝 1. Quy tắc Source &amp; Animation của bạn</span>
+              <span class="sg-badge" id="sg-rules-status">Đã đồng bộ</span>
+            </div>
+            <div class="sg-file-bar">
+              <span class="sg-file-path" id="sg-rules-filepath" title="templates/source_style_rules.txt">📄 templates/source_style_rules.txt</span>
+              <div style="display:flex; gap:4px; flex-shrink:0;">
+                <button class="sg-mini-btn" id="sg-btn-reload-rules" title="Đọc lại nội dung mới nhất từ file .txt">🔄 Đọc lại</button>
+                <button class="sg-mini-btn" id="sg-btn-open-rules" title="Mở trực tiếp file .txt trên máy">📂 Mở .txt</button>
+              </div>
+            </div>
+            <p class="sp-hint" style="margin-bottom:6px;">
+              Nội dung bên dưới được đồng bộ trực tiếp với file <code>source_style_rules.txt</code>. Viết bằng lời của bạn — AI sẽ tuân thủ tuyệt đối mỗi lần gợi ý.
+            </p>
+            <textarea id="sg-rules-input" class="sg-rules-textarea" rows="6"
+              placeholder="Bạn có thể viết bất cứ lúc nào. Ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none cho thoáng mắt&#10;- Câu hồi ức thời niên thiếu dùng Lớp phủ film_grain (phim nhựa 8mm)&#10;- Câu giới thiệu đội hình / ảnh chụp dùng anh_thoi_diem + khung tv_retro + zoom_in&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+              <span class="sp-hint" id="sg-rules-char">0 ký tự</span>
+              <button class="btn-secondary" id="sg-btn-save-rules" style="padding:6px 12px; font-size:0.78rem;">
+                💾 Lưu quy tắc vào .txt
+              </button>
+            </div>
+          </div>
+
+          <!-- Card 2: Chọn Timeline CSV & Chạy AI -->
+          <div class="sp-card">
+            <div class="sp-card-header">📂 2. File Timeline CSV &amp; Gợi ý AI</div>
+            <div class="sp-file-row" style="margin-bottom:8px;">
+              <input type="text" class="sp-path-input" id="sg-timeline-csv" placeholder="Chọn 1_CSV_Timeline.csv..."
+                readonly>
+              <button class="btn-secondary" id="sg-btn-browse-csv">Chọn CSV</button>
+            </div>
+            <div class="sp-field" style="margin-bottom:10px;">
+              <label style="font-size:0.76rem; color:var(--text-secondary); display:block; margin-bottom:4px;">
+                Thời kỳ / Bối cảnh mặc định (tùy chọn — giúp AI điền cột <code>thoi_ky</code> chuẩn hơn):
+              </label>
+              <input type="text" class="sp-path-input" id="sg-default-thoiky"
+                placeholder="VD: Euro 2008 · Tây Ban Nha / Xavi" style="width:100%;">
+            </div>
+            <button class="btn-generate" id="sg-btn-suggest" style="width:100%;">
+              <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source + Animation</span>
+            </button>
+          </div>
+
+          <!-- Card 3: Kho ví dụ đã học (RAG Embedding) -->
+          <div class="sp-card">
+            <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
+              <span>📚 3. Kho ví dụ đã dạy AI (<span id="sg-example-count">0</span> mẫu)</span>
+              <button class="btn-secondary" id="sg-btn-clear-examples" title="Xóa toàn bộ kho ví dụ"
+                style="padding:3px 8px; font-size:0.7rem; color:var(--error);">
+                Xóa hết
+              </button>
+            </div>
+            <div class="sg-file-bar">
+              <span class="sg-file-path" id="sg-examples-filepath" title="templates/source_examples.json">📄 templates/source_examples.json</span>
+              <button class="sg-mini-btn" id="sg-btn-open-examples" title="Mở trực tiếp file .json trên máy">📂 Mở .json</button>
+            </div>
+            <p class="sp-hint" style="margin-bottom:8px;">
+              Mỗi lần bạn sửa bảng bên phải và bấm <strong>"Lưu vào Kho ví dụ"</strong>, AI sẽ nhúng (Gemini Embedding)
+              để lần sau tìm câu tương tự và bắt chước đúng ý bạn.
+            </p>
+            <div class="sg-examples-list" id="sg-examples-list">
+              <div class="sp-hint" style="text-align:center; padding:12px 0;">Chưa có ví dụ nào. Hãy chạy gợi ý hoặc
+                chỉnh sửa bảng rồi bấm "Lưu vào Kho ví dụ".</div>
+            </div>
+          </div>
+
+          <!-- Card 4: Nhật ký -->
+          <div class="sp-card">
+            <div class="sp-card-header">📜 Nhật ký Gợi ý Source</div>
+            <div class="sp-log-box" id="sg-log-box" style="height:120px;"></div>
+          </div>
+
+        </div>
+
+        <!-- CỘT PHẢI: BẢNG CHỈNH SỬA INLINE + XUẤT CSV -->
+        <div class="sg-right">
+          <div class="sp-card sg-table-card">
+
+            <!-- Thanh công cụ trên bảng -->
+            <div class="sg-toolbar">
+              <div class="sg-toolbar-info">
+                <span class="sg-stat-pill">Tổng: <strong id="sg-stat-total">0</strong> câu</span>
+                <span class="sg-stat-pill sg-stat-warn"
+                  title="Các dòng AI chưa chắc chắn (< 70%) được tô vàng để bạn kiểm tra trước">
+                  Cần xem kỹ: <strong id="sg-stat-low">0</strong>
+                </span>
+              </div>
+              <div class="sg-toolbar-actions">
+                <button class="btn-secondary" id="sg-btn-learn" disabled
+                  title="Lưu các dòng hiện tại vào kho ví dụ để AI học cho lần sau">
+                  🧠 Lưu vào Kho ví dụ (Dạy AI)
+                </button>
+                <button class="btn-primary" id="sg-btn-export" disabled
+                  title="Xuất ra file 2_CSV_PhanLoaiSource.csv và chuyển sang Tool A">
+                  📤 Xuất 2_CSV_PhanLoaiSource.csv
+                </button>
+              </div>
+            </div>
+
+            <!-- Bảng dữ liệu -->
+            <div class="sg-table-wrap">
+              <table class="sg-table" id="sg-table">
+                <thead>
+                  <tr>
+                    <th style="width:62px;">Đoạn/Câu</th>
+                    <th style="min-width:210px;">Lời thoại (text)</th>
+                    <th style="width:135px;">Source chính</th>
+                    <th style="width:135px;">+ Source phụ</th>
+                    <th style="width:155px;">Lớp phủ (Element V3)</th>
+                    <th style="width:125px;">Chuyển động</th>
+                    <th style="width:185px;">
+                      Thời kỳ / Cầu thủ
+                      <button class="sg-fill-btn" id="sg-btn-fill-thoiky"
+                        title="Điền giá trị dòng đầu tiên xuống các dòng đang trống">⬇ Điền trống</button>
+                    </th>
+                    <th style="width:140px;">Ghi chú dạy AI</th>
+                    <th style="width:76px;">Độ tự tin</th>
+                  </tr>
+                </thead>
+                <tbody id="sg-tbody">
+                  <tr>
+                    <td colspan="9" class="sg-empty-row">
+                      Hãy chọn file <code>1_CSV_Timeline.csv</code> ở cột bên trái để bắt đầu.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
   </div>
 
   <!-- Timeline Preview Modal -->
@@ -808,7 +1144,10 @@
       <div class="modal-header">
         <h3>📋 Timeline JSON Preview</h3>
         <button class="modal-close" id="modal-timeline-close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
       <div class="modal-body">
@@ -817,11 +1156,16 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" id="btn-copy-json">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+          </svg>
           Copy JSON
         </button>
         <button class="btn-primary" id="btn-generate-from-preview">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+          </svg>
           Tạo Project từ Timeline này
         </button>
       </div>
@@ -830,4 +1174,5 @@
 
   <script src="renderer.js"></script>
 </body>
+
 </html>
