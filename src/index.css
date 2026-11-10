@@ -996,7 +996,7 @@ a:hover { color: #c4b5fd; }
 }
 
 .settings-container {
-  max-width: 600px;
+  max-width: none;
   width: 100%;
 }
 
@@ -1803,7 +1803,7 @@ a:hover { color: #c4b5fd; }
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 920px;
+  max-width: none;
   width: 100%;
   box-sizing: border-box;
 }

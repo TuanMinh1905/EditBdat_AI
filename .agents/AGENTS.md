@@ -289,6 +289,9 @@ try {
 12. **Thứ tự khởi tạo trong Python (`main.py`):**
     - Hàm `def log(message):` phải được định nghĩa ngay sau `app = Flask(__name__)`, **trước** bất kỳ dòng khởi tạo global instance nào (`MediaAnalyzer`, `ClipSplitter(log=log)`, v.v.).
     - Sau khi sửa `python/main.py`, luôn chạy `python -c "import ast; ast.parse(open('python/main.py', encoding='utf-8').read())"` để kiểm tra cú pháp.
+13. **Tự động Commit & Push lên Git bằng tiếng Việt sau mỗi lần sửa/viết code:**
+    - Cứ mỗi lần hoàn thành việc chỉnh sửa code hoặc viết code mới (sau khi đã kiểm tra cú pháp / test xong), **BẮT BUỘC** tự động thực hiện `git add`, `git commit`, và `git push` lên remote repo.
+    - **Nội dung commit message BẮT BUỘC viết bằng tiếng Việt**, mô tả rõ ràng các thay đổi vừa thực hiện.
 
 ---
 
@@ -304,6 +307,7 @@ try {
 | 2026-11-09 | Thêm tính năng Element/Overlay Auto-placement. Tạo `templates/element_map.json` (20 elements). Sửa `premiere_xml_generator.py`: thêm tracks V3 (per-clip elements), V4 (full-video texture), `_load_element_map()`, `_resolve_element()`, opacity filter. Sửa `main.py`: thêm `element_dir`, `texture_id` params. Sửa UI: thêm 2 fields (Element Dir + Texture dropdown) vào tab Gen XML. | Tự động đặt overlay/texture lên timeline — auto-map theo loại source (`anh_thong_so→stats_table`, `anh_thoi_diem→scout_frame`, `phong_van→tv_retro`) + CSV override via cột `element` |
 | 2026-11-10 | Thêm Animation System (Ken Burns zoom, Opacity fade, Transitions). Thêm lỗi #20 (image media block), #21 (voice media block). Thêm fallback level 4 trong `pick_clips()`. Thêm checkbox "Bật Animation" vào UI tab Gen XML (card #10). | Animation verified working in Premiere Pro. Fix import failures cho XML có ảnh stillframe. |
 | 2026-11-10 | Thêm Tool 1 — Source Suggester (`python/source_suggester.py`, `templates/source_style_rules.txt`, `templates/source_examples.json`) + 7 API endpoints trong `main.py` + tab UI "Gợi ý Source" (`#tab-source-suggester`). Hỗ trợ viết quy tắc phong cách riêng, Gemini Embedding (`text-embedding-004`) RAG few-shot, chỉnh sửa inline trên bảng (giới hạn chặt trong `VALID_LOAI`, `VALID_ELEMENTS`, `VALID_ANIMS`), lưu combo (`loai_source` + `element` + `anim`) vào kho ví dụ và xuất `2_CSV_PhanLoaiSource.csv` (7 cột: `doan,cau,y,loai_source,thoi_ky,element,anim`). Đồng bộ `premiere_xml_generator.py` đọc cột `element` và `anim` (`zoom_in`, `zoom_out`, `static`, `auto`). | Giải quyết vấn đề GPT web gán Source/Animation quá màu mè; dạy AI học đồng thời cả tư duy chọn Source lẫn Lớp phủ (Element V3) và Chuyển động (Zoom) của user qua từng video. |
+| 2026-11-10 | Thêm quy tắc #13: Sau mỗi lần chỉnh sửa hoặc viết code mới, tự động commit và push lên Git với commit message bằng tiếng Việt. | Theo yêu cầu của user để luôn đồng bộ code mới nhất lên Git và dễ theo dõi lịch sử thay đổi bằng tiếng Việt. |
 
 ---
 
