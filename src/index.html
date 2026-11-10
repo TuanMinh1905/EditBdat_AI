@@ -1188,6 +1188,28 @@
     </div>
   </div>
 
+  <!-- Confirmation Modal (Xác nhận thay đổi quan trọng) -->
+  <div class="modal-overlay" id="modal-confirm" style="display:none; z-index: 2000;">
+    <div class="modal-box confirm-modal-box">
+      <div class="modal-header">
+        <h3 id="modal-confirm-title">⚠️ Xác nhận thay đổi</h3>
+        <button class="modal-close" id="modal-confirm-close">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="confirm-message" id="modal-confirm-message">Bạn có muốn thực hiện thay đổi này không?</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="modal-confirm-cancel">Hủy</button>
+        <button class="btn-primary" id="modal-confirm-ok">Đồng ý</button>
+      </div>
+    </div>
+  </div>
+
   <script src="renderer.js"></script>
 </body>
 

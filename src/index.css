@@ -2679,4 +2679,39 @@ body.is-resizing * {
   }
 }
 
+/* Confirmation Modal */
+.confirm-modal-box {
+  max-width: 440px;
+  width: 92%;
+}
+
+.confirm-message {
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--text-primary);
+  margin: 0;
+  white-space: pre-line;
+}
+
+.btn-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 120ms ease, filter 150ms ease;
+}
+
+.btn-danger:hover {
+  filter: brightness(1.08);
+}
+
+
 

@@ -149,6 +149,55 @@ function addLog(message, type = 'info') {
   dom.logMessages.scrollTop = dom.logMessages.scrollHeight;
 }
 
+// --- Custom Confirmation Modal (Tránh bấm nhầm các thay đổi quan trọng) ---
+function askConfirm(message, opts = {}) {
+  const modal = $('#modal-confirm');
+  const titleEl = $('#modal-confirm-title');
+  const msgEl = $('#modal-confirm-message');
+  const btnOk = $('#modal-confirm-ok');
+  const btnCancel = $('#modal-confirm-cancel');
+  const btnClose = $('#modal-confirm-close');
+
+  if (!modal || !btnOk || !btnCancel) {
+    return Promise.resolve(window.confirm(message));
+  }
+
+  if (titleEl) titleEl.textContent = opts.title || '⚠️ Xác nhận thay đổi';
+  if (msgEl) msgEl.textContent = message || 'Bạn có muốn thực hiện thay đổi này không?';
+  btnOk.textContent = opts.confirmText || 'Đồng ý';
+  btnCancel.textContent = opts.cancelText || 'Hủy';
+  btnOk.className = opts.danger ? 'btn-danger' : 'btn-primary';
+
+  modal.style.display = 'flex';
+  btnOk.focus();
+
+  return new Promise(resolve => {
+    const cleanup = (answer) => {
+      modal.style.display = 'none';
+      btnOk.removeEventListener('click', onOk);
+      btnCancel.removeEventListener('click', onCancel);
+      if (btnClose) btnClose.removeEventListener('click', onCancel);
+      modal.removeEventListener('click', onBackdrop);
+      window.removeEventListener('keydown', onKey);
+      resolve(answer);
+    };
+
+    const onOk = () => cleanup(true);
+    const onCancel = () => cleanup(false);
+    const onBackdrop = (e) => { if (e.target === modal) cleanup(false); };
+    const onKey = (e) => {
+      if (e.key === 'Escape') { e.preventDefault(); cleanup(false); }
+      else if (e.key === 'Enter') { e.preventDefault(); cleanup(true); }
+    };
+
+    btnOk.addEventListener('click', onOk);
+    btnCancel.addEventListener('click', onCancel);
+    if (btnClose) btnClose.addEventListener('click', onCancel);
+    modal.addEventListener('click', onBackdrop);
+    window.addEventListener('keydown', onKey);
+  });
+}
+
 // --- Session Persistence ---
 let _saveSessionTimer = null;
 function saveSession() {
@@ -589,6 +638,12 @@ async function loadSettings() {
 }
 
 async function saveSettings() {
+  const ok = await askConfirm('Bạn có muốn lưu các thay đổi trong Cài đặt không?', {
+    title: '⚙️ Xác nhận lưu Cài đặt',
+    confirmText: 'Có, lưu cài đặt'
+  });
+  if (!ok) return;
+
   const settings = {
     geminiApiKey: dom.settingApiKey.value.trim(),
     afterEffectsPath: dom.settingAePath.value.trim(),
@@ -1489,9 +1544,16 @@ function renderKyNangTags(list) {
   });
   // Remove custom tag listeners
   container.querySelectorAll('.tag-remove').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const idx = parseInt(btn.dataset.idx);
       const list = loadKyNangList();
+      const targetName = list[idx] || '';
+      const ok = await askConfirm(`Bạn có chắc muốn xóa kỹ năng "${targetName}" khỏi danh sách không?`, {
+        title: '🗑 Xác nhận xóa kỹ năng',
+        confirmText: 'Xóa',
+        danger: true
+      });
+      if (!ok) return;
       list.splice(idx, 1);
       saveKyNangList(list);
       syncKyNangDropdown(list);
@@ -1739,6 +1801,12 @@ function initSourceSuggester() {
     sgDom.examplesList.querySelectorAll('.sg-example-del').forEach(btn => {
       btn.addEventListener('click', async () => {
         const id = btn.dataset.exId;
+        const ok = await askConfirm(`Bạn có chắc muốn xóa mẫu ví dụ #${id} khỏi kho đã dạy AI không?`, {
+          title: '🗑 Xác nhận xóa mẫu ví dụ',
+          confirmText: 'Xóa mẫu này',
+          danger: true
+        });
+        if (!ok) return;
         try {
           const res = await window.api.suggesterDeleteExample({ id });
           if (res.error) throw new Error(res.error);
@@ -1982,7 +2050,17 @@ function initSourceSuggester() {
 
   // Hủy chỉnh sửa & khóa lại nội dung cũ
   if (sgDom.btnCancelRules) {
-    sgDom.btnCancelRules.addEventListener('click', () => {
+    sgDom.btnCancelRules.addEventListener('click', async () => {
+      const currentVal = sgDom.rulesInput ? sgDom.rulesInput.value : '';
+      if (currentVal !== (sgState.rulesOriginalText || '')) {
+        const ok = await askConfirm('Bạn đang có nội dung vừa sửa chưa lưu.\nBạn có chắc muốn hủy bỏ các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa',
+          confirmText: 'Hủy thay đổi',
+          cancelText: 'Tiếp tục sửa',
+          danger: true
+        });
+        if (!ok) return;
+      }
       if (sgDom.rulesInput) {
         sgDom.rulesInput.value = sgState.rulesOriginalText || '';
         updateRulesMeta(sgDom.rulesInput.value);
@@ -1992,11 +2070,17 @@ function initSourceSuggester() {
     });
   }
 
-  // Lưu & Khóa lại
+  // Lưu & Khóa lại (Có xác nhận lần 2)
   if (sgDom.btnSaveRules) {
     sgDom.btnSaveRules.addEventListener('click', async () => {
+      const rules = sgDom.rulesInput ? sgDom.rulesInput.value : '';
+      const ok = await askConfirm('Bạn có muốn lưu thay đổi này vào file quy tắc (source_style_rules.txt) không?', {
+        title: '💾 Xác nhận lưu file .txt',
+        confirmText: 'Có, lưu thay đổi'
+      });
+      if (!ok) return;
+
       try {
-        const rules = sgDom.rulesInput ? sgDom.rulesInput.value : '';
         await saveRulesText(rules, 'Đã lưu file source_style_rules.txt và khóa lại.');
       } catch (err) {
         sgLog(`Lỗi lưu quy tắc: ${err.message}`, 'error');
@@ -2007,6 +2091,14 @@ function initSourceSuggester() {
   // Đọc lại từ file .txt (nếu user sửa bằng tay ngoài app)
   if (sgDom.btnReloadRules) {
     sgDom.btnReloadRules.addEventListener('click', async () => {
+      if (!sgState.rulesLocked && sgDom.rulesInput && sgDom.rulesInput.value !== (sgState.rulesOriginalText || '')) {
+        const ok = await askConfirm('Bạn đang sửa dở nội dung chưa lưu. Đọc lại từ ổ cứng sẽ ghi đè phần đang sửa, tiếp tục chứ?', {
+          title: '🔄 Xác nhận đọc lại file .txt',
+          confirmText: 'Đọc lại',
+          danger: true
+        });
+        if (!ok) return;
+      }
       await loadBackendState();
       sgLog('Đã đọc lại nội dung mới nhất từ file source_style_rules.txt.', 'info');
     });
@@ -2090,6 +2182,15 @@ function initSourceSuggester() {
         return;
       }
 
+      const hasExistingSuggestions = sgState.rows.some(r => typeof r.confidence === 'number');
+      if (hasExistingSuggestions) {
+        const ok = await askConfirm('Bảng hiện tại đã có kết quả gợi ý hoặc chỉnh sửa.\nChạy lại AI sẽ ghi đè dữ liệu trên bảng, bạn có muốn tiếp tục không?', {
+          title: '🤖 Xác nhận chạy lại AI Gợi ý',
+          confirmText: 'Tiếp tục chạy'
+        });
+        if (!ok) return;
+      }
+
       sgState.isSuggesting = true;
       sgDom.btnSuggest.disabled = true;
       if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '⏳ AI đang phân tích theo phong cách của bạn...';
@@ -2135,6 +2236,12 @@ function initSourceSuggester() {
   if (sgDom.btnLearn) {
     sgDom.btnLearn.addEventListener('click', async () => {
       if (!sgState.rows.length) return;
+      const ok = await askConfirm(`Bạn có muốn lưu ${sgState.rows.length} câu hiện tại vào Kho ví dụ (source_examples.json) để dạy AI không?`, {
+        title: '🧠 Xác nhận lưu vào Kho ví dụ',
+        confirmText: 'Có, lưu để dạy AI'
+      });
+      if (!ok) return;
+
       const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
       sgDom.btnLearn.disabled = true;
       sgLog(`Đang lưu ${sgState.rows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
@@ -2159,7 +2266,12 @@ function initSourceSuggester() {
   if (sgDom.btnClearExamples) {
     sgDom.btnClearExamples.addEventListener('click', async () => {
       if (!sgState.examples.length) return;
-      if (!confirm(`Bạn có chắc muốn xóa toàn bộ ${sgState.examples.length} mẫu ví dụ đã học?`)) return;
+      const ok = await askConfirm(`Bạn có chắc muốn xóa TOÀN BỘ ${sgState.examples.length} mẫu ví dụ đã học?\nHành động này không thể hoàn tác.`, {
+        title: '⚠️ Xác nhận xóa toàn bộ kho ví dụ',
+        confirmText: 'Xóa tất cả',
+        danger: true
+      });
+      if (!ok) return;
       try {
         const res = await window.api.suggesterDeleteExample({ clear_all: true });
         if (res.error) throw new Error(res.error);
