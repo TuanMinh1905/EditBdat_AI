@@ -33,7 +33,7 @@
     {
       "code": "binh_luan_chay",
       "label": "BLV nói",
-      "description": "Cảnh bình luận viên / chuyên gia đang nói"
+      "description": "Những cảnh có giọng BLV nước ngoài gào thét như đoạn đầu Mourinho"
     },
     {
       "code": "khan_dai",
@@ -43,7 +43,7 @@
     {
       "code": "anh_thong_so",
       "label": "Bảng số liệu",
-      "description": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh"
+      "description": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh ở các trang Web như Sofa Score"
     },
     {
       "code": "anh_thoi_diem",

@@ -1864,8 +1864,14 @@ function initSourceSuggester() {
 
   function saveLocalClassifications(sourceTypes, animationTypes) {
     try {
-      localStorage.setItem('sg_custom_source_types', JSON.stringify(sourceTypes));
-      localStorage.setItem('sg_custom_anim_types', JSON.stringify(animationTypes));
+      const stripHeavyVideo = list => (list || []).map(it => {
+        if (it.image && typeof it.image === 'string' && it.image.startsWith('data:video/') && it.image.length > 500000) {
+          return { ...it, image: '' };
+        }
+        return it;
+      });
+      localStorage.setItem('sg_custom_source_types', JSON.stringify(stripHeavyVideo(sourceTypes)));
+      localStorage.setItem('sg_custom_anim_types', JSON.stringify(stripHeavyVideo(animationTypes)));
     } catch (e) { /* ignore */ }
   }
 
@@ -1929,6 +1935,7 @@ function initSourceSuggester() {
     modalClsImgClose: $('#cls-img-modal-close'),
     modalClsImgStage: $('#cls-img-stage'),
     modalClsImgPreview: $('#cls-img-preview-el'),
+    modalClsVideoPreview: $('#cls-video-preview-el'),
     modalClsImgEmpty: $('#cls-img-empty-state'),
     modalClsImgPrev: $('#cls-img-prev'),
     modalClsImgNext: $('#cls-img-next'),
@@ -2094,14 +2101,27 @@ function initSourceSuggester() {
   let pendingImgTarget = null; // { tbl: 'src' | 'anim', idx: number }
   let activeLightbox = null;   // { tbl: 'src' | 'anim', idx: number }
 
+  function isVideoMediaUrl(url) {
+    if (!url || typeof url !== 'string') return false;
+    if (url.startsWith('data:video/')) return true;
+    const cleanUrl = url.split('?')[0].split('#')[0];
+    return /\.(mp4|webm|mov|mkv|avi|m4v|ogv)$/i.test(cleanUrl);
+  }
+
+  function localPathToFileUrl(localPath) {
+    const norm = String(localPath || '').replace(/\\/g, '/');
+    const encoded = norm.split('/').map(seg => seg.includes(':') ? seg : encodeURIComponent(seg)).join('/');
+    return `file:///${encoded}`;
+  }
+
   function getEffectiveItemImage(item) {
     if (!item) return '';
     if (item.image && item.image !== '__none__') return item.image;
     if (item.image === '__none__') return '';
-    // Nếu là Lớp phủ (element) có sẵn file ảnh .png/.jpg trong thư mục cố định Elements, tự động lấy làm ảnh ví dụ mặc định
+    // Nếu là Lớp phủ (element) có sẵn file ảnh hoặc video (.png/.jpg/.mp4/.webm) trong thư mục cố định Elements, tự động lấy làm minh họa mặc định
     if (item.group === 'element' && item.param) {
       const p = String(item.param).trim();
-      if (/\.(png|jpe?g|webp|gif|bmp)$/i.test(p)) {
+      if (/\.(png|jpe?g|webp|gif|bmp|mp4|webm|mov|mkv)$/i.test(p)) {
         return `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Elements/${encodeURIComponent(p)}`;
       }
     }
@@ -2109,13 +2129,24 @@ function initSourceSuggester() {
   }
 
   function renderImgCellHtml(tbl, idx, item) {
-    const imgSrc = getEffectiveItemImage(item);
+    const mediaSrc = getEffectiveItemImage(item);
     const safeCode = String(item?.code || '').replace(/"/g, '&quot;');
-    if (imgSrc) {
+    if (mediaSrc) {
+      if (isVideoMediaUrl(mediaSrc)) {
+        return `
+          <td class="sg-cls-img-cell">
+            <div class="sg-cls-thumb-wrap is-video" data-tbl="${tbl}" data-idx="${idx}" title="Di chuột để chạy thử video · Click để phóng to video hiệu ứng của '${safeCode}' (hoặc kéo-thả ảnh/video mới vào đây)">
+              <video class="sg-cls-thumb" src="${mediaSrc}" muted loop playsinline preload="metadata"></video>
+              <span class="sg-cls-video-badge">▶ Video</span>
+              <div class="sg-cls-thumb-zoom">🔍</div>
+            </div>
+          </td>
+        `;
+      }
       return `
         <td class="sg-cls-img-cell">
-          <div class="sg-cls-thumb-wrap" data-tbl="${tbl}" data-idx="${idx}" title="Click để phóng to ảnh ví dụ của '${safeCode}' (hoặc kéo-thả ảnh mới vào đây)">
-            <img class="sg-cls-thumb" src="${imgSrc}" alt="${safeCode}" />
+          <div class="sg-cls-thumb-wrap" data-tbl="${tbl}" data-idx="${idx}" title="Click để phóng to ảnh ví dụ của '${safeCode}' (hoặc kéo-thả ảnh/video mới vào đây)">
+            <img class="sg-cls-thumb" src="${mediaSrc}" alt="${safeCode}" />
             <div class="sg-cls-thumb-zoom">🔍</div>
           </div>
         </td>
@@ -2123,7 +2154,7 @@ function initSourceSuggester() {
     }
     return `
       <td class="sg-cls-img-cell">
-        <button type="button" class="sg-img-add-btn" data-tbl="${tbl}" data-idx="${idx}" title="Click để tải ảnh ví dụ cho '${safeCode}' (hoặc kéo-thả ảnh vào đây)">＋ Ảnh</button>
+        <button type="button" class="sg-img-add-btn" data-tbl="${tbl}" data-idx="${idx}" title="Click để tải Ảnh hoặc Video (5-10s) minh họa cho '${safeCode}' (hoặc kéo-thả vào đây)">＋ Thêm</button>
       </td>
     `;
   }
@@ -2162,9 +2193,34 @@ function initSourceSuggester() {
     });
   }
 
+  function readVideoFileToUrl(file) {
+    return new Promise((resolve, reject) => {
+      // Nếu chạy trong Electron và có đường dẫn file trực tiếp trên ổ đĩa, ưu tiên dùng file:///
+      // (Backend sẽ tự động copy vào templates/cls_media/ khi lưu)
+      if (file.path && typeof file.path === 'string') {
+        resolve(localPathToFileUrl(file.path));
+        return;
+      }
+      const maxBytes = 45 * 1024 * 1024; // 45 MB cho video ngắn 5-10s
+      if (file.size > maxBytes) {
+        reject(new Error('Video quá lớn (> 45MB). Vui lòng chọn video ngắn 5-10s nhẹ hơn.'));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Không đọc được file video'));
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function applyImageFileToItem(tbl, idx, file) {
-    if (!file || !file.type.startsWith('image/')) {
-      sgLog('Vui lòng chọn đúng định dạng file hình ảnh (.png, .jpg, .webp...).', 'error');
+    if (!file) return;
+    const fname = String(file.name || '').toLowerCase();
+    const isImg = (file.type && file.type.startsWith('image/')) || /\.(png|jpe?g|webp|gif|bmp)$/i.test(fname);
+    const isVid = (file.type && file.type.startsWith('video/')) || /\.(mp4|webm|mov|mkv|avi|m4v|ogv)$/i.test(fname);
+
+    if (!isImg && !isVid) {
+      sgLog('Vui lòng chọn đúng định dạng Ảnh (.png, .jpg, .gif...) hoặc Video (.mp4, .webm, .mov...).', 'error');
       return;
     }
     const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
@@ -2172,21 +2228,20 @@ function initSourceSuggester() {
     if (!item) return;
 
     try {
-      const dataUrl = await compressImageToDataUrl(file);
-      item.image = dataUrl;
-      // Nếu myös có bản gốc trong origSourceTypes/origAnimationTypes khi đang mở khóa thì cập nhật luôn để không mất
+      const mediaUrl = isVid ? await readVideoFileToUrl(file) : await compressImageToDataUrl(file);
+      item.image = mediaUrl;
       const origList = tbl === 'src' ? sgState.origSourceTypes : sgState.origAnimationTypes;
       if (origList && origList[idx]) {
-        origList[idx].image = dataUrl;
+        origList[idx].image = mediaUrl;
       }
       await persistBothClassificationTables();
       renderClassificationTables();
       if (activeLightbox && activeLightbox.tbl === tbl && activeLightbox.idx === idx) {
         updateLightboxModalView();
       }
-      sgLog(`🖼️ Đã cập nhật ảnh ví dụ cho "${item.code}"!`, 'success');
+      sgLog(`${isVid ? '🎬 Đã cập nhật video hiệu ứng' : '🖼️ Đã cập nhật ảnh ví dụ'} cho "${item.code}"!`, 'success');
     } catch (err) {
-      sgLog(`Lỗi tải ảnh ví dụ: ${err.message}`, 'error');
+      sgLog(`Lỗi tải Ảnh/Video minh họa: ${err.message}`, 'error');
     }
   }
 
@@ -2205,7 +2260,8 @@ function initSourceSuggester() {
     const idx = ((activeLightbox.idx % list.length) + list.length) % list.length;
     activeLightbox.idx = idx;
     const item = list[idx];
-    const imgSrc = getEffectiveItemImage(item);
+    const mediaSrc = getEffectiveItemImage(item);
+    const isVid = isVideoMediaUrl(mediaSrc);
 
     if (sgDom.modalClsImgCode) sgDom.modalClsImgCode.textContent = item.code || '';
     if (sgDom.modalClsImgTitle) {
@@ -2217,10 +2273,31 @@ function initSourceSuggester() {
       sgDom.modalClsImgDesc.textContent = `${item.description || 'Chưa có mô tả'}${paramStr}`;
     }
 
-    if (imgSrc) {
-      if (sgDom.modalClsImgPreview) {
-        sgDom.modalClsImgPreview.src = imgSrc;
-        sgDom.modalClsImgPreview.style.display = 'block';
+    // Dừng video cũ trước khi chuyển
+    if (sgDom.modalClsVideoPreview) {
+      try { sgDom.modalClsVideoPreview.pause(); } catch (_) {}
+    }
+
+    if (mediaSrc) {
+      if (isVid) {
+        if (sgDom.modalClsImgPreview) {
+          sgDom.modalClsImgPreview.src = '';
+          sgDom.modalClsImgPreview.style.display = 'none';
+        }
+        if (sgDom.modalClsVideoPreview) {
+          sgDom.modalClsVideoPreview.src = mediaSrc;
+          sgDom.modalClsVideoPreview.style.display = 'block';
+          sgDom.modalClsVideoPreview.play().catch(() => {});
+        }
+      } else {
+        if (sgDom.modalClsVideoPreview) {
+          sgDom.modalClsVideoPreview.removeAttribute('src');
+          sgDom.modalClsVideoPreview.style.display = 'none';
+        }
+        if (sgDom.modalClsImgPreview) {
+          sgDom.modalClsImgPreview.src = mediaSrc;
+          sgDom.modalClsImgPreview.style.display = 'block';
+        }
       }
       if (sgDom.modalClsImgEmpty) sgDom.modalClsImgEmpty.style.display = 'none';
       if (sgDom.modalClsImgRemove) sgDom.modalClsImgRemove.style.display = 'inline-flex';
@@ -2228,6 +2305,10 @@ function initSourceSuggester() {
       if (sgDom.modalClsImgPreview) {
         sgDom.modalClsImgPreview.src = '';
         sgDom.modalClsImgPreview.style.display = 'none';
+      }
+      if (sgDom.modalClsVideoPreview) {
+        sgDom.modalClsVideoPreview.removeAttribute('src');
+        sgDom.modalClsVideoPreview.style.display = 'none';
       }
       if (sgDom.modalClsImgEmpty) sgDom.modalClsImgEmpty.style.display = 'block';
       if (sgDom.modalClsImgRemove) sgDom.modalClsImgRemove.style.display = 'none';
@@ -2244,6 +2325,10 @@ function initSourceSuggester() {
 
   function closeClsImageModal() {
     activeLightbox = null;
+    if (sgDom.modalClsVideoPreview) {
+      try { sgDom.modalClsVideoPreview.pause(); } catch (_) {}
+      sgDom.modalClsVideoPreview.removeAttribute('src');
+    }
     if (sgDom.modalClsImg) {
       sgDom.modalClsImg.style.display = 'none';
     }
@@ -2354,7 +2439,18 @@ function initSourceSuggester() {
           const file = e.dataTransfer?.files?.[0];
           if (file) applyImageFileToItem(tbl, idx, file);
         });
-        // Nếu ảnh mặc định từ thư mục Elements không tìm thấy trên đĩa, chuyển thành nút + Ảnh gọn gàng
+        // Nếu là video thumbnail: di chuột vào tự động phát thử hiệu ứng, rời chuột tạm dừng
+        const vidEl = wrap.querySelector('video');
+        if (vidEl) {
+          wrap.addEventListener('mouseenter', () => { vidEl.play().catch(() => {}); });
+          wrap.addEventListener('mouseleave', () => { try { vidEl.pause(); } catch (_) {} });
+          vidEl.addEventListener('error', () => {
+            const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+            if (list && list[idx]) list[idx].image = '__none__';
+            renderClassificationTables();
+          }, { once: true });
+        }
+        // Nếu ảnh mặc định từ thư mục Elements không tìm thấy trên đĩa, chuyển thành nút + Thêm gọn gàng
         const imgEl = wrap.querySelector('img');
         if (imgEl) {
           imgEl.addEventListener('error', () => {

@@ -456,6 +456,7 @@ ipcMain.handle('suggester-get-state', async () => {
 
 ipcMain.handle('suggester-save-classifications', async (event, params) => {
   const clsPath = path.join(__dirname, 'templates', 'classifications.json');
+  const clsMediaDir = path.join(__dirname, 'templates', 'cls_media');
   try {
     const res = await callPython('/api/source-suggester/save-classifications', params || {});
     if (res && !res.error) return res;
@@ -463,15 +464,41 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
     // Fallback ghi truc tiep
   }
   try {
+    if (!fs.existsSync(clsMediaDir)) fs.mkdirSync(clsMediaDir, { recursive: true });
+    const persistMedia = (prefix, code, val) => {
+      if (!val || typeof val !== 'string' || val === '__none__') return val || '';
+      try {
+        if (val.startsWith('data:video/')) {
+          const parts = val.split(',');
+          if (parts.length === 2) {
+            const mime = parts[0].split(';')[0].replace('data:video/', '').trim().toLowerCase();
+            const extMap = { mp4: '.mp4', webm: '.webm', quicktime: '.mov', ogg: '.ogv' };
+            const ext = extMap[mime] || '.mp4';
+            const outPath = path.join(clsMediaDir, `${prefix}_${code}${ext}`);
+            fs.writeFileSync(outPath, Buffer.from(parts[1], 'base64'));
+            const urlPath = outPath.replace(/\\/g, '/').split('/').map(s => s.includes(':') ? s : encodeURIComponent(s)).join('/');
+            return `file:///${urlPath}?v=${Date.now()}`;
+          }
+        }
+      } catch (_) { /* ignore */ }
+      return val;
+    };
+
     let current = { source_types: [], animation_types: [] };
     if (fs.existsSync(clsPath)) {
       current = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
     }
     if (params && Array.isArray(params.source_types)) {
-      current.source_types = params.source_types;
+      current.source_types = params.source_types.map(it => ({
+        ...it,
+        image: persistMedia('src', it.code || 'item', it.image),
+      }));
     }
     if (params && Array.isArray(params.animation_types)) {
-      current.animation_types = params.animation_types;
+      current.animation_types = params.animation_types.map(it => ({
+        ...it,
+        image: persistMedia(it.group || 'anim', it.code || 'item', it.image),
+      }));
     }
     fs.writeFileSync(clsPath, JSON.stringify(current, null, 2), 'utf-8');
     return {

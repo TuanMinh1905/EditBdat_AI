@@ -10,6 +10,10 @@ import re
 import csv
 import json
 import math
+import time
+import base64
+import shutil
+import urllib.parse
 from datetime import datetime
 from google import genai
 from google.genai import types
@@ -255,6 +259,8 @@ class SourceSuggester:
         self.base_dir = base_dir
         self.templates_dir = os.path.join(self.base_dir, "templates")
         os.makedirs(self.templates_dir, exist_ok=True)
+        self.cls_media_dir = os.path.join(self.templates_dir, "cls_media")
+        os.makedirs(self.cls_media_dir, exist_ok=True)
 
         self.rules_path = os.path.join(self.templates_dir, "source_style_rules.txt")
         self.examples_path = os.path.join(self.templates_dir, "source_examples.json")
@@ -380,6 +386,43 @@ class SourceSuggester:
             "classifications_path": self.classifications_path,
         }
 
+    def _persist_cls_media(self, prefix, code, media_val):
+        """Luu video/anh minh hoa vao templates/cls_media/ de khong lam nang file JSON."""
+        if not media_val or media_val == "__none__":
+            return media_val
+        try:
+            os.makedirs(self.cls_media_dir, exist_ok=True)
+            # 1. Neu la data:video/...;base64,... -> giai ma va ghi ra file video
+            if media_val.startswith("data:video/"):
+                header, b64_data = media_val.split(",", 1)
+                mime = header.split(";")[0].replace("data:video/", "").strip().lower()
+                ext_map = {"mp4": ".mp4", "webm": ".webm", "quicktime": ".mov", "ogg": ".ogv"}
+                ext = ext_map.get(mime, ".mp4")
+                fname = f"{prefix}_{code}{ext}"
+                out_path = os.path.join(self.cls_media_dir, fname)
+                with open(out_path, "wb") as f:
+                    f.write(base64.b64decode(b64_data))
+                url_path = urllib.parse.quote(out_path.replace("\\", "/"), safe="/:.-_")
+                return f"file:///{url_path}?v={int(time.time())}"
+
+            # 2. Neu la file:///... tu ngoai -> copy vao templates/cls_media/ de luu vinh vien
+            if media_val.startswith("file:///"):
+                raw_part = media_val[8:].split("?")[0].split("#")[0]
+                local_path = urllib.parse.unquote(raw_part).replace("/", os.sep)
+                if os.path.isfile(local_path):
+                    norm_local = os.path.normcase(os.path.abspath(local_path))
+                    norm_media_dir = os.path.normcase(os.path.abspath(self.cls_media_dir))
+                    if not norm_local.startswith(norm_media_dir) and "01_tai_nguyen_co_dinh" not in norm_local:
+                        ext = os.path.splitext(local_path)[1].lower() or ".mp4"
+                        fname = f"{prefix}_{code}{ext}"
+                        out_path = os.path.join(self.cls_media_dir, fname)
+                        shutil.copy2(local_path, out_path)
+                        url_path = urllib.parse.quote(out_path.replace("\\", "/"), safe="/:.-_")
+                        return f"file:///{url_path}?v={int(time.time())}"
+        except Exception as e:
+            self._log(f"[Suggester] Bo qua copy cls_media ({code}): {str(e)}")
+        return media_val
+
     def save_classifications(self, source_types=None, animation_types=None):
         """Luu cap nhat 2 bang Phan loai Source va Animation tu UI."""
         current = self._load_classifications_raw()
@@ -396,7 +439,7 @@ class SourceSuggester:
                 if not code or code in seen_codes:
                     continue
                 seen_codes.add(code)
-                img_val = str(it.get("image", "")).strip()
+                img_val = self._persist_cls_media("src", code, str(it.get("image", "")).strip())
                 clean_src.append(
                     {
                         "code": code,
@@ -425,7 +468,7 @@ class SourceSuggester:
                 if not code or (group, code) in seen_pairs:
                     continue
                 seen_pairs.add((group, code))
-                img_val = str(it.get("image", "")).strip()
+                img_val = self._persist_cls_media(group, code, str(it.get("image", "")).strip())
                 clean_anim.append(
                     {
                         "code": code,

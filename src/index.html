@@ -1112,7 +1112,7 @@
                           <th style="width:100px;">Mã (code)</th>
                           <th style="width:104px;">Tên hiển thị</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:74px; text-align:center;">Ảnh ví dụ</th>
+                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả hiệu ứng / phân loại">Ảnh / Video</th>
                           <th class="sg-cls-col-del sg-src-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1144,7 +1144,7 @@
                           <th style="width:112px;">Tên hiển thị</th>
                           <th style="width:105px;">Thông số / File</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:74px; text-align:center;">Ảnh ví dụ</th>
+                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả hiệu ứng / phân loại">Ảnh / Video</th>
                           <th class="sg-cls-col-del sg-anim-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
@@ -1153,7 +1153,7 @@
                   </div>
                 </div>
               </div>
-              <input type="file" id="sg-cls-file-input" accept="image/*" style="display:none;" />
+              <input type="file" id="sg-cls-file-input" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" style="display:none;" />
 
               <div class="v-split-resizer" data-vkey="sg-cls-grid-h" data-target="#sg-cls-grid" data-min-h="140" data-max-h="680" title="Kéo lên/xuống để mở rộng hoặc thu gọn chiều cao 2 bảng Phân loại (Nhấp đúp để đặt lại)"></div>
             </div>
@@ -1379,7 +1379,7 @@
     </div>
   </div>
 
-  <!-- Classification Example Image Lightbox Modal (Phóng to Ảnh ví dụ) -->
+  <!-- Classification Example Image/Video Lightbox Modal (Phóng to Ảnh / Video ví dụ) -->
   <div class="modal-overlay" id="modal-cls-image" style="display:none; z-index: 2100;">
     <div class="modal-box cls-img-modal-box">
       <div class="modal-header">
@@ -1396,21 +1396,22 @@
       </div>
       <div class="modal-body cls-img-modal-body">
         <p class="cls-img-modal-desc" id="cls-img-modal-desc"></p>
-        <div class="cls-img-stage" id="cls-img-stage" title="Bạn cũng có thể bấm Ctrl+V hoặc kéo-thả ảnh mới vào khung này để thay ảnh">
+        <div class="cls-img-stage" id="cls-img-stage" title="Bạn có thể kéo-thả Ảnh hoặc Video (5-10s) vào khung này, hoặc nhấn Ctrl+V để dán ảnh">
           <button class="cls-img-nav-btn prev" id="cls-img-prev" title="Phân loại trước (Phím ←)">◀</button>
-          <img id="cls-img-preview-el" src="" alt="Ảnh ví dụ" />
+          <img id="cls-img-preview-el" src="" alt="Ảnh ví dụ" style="display:none;" />
+          <video id="cls-video-preview-el" src="" controls autoplay loop muted playsinline style="display:none;"></video>
           <div class="cls-img-empty-state" id="cls-img-empty-state" style="display:none;">
-            <div style="font-size:2rem; margin-bottom:6px;">🖼️</div>
-            <div>Phân loại này chưa có ảnh ví dụ.</div>
-            <div style="font-size:0.76rem; color:var(--text-tertiary); margin-top:4px;">Bấm <strong>"📂 Tải ảnh lên"</strong> bên dưới, kéo-thả ảnh vào đây, hoặc chụp màn hình rồi nhấn <strong>Ctrl + V</strong>!</div>
+            <div style="font-size:2rem; margin-bottom:6px;">🎬🖼️</div>
+            <div>Phân loại này chưa có Ảnh hoặc Video minh họa.</div>
+            <div style="font-size:0.76rem; color:var(--text-tertiary); margin-top:4px;">Bấm <strong>"📂 Tải Ảnh / Video lên"</strong> bên dưới, kéo-thả file Ảnh/Video (5-10s) vào đây, hoặc chụp màn hình rồi nhấn <strong>Ctrl + V</strong>!</div>
           </div>
           <button class="cls-img-nav-btn next" id="cls-img-next" title="Phân loại tiếp theo (Phím →)">▶</button>
         </div>
       </div>
       <div class="modal-footer cls-img-modal-footer">
-        <span class="sp-hint" style="margin-right:auto;">💡 Mẹo: Có thể nhấn <strong>Ctrl + V</strong> để dán nhanh ảnh vừa chụp màn hình, hoặc phím <strong>← / →</strong> để chuyển dòng.</span>
-        <button class="btn-secondary" id="cls-img-btn-remove" style="color:var(--error); border-color:rgba(239,68,68,0.3);">🗑️ Xóa ảnh</button>
-        <button class="btn-primary" id="cls-img-btn-replace">📂 Tải / Đổi ảnh khác</button>
+        <span class="sp-hint" style="margin-right:auto;">💡 Hỗ trợ cả <strong>Ảnh</strong> (PNG/JPG/GIF) và <strong>Video hiệu ứng 5–10s</strong> (MP4/WebM/MOV). Nhấn <strong>← / →</strong> để chuyển dòng.</span>
+        <button class="btn-secondary" id="cls-img-btn-remove" style="color:var(--error); border-color:rgba(239,68,68,0.3);">🗑️ Xóa Ảnh/Video</button>
+        <button class="btn-primary" id="cls-img-btn-replace">📂 Tải Ảnh / Video khác</button>
       </div>
     </div>
   </div>
