@@ -2960,6 +2960,20 @@ body.is-resizing * {
   font-family: var(--font-mono);
 }
 
+.sg-cls-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.sg-cls-panel-actions .sg-cls-btn {
+  padding: 2px 8px !important;
+  font-size: 0.7rem !important;
+  border-radius: 5px;
+}
+
 .sg-cls-add-btn {
   background: rgba(16, 185, 129, 0.16) !important;
   border-color: rgba(16, 185, 129, 0.4) !important;

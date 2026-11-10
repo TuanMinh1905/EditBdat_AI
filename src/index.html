@@ -1174,21 +1174,15 @@
               <div class="sg-cls-title-group">
                 <span>🗂️ Bảng Phân loại Source &amp; Animation</span>
                 <span class="sg-stat-pill" id="sg-cls-summary">13 Source · 20 Animation</span>
-                <span class="sg-badge" id="sg-cls-status">🔒 Đang khóa</span>
               </div>
               <div class="sg-cls-actions">
-                <span class="sg-file-path" id="sg-cls-filepath" title="templates/classifications.json" style="max-width:210px;">📄 templates/classifications.json</span>
-                <button class="sg-mini-btn" id="sg-btn-open-cls" title="Mở file classifications.json">📂 Mở .json</button>
-                <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-cls">✏️ Chỉnh sửa 2 bảng</button>
-                <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-cls" style="display:none;">✖ Hủy</button>
-                <button class="btn-primary sg-cls-btn" id="sg-btn-save-cls" style="display:none;">💾 Lưu &amp; Áp dụng</button>
                 <button class="sg-mini-btn" id="sg-btn-toggle-cls" title="Thu gọn / Mở rộng 2 bảng phân loại">🔼 Thu gọn</button>
               </div>
             </div>
 
             <div class="sg-cls-body" id="sg-cls-body">
               <div class="sg-cls-hint">
-                💡 <strong>Cách hoạt động:</strong> Bấm vào bất kỳ <code>Mã</code> nào để copy nhanh (hoặc chèn thẳng vào ô Quy tắc <code>.txt</code> nếu đang mở khóa). Khi bạn bấm <strong>✏️ Chỉnh sửa 2 bảng</strong> và <strong>💾 Lưu &amp; Áp dụng</strong>, toàn bộ AI, Dropdown và Tool Cắt Clip / Gen XML sẽ tự động lấy danh sách mới này ra xài!
+                💡 <strong>Cách hoạt động:</strong> Bấm vào bất kỳ <code>Mã</code> nào để copy nhanh (hoặc chèn thẳng vào ô Quy tắc <code>.txt</code> nếu đang mở khóa). Mỗi bảng có nút <strong>✏️ Chỉnh sửa</strong> và <strong>💾 Lưu</strong> riêng ở góc phải — khi lưu, toàn bộ AI, Dropdown và Tool Cắt Clip / Gen XML sẽ tự động lấy danh sách mới ra xài!
               </div>
 
               <div class="sg-cls-grid" id="sg-cls-grid">
@@ -1196,7 +1190,13 @@
                 <div class="sg-cls-panel sg-cls-panel-left">
                   <div class="sg-cls-panel-head">
                     <span>📂 Bảng 1: Phân loại Source (<code>loai_source</code> — Track V1/V2)</span>
-                    <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-source" style="display:none;">＋ Thêm Source</button>
+                    <div class="sg-cls-panel-actions">
+                      <span class="sg-badge" id="sg-src-status">🔒 Đang khóa</span>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-src">✏️ Chỉnh sửa</button>
+                      <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-source" style="display:none;">＋ Thêm</button>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-src" style="display:none;">✖ Hủy</button>
+                      <button class="btn-primary sg-cls-btn" id="sg-btn-save-src" style="display:none;">💾 Lưu</button>
+                    </div>
                   </div>
                   <div class="sg-cls-table-wrap">
                     <table class="sg-cls-table" id="sg-cls-source-table">
@@ -1205,7 +1205,7 @@
                           <th style="width:108px;">Mã (code)</th>
                           <th style="width:110px;">Tên hiển thị</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
+                          <th class="sg-cls-col-del sg-src-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
                       <tbody id="sg-cls-source-tbody"></tbody>
@@ -1219,7 +1219,13 @@
                 <div class="sg-cls-panel sg-cls-panel-right">
                   <div class="sg-cls-panel-head">
                     <span>🎬 Bảng 2: Phân loại Animation &amp; Lớp phủ (<code>anim</code> &amp; <code>element</code>)</span>
-                    <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-anim" style="display:none;">＋ Thêm Animation</button>
+                    <div class="sg-cls-panel-actions">
+                      <span class="sg-badge" id="sg-anim-status">🔒 Đang khóa</span>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-anim">✏️ Chỉnh sửa</button>
+                      <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-anim" style="display:none;">＋ Thêm</button>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-anim" style="display:none;">✖ Hủy</button>
+                      <button class="btn-primary sg-cls-btn" id="sg-btn-save-anim" style="display:none;">💾 Lưu</button>
+                    </div>
                   </div>
                   <div class="sg-cls-table-wrap">
                     <table class="sg-cls-table" id="sg-cls-anim-table">
@@ -1230,7 +1236,7 @@
                           <th style="width:120px;">Tên hiển thị</th>
                           <th style="width:115px;">Thông số / File</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th class="sg-cls-col-del" style="width:32px; display:none;"></th>
+                          <th class="sg-cls-col-del sg-anim-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
                       <tbody id="sg-cls-anim-tbody"></tbody>

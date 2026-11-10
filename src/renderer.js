@@ -1879,7 +1879,8 @@ function initSourceSuggester() {
     classificationsPath: '',
     rulesLocked: true,
     rulesOriginalText: '',
-    clsLocked: true,
+    srcLocked: true,
+    animLocked: true,
     clsCollapsed: localStorage.getItem('sg_cls_collapsed') === '1',
     sourceTypes: initialCls.sourceTypes,
     animationTypes: initialCls.animationTypes,
@@ -1900,20 +1901,24 @@ function initSourceSuggester() {
     btnEditRules: $('#sg-btn-edit-rules'),
     btnCancelRules: $('#sg-btn-cancel-rules'),
     btnSaveRules: $('#sg-btn-save-rules'),
-    // Classification tables DOM
+    // Classification tables DOM (2 bảng độc lập)
     clsCard: $('#sg-cls-card'),
     clsBody: $('#sg-cls-body'),
     clsSummary: $('#sg-cls-summary'),
-    clsStatus: $('#sg-cls-status'),
-    clsFilepath: $('#sg-cls-filepath'),
-    btnOpenCls: $('#sg-btn-open-cls'),
-    btnEditCls: $('#sg-btn-edit-cls'),
-    btnCancelCls: $('#sg-btn-cancel-cls'),
-    btnSaveCls: $('#sg-btn-save-cls'),
     btnToggleCls: $('#sg-btn-toggle-cls'),
+    // Bảng 1: Source
+    srcStatus: $('#sg-src-status'),
+    btnEditSrc: $('#sg-btn-edit-src'),
+    btnCancelSrc: $('#sg-btn-cancel-src'),
+    btnSaveSrc: $('#sg-btn-save-src'),
     btnAddSource: $('#sg-btn-add-source'),
-    btnAddAnim: $('#sg-btn-add-anim'),
     clsSourceTbody: $('#sg-cls-source-tbody'),
+    // Bảng 2: Animation & Lớp phủ
+    animStatus: $('#sg-anim-status'),
+    btnEditAnim: $('#sg-btn-edit-anim'),
+    btnCancelAnim: $('#sg-btn-cancel-anim'),
+    btnSaveAnim: $('#sg-btn-save-anim'),
+    btnAddAnim: $('#sg-btn-add-anim'),
     clsAnimTbody: $('#sg-cls-anim-tbody'),
     // Timeline & Examples DOM
     timelineCsv: $('#sg-timeline-csv'),
@@ -2023,39 +2028,66 @@ function initSourceSuggester() {
     }
   }
 
-  function setClsLocked(locked) {
-    sgState.clsLocked = Boolean(locked);
-    if (sgDom.clsStatus) {
-      sgDom.clsStatus.textContent = sgState.clsLocked ? '🔒 Đang khóa' : '🔓 Đang chỉnh sửa';
-      sgDom.clsStatus.classList.toggle('unsaved', !sgState.clsLocked);
+  function setSrcLocked(locked) {
+    sgState.srcLocked = Boolean(locked);
+    if (sgDom.srcStatus) {
+      sgDom.srcStatus.textContent = sgState.srcLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
+      sgDom.srcStatus.classList.toggle('unsaved', !sgState.srcLocked);
     }
-    if (sgDom.btnEditCls) sgDom.btnEditCls.style.display = sgState.clsLocked ? 'inline-flex' : 'none';
-    if (sgDom.btnCancelCls) sgDom.btnCancelCls.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
-    if (sgDom.btnSaveCls) sgDom.btnSaveCls.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
-    if (sgDom.btnAddSource) sgDom.btnAddSource.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
-    if (sgDom.btnAddAnim) sgDom.btnAddAnim.style.display = sgState.clsLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnEditSrc) sgDom.btnEditSrc.style.display = sgState.srcLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnAddSource) sgDom.btnAddSource.style.display = sgState.srcLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnCancelSrc) sgDom.btnCancelSrc.style.display = sgState.srcLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveSrc) sgDom.btnSaveSrc.style.display = sgState.srcLocked ? 'none' : 'inline-flex';
 
     if (sgDom.clsCard) {
-      sgDom.clsCard.querySelectorAll('.sg-cls-col-del').forEach(th => {
-        th.style.display = sgState.clsLocked ? 'none' : 'table-cell';
+      sgDom.clsCard.querySelectorAll('.sg-src-col-del').forEach(th => {
+        th.style.display = sgState.srcLocked ? 'none' : 'table-cell';
       });
     }
-    if (!sgState.clsLocked && sgState.clsCollapsed) {
+    if (!sgState.srcLocked && sgState.clsCollapsed) {
       setClsCollapsed(false);
     }
     renderClassificationTables();
   }
 
+  function setAnimLocked(locked) {
+    sgState.animLocked = Boolean(locked);
+    if (sgDom.animStatus) {
+      sgDom.animStatus.textContent = sgState.animLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
+      sgDom.animStatus.classList.toggle('unsaved', !sgState.animLocked);
+    }
+    if (sgDom.btnEditAnim) sgDom.btnEditAnim.style.display = sgState.animLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnAddAnim) sgDom.btnAddAnim.style.display = sgState.animLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnCancelAnim) sgDom.btnCancelAnim.style.display = sgState.animLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveAnim) sgDom.btnSaveAnim.style.display = sgState.animLocked ? 'none' : 'inline-flex';
+
+    if (sgDom.clsCard) {
+      sgDom.clsCard.querySelectorAll('.sg-anim-col-del').forEach(th => {
+        th.style.display = sgState.animLocked ? 'none' : 'table-cell';
+      });
+    }
+    if (!sgState.animLocked && sgState.clsCollapsed) {
+      setClsCollapsed(false);
+    }
+    renderClassificationTables();
+  }
+
+  function setClsLocked(locked) {
+    setSrcLocked(locked);
+    setAnimLocked(locked);
+  }
+
   function renderClassificationTables() {
     if (!sgDom.clsSourceTbody || !sgDom.clsAnimTbody) return;
-    const locked = sgState.clsLocked;
+    const srcLocked = sgState.srcLocked;
+    const animLocked = sgState.animLocked;
 
     // --- BẢNG 1: SOURCE ---
     sgDom.clsSourceTbody.innerHTML = sgState.sourceTypes.map((s, idx) => {
       const safeCode = String(s.code || '').replace(/"/g, '&quot;');
       const safeLabel = String(s.label || '').replace(/"/g, '&quot;');
       const safeDesc = String(s.description || '').replace(/"/g, '&quot;');
-      if (locked) {
+      if (srcLocked) {
         return `
           <tr>
             <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
@@ -2083,7 +2115,7 @@ function initSourceSuggester() {
       const safeLabel = String(a.label || '').replace(/"/g, '&quot;');
       const safeParam = String(a.param || '').replace(/"/g, '&quot;');
       const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
-      if (locked) {
+      if (animLocked) {
         const badgeHtml = grp === 'anim'
           ? `<span class="sg-group-badge sg-group-anim">🎬 Chuyển động</span>`
           : `<span class="sg-group-badge sg-group-element">🖼️ Lớp phủ V3</span>`;
@@ -2116,8 +2148,8 @@ function initSourceSuggester() {
       `;
     }).join('');
 
-    // Events khi Đang khóa: Click vào chip mã -> Copy hoặc chèn vào ô quy tắc .txt
-    if (locked) {
+    // Events cho các chip mã khi bảng đang khóa: Click -> Copy hoặc chèn vào ô quy tắc .txt
+    if (sgDom.clsCard) {
       sgDom.clsCard.querySelectorAll('.sg-code-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           const code = chip.dataset.code || '';
@@ -2137,63 +2169,67 @@ function initSourceSuggester() {
           }
         });
       });
-      return;
     }
 
-    // Events khi Đang mở khóa chỉnh sửa:
-    sgDom.clsSourceTbody.querySelectorAll('.sg-src-code').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].code = inp.value; });
-    });
-    sgDom.clsSourceTbody.querySelectorAll('.sg-src-label').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].label = inp.value; });
-    });
-    sgDom.clsSourceTbody.querySelectorAll('.sg-src-desc').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].description = inp.value; });
-    });
-    sgDom.clsSourceTbody.querySelectorAll('.sg-src-del').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const i = Number(btn.dataset.idx);
-        const item = sgState.sourceTypes[i];
-        const ok = await askConfirm(`Bạn có muốn xóa loại Source "${item?.code || ''}" khỏi bảng không?`, {
-          title: '🗑 Xác nhận xóa loại Source',
-          confirmText: 'Xóa dòng này',
-          danger: true
-        });
-        if (!ok) return;
-        sgState.sourceTypes.splice(i, 1);
-        renderClassificationTables();
+    // Events khi Bảng 1 đang mở khóa chỉnh sửa:
+    if (!srcLocked) {
+      sgDom.clsSourceTbody.querySelectorAll('.sg-src-code').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].code = inp.value; });
       });
-    });
+      sgDom.clsSourceTbody.querySelectorAll('.sg-src-label').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].label = inp.value; });
+      });
+      sgDom.clsSourceTbody.querySelectorAll('.sg-src-desc').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].description = inp.value; });
+      });
+      sgDom.clsSourceTbody.querySelectorAll('.sg-src-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const i = Number(btn.dataset.idx);
+          const item = sgState.sourceTypes[i];
+          const ok = await askConfirm(`Bạn có muốn xóa loại Source "${item?.code || ''}" khỏi Bảng 1 không?`, {
+            title: '🗑 Xác nhận xóa loại Source',
+            confirmText: 'Xóa dòng này',
+            danger: true
+          });
+          if (!ok) return;
+          sgState.sourceTypes.splice(i, 1);
+          renderClassificationTables();
+        });
+      });
+    }
 
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-group').forEach(sel => {
-      sel.addEventListener('change', () => { sgState.animationTypes[Number(sel.dataset.idx)].group = sel.value; });
-    });
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-code').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].code = inp.value; });
-    });
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-label').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].label = inp.value; });
-    });
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-param').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].param = inp.value; });
-    });
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-desc').forEach(inp => {
-      inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].description = inp.value; });
-    });
-    sgDom.clsAnimTbody.querySelectorAll('.sg-anim-del').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const i = Number(btn.dataset.idx);
-        const item = sgState.animationTypes[i];
-        const ok = await askConfirm(`Bạn có muốn xóa loại Animation/Lớp phủ "${item?.code || ''}" khỏi bảng không?`, {
-          title: '🗑 Xác nhận xóa Animation / Lớp phủ',
-          confirmText: 'Xóa dòng này',
-          danger: true
-        });
-        if (!ok) return;
-        sgState.animationTypes.splice(i, 1);
-        renderClassificationTables();
+    // Events khi Bảng 2 đang mở khóa chỉnh sửa:
+    if (!animLocked) {
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-group').forEach(sel => {
+        sel.addEventListener('change', () => { sgState.animationTypes[Number(sel.dataset.idx)].group = sel.value; });
       });
-    });
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-code').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].code = inp.value; });
+      });
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-label').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].label = inp.value; });
+      });
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-param').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].param = inp.value; });
+      });
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-desc').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].description = inp.value; });
+      });
+      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const i = Number(btn.dataset.idx);
+          const item = sgState.animationTypes[i];
+          const ok = await askConfirm(`Bạn có muốn xóa loại Animation/Lớp phủ "${item?.code || ''}" khỏi Bảng 2 không?`, {
+            title: '🗑 Xác nhận xóa Animation / Lớp phủ',
+            confirmText: 'Xóa dòng này',
+            danger: true
+          });
+          if (!ok) return;
+          sgState.animationTypes.splice(i, 1);
+          renderClassificationTables();
+        });
+      });
+    }
   }
 
   function sgLog(msg, type = 'info') {
@@ -2539,39 +2575,60 @@ function initSourceSuggester() {
   setClsLocked(true);
   syncClassificationsEverywhere();
 
-  // --- Sự kiện cho 2 Bảng Phân loại Source & Animation ---
+  // --- Sự kiện cho 2 Bảng Phân loại Source & Animation (Nút chỉnh sửa riêng ở 2 góc) ---
   if (sgDom.btnToggleCls) {
     sgDom.btnToggleCls.addEventListener('click', () => {
       setClsCollapsed(!sgState.clsCollapsed);
     });
   }
 
-  if (sgDom.btnOpenCls) {
-    sgDom.btnOpenCls.addEventListener('click', async () => {
-      if (!sgState.classificationsPath) await loadBackendState();
-      if (sgState.classificationsPath) {
-        window.api.openFile(sgState.classificationsPath);
-      } else {
-        sgLog('Chưa lấy được đường dẫn file classifications.json.', 'error');
-      }
-    });
+  async function persistBothClassificationTables() {
+    sgState.sourceTypes = sgState.sourceTypes
+      .map(s => ({
+        code: String(s.code || '').trim(),
+        label: String(s.label || s.code || '').trim(),
+        description: String(s.description || '').trim()
+      }))
+      .filter(s => s.code);
+
+    sgState.animationTypes = sgState.animationTypes
+      .map(a => ({
+        code: String(a.code || '').trim(),
+        group: a.group === 'anim' ? 'anim' : 'element',
+        label: String(a.label || a.code || '').trim(),
+        param: String(a.param || '').trim(),
+        description: String(a.description || '').trim()
+      }))
+      .filter(a => a.code);
+
+    saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+
+    if (typeof window.api.suggesterSaveClassifications === 'function') {
+      const res = await window.api.suggesterSaveClassifications({
+        source_types: sgState.sourceTypes,
+        animation_types: sgState.animationTypes
+      });
+      if (res && res.error) throw new Error(res.error);
+      if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
+      if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
+      saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+    }
   }
 
-  if (sgDom.btnEditCls) {
-    sgDom.btnEditCls.addEventListener('click', () => {
+  // --- GÓC 1: Bảng 1 (Phân loại Source) ---
+  if (sgDom.btnEditSrc) {
+    sgDom.btnEditSrc.addEventListener('click', () => {
       sgState.origSourceTypes = JSON.parse(JSON.stringify(sgState.sourceTypes));
-      sgState.origAnimationTypes = JSON.parse(JSON.stringify(sgState.animationTypes));
-      setClsLocked(false);
+      setSrcLocked(false);
     });
   }
 
-  if (sgDom.btnCancelCls) {
-    sgDom.btnCancelCls.addEventListener('click', async () => {
-      const changed = JSON.stringify(sgState.sourceTypes) !== JSON.stringify(sgState.origSourceTypes) ||
-        JSON.stringify(sgState.animationTypes) !== JSON.stringify(sgState.origAnimationTypes);
+  if (sgDom.btnCancelSrc) {
+    sgDom.btnCancelSrc.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.sourceTypes) !== JSON.stringify(sgState.origSourceTypes);
       if (changed) {
-        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng Phân loại.\nBạn có chắc muốn hủy các thay đổi này không?', {
-          title: '✖ Xác nhận hủy chỉnh sửa Bảng Phân loại',
+        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng 1 (Phân loại Source).\nBạn có chắc muốn hủy các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa Bảng 1 (Source)',
           confirmText: 'Hủy thay đổi',
           cancelText: 'Tiếp tục sửa',
           danger: true
@@ -2579,10 +2636,9 @@ function initSourceSuggester() {
         if (!ok) return;
       }
       sgState.sourceTypes = JSON.parse(JSON.stringify(sgState.origSourceTypes));
-      sgState.animationTypes = JSON.parse(JSON.stringify(sgState.origAnimationTypes));
-      setClsLocked(true);
+      setSrcLocked(true);
       syncClassificationsEverywhere();
-      sgLog('Đã hủy chỉnh sửa 2 bảng phân loại và khóa lại.', 'info');
+      sgLog('Đã hủy chỉnh sửa Bảng 1 (Source) và khóa lại.', 'info');
     });
   }
 
@@ -2596,6 +2652,55 @@ function initSourceSuggester() {
       renderClassificationTables();
       const wrap = sgDom.clsSourceTbody?.closest('.sg-cls-table-wrap');
       if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+  }
+
+  if (sgDom.btnSaveSrc) {
+    sgDom.btnSaveSrc.addEventListener('click', async () => {
+      const ok = await askConfirm(
+        `Bạn có muốn lưu Bảng 1 (${sgState.sourceTypes.length} loại Source) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
+        {
+          title: '💾 Xác nhận lưu Bảng 1: Phân loại Source',
+          confirmText: 'Lưu & Áp dụng ngay'
+        }
+      );
+      if (!ok) return;
+
+      try {
+        await persistBothClassificationTables();
+        setSrcLocked(true);
+        syncClassificationsEverywhere();
+        sgLog(`✅ Đã lưu và đồng bộ Bảng 1 (${sgState.sourceTypes.length} loại Source) trên toàn hệ thống!`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu Bảng 1: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // --- GÓC 2: Bảng 2 (Phân loại Animation & Lớp phủ) ---
+  if (sgDom.btnEditAnim) {
+    sgDom.btnEditAnim.addEventListener('click', () => {
+      sgState.origAnimationTypes = JSON.parse(JSON.stringify(sgState.animationTypes));
+      setAnimLocked(false);
+    });
+  }
+
+  if (sgDom.btnCancelAnim) {
+    sgDom.btnCancelAnim.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.animationTypes) !== JSON.stringify(sgState.origAnimationTypes);
+      if (changed) {
+        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng 2 (Animation & Lớp phủ).\nBạn có chắc muốn hủy các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa Bảng 2 (Animation)',
+          confirmText: 'Hủy thay đổi',
+          cancelText: 'Tiếp tục sửa',
+          danger: true
+        });
+        if (!ok) return;
+      }
+      sgState.animationTypes = JSON.parse(JSON.stringify(sgState.origAnimationTypes));
+      setAnimLocked(true);
+      syncClassificationsEverywhere();
+      sgLog('Đã hủy chỉnh sửa Bảng 2 (Animation) và khóa lại.', 'info');
     });
   }
 
@@ -2614,55 +2719,24 @@ function initSourceSuggester() {
     });
   }
 
-  if (sgDom.btnSaveCls) {
-    sgDom.btnSaveCls.addEventListener('click', async () => {
+  if (sgDom.btnSaveAnim) {
+    sgDom.btnSaveAnim.addEventListener('click', async () => {
       const ok = await askConfirm(
-        `Bạn có muốn lưu 2 bảng Phân loại (${sgState.sourceTypes.length} loại Source & ${sgState.animationTypes.length} loại Animation/Lớp phủ) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
+        `Bạn có muốn lưu Bảng 2 (${sgState.animationTypes.length} loại Animation & Lớp phủ) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
         {
-          title: '💾 Xác nhận lưu Bảng Phân loại Source & Animation',
+          title: '💾 Xác nhận lưu Bảng 2: Phân loại Animation & Lớp phủ',
           confirmText: 'Lưu & Áp dụng ngay'
         }
       );
       if (!ok) return;
 
       try {
-        // Làm sạch dữ liệu trước khi lưu
-        sgState.sourceTypes = sgState.sourceTypes
-          .map(s => ({
-            code: String(s.code || '').trim(),
-            label: String(s.label || s.code || '').trim(),
-            description: String(s.description || '').trim()
-          }))
-          .filter(s => s.code);
-
-        sgState.animationTypes = sgState.animationTypes
-          .map(a => ({
-            code: String(a.code || '').trim(),
-            group: a.group === 'anim' ? 'anim' : 'element',
-            label: String(a.label || a.code || '').trim(),
-            param: String(a.param || '').trim(),
-            description: String(a.description || '').trim()
-          }))
-          .filter(a => a.code);
-
-        saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
-
-        if (typeof window.api.suggesterSaveClassifications === 'function') {
-          const res = await window.api.suggesterSaveClassifications({
-            source_types: sgState.sourceTypes,
-            animation_types: sgState.animationTypes
-          });
-          if (res && res.error) throw new Error(res.error);
-          if (Array.isArray(res.source_types)) sgState.sourceTypes = res.source_types;
-          if (Array.isArray(res.animation_types)) sgState.animationTypes = res.animation_types;
-          saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
-        }
-
-        setClsLocked(true);
+        await persistBothClassificationTables();
+        setAnimLocked(true);
         syncClassificationsEverywhere();
-        sgLog(`✅ Đã lưu và đồng bộ ${sgState.sourceTypes.length} Source & ${sgState.animationTypes.length} Animation trên toàn hệ thống!`, 'success');
+        sgLog(`✅ Đã lưu và đồng bộ Bảng 2 (${sgState.animationTypes.length} loại Animation/Lớp phủ) trên toàn hệ thống!`, 'success');
       } catch (err) {
-        sgLog(`Lỗi lưu bảng phân loại: ${err.message}`, 'error');
+        sgLog(`Lỗi lưu Bảng 2: ${err.message}`, 'error');
       }
     });
   }

@@ -1,63 +1,68 @@
 {
   "_doc": "Mapping element_id → file & cau hinh trong Premiere XML. track: V3 (per-clip), V4 (full-video). scope: 'clip' hoac 'full'. opacity: 0-100.",
-
   "auto_map": {
     "_doc": "Khi CSV khong co cot element, tu dong map loai_source → element_id",
-    "phong_van":     "tv_retro",
-    "anh_thong_so":  "stats_table",
+    "phong_van": "tv_retro",
+    "anh_thong_so": "stats_table",
     "anh_thoi_diem": "scout_frame",
-    "training":      "tv_sony"
+    "training": "tv_sony"
   },
-
   "elements": {
     "tv_retro": {
       "file": "tv FRAME2.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Khung TV retro (PNG overlay tren video)"
+      "opacity": 100,
+      "note": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn"
     },
     "tv_sony": {
       "file": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
       "track": "V3",
       "scope": "clip",
       "is_image": false,
-      "note": "TV Sony green screen (video)"
+      "opacity": 100,
+      "note": "Khung TV Sony cổ điển trên bàn gỗ"
     },
     "tv_dolly": {
       "file": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
       "track": "V3",
       "scope": "clip",
       "is_image": false,
-      "note": "TV dolly in green screen (webm)"
+      "opacity": 100,
+      "note": "Hiệu ứng TV retro dolly-in"
     },
     "scout_frame": {
       "file": "scout frame.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Khung scout/thong so cau thu"
+      "opacity": 100,
+      "note": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)"
     },
     "stats_table": {
       "file": "Comparison Table List Infographic Graph.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Bang so sanh thong so"
+      "opacity": 100,
+      "note": "Khung bảng thống kê / so sánh số liệu"
     },
     "stats_table_1": {
       "file": "Comparison Table List Infographic Graph (1).png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Bang so sanh thong so - mau 1"
+      "opacity": 100,
+      "note": "Bảng thống kê mẫu 1"
     },
     "stats_table_2": {
       "file": "Comparison Table List Infographic Graph (2).png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Bang so sanh thong so - mau 2"
+      "opacity": 100,
+      "note": "Bảng thống kê mẫu 2"
     },
     "stats_table_3": {
       "file": "Comparison Table List Infographic Graph (3).png",
@@ -85,14 +90,16 @@
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Vong tron vang (Balon d'Or?)"
+      "opacity": 100,
+      "note": "Vòng tròn spotlight vàng (nhấn mạnh cầu thủ / danh hiệu Quả bóng vàng)"
     },
     "circle_blue": {
       "file": "o.png",
       "track": "V3",
       "scope": "clip",
       "is_image": true,
-      "note": "Vong tron xanh duong"
+      "opacity": 100,
+      "note": "Vòng tròn spotlight xanh dương (đánh dấu vị trí cầu thủ)"
     },
     "film_grain": {
       "file": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
@@ -100,7 +107,7 @@
       "scope": "full",
       "is_image": false,
       "opacity": 20,
-      "note": "8mm film grain overlay cho toan video"
+      "note": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức"
     },
     "paper_texture": {
       "file": "paper texture.png",
@@ -108,7 +115,7 @@
       "scope": "full",
       "is_image": true,
       "opacity": 15,
-      "note": "Paper texture cho toan video"
+      "note": "Lớp phủ giấy cũ (paper texture) tạo chất liệu tư liệu"
     },
     "paper_texture_2": {
       "file": "paper texture 2.png",
@@ -116,7 +123,7 @@
       "scope": "full",
       "is_image": true,
       "opacity": 15,
-      "note": "Paper texture 2 cho toan video"
+      "note": "Lớp phủ giấy cũ mẫu 2"
     },
     "texture_dark": {
       "file": "textture.png",
@@ -124,7 +131,7 @@
       "scope": "full",
       "is_image": true,
       "opacity": 15,
-      "note": "Texture toi cho toan video"
+      "note": "Lớp phủ tối (dark vignette/texture) tạo chiều sâu trầm lắng, chuyển chương"
     },
     "texture_2": {
       "file": "texture2.png",
@@ -140,7 +147,7 @@
       "scope": "full",
       "is_image": false,
       "opacity": 20,
-      "note": "Grid animation overlay"
+      "note": "Nền lưới cam chuyển động (grid animation)"
     },
     "intro": {
       "file": "intro.mp4",
@@ -152,4 +159,3 @@
     "none": null
   }
 }
-
