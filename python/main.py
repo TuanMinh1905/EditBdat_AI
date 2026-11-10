@@ -687,6 +687,7 @@ def api_suggester_get_state():
             "rules_path": source_suggester.rules_path,
             "examples_path": source_suggester.examples_path,
             "source_types": cls_data["source_types"],
+            "element_types": cls_data["element_types"],
             "animation_types": cls_data["animation_types"],
             "classifications_path": cls_data["classifications_path"],
         })
@@ -697,18 +698,21 @@ def api_suggester_get_state():
 
 @app.route('/api/source-suggester/save-classifications', methods=['POST'])
 def api_suggester_save_classifications():
-    """Luu 2 bang Phan loai Source va Animation vao templates/classifications.json."""
+    """Luu 3 bang Phan loai Source, Lop phu Design va Animation vao templates/classifications.json."""
     try:
         data = request.get_json() or {}
         source_types = data.get('source_types')
+        element_types = data.get('element_types')
         animation_types = data.get('animation_types')
         cls_data = source_suggester.save_classifications(
             source_types=source_types,
+            element_types=element_types,
             animation_types=animation_types,
         )
         return jsonify({
             "success": True,
             "source_types": cls_data["source_types"],
+            "element_types": cls_data["element_types"],
             "animation_types": cls_data["animation_types"],
             "classifications_path": cls_data["classifications_path"],
         })

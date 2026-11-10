@@ -432,10 +432,12 @@ ipcMain.handle('suggester-get-state', async () => {
       }
     }
     let sourceTypes = [];
+    let elementTypes = [];
     let animationTypes = [];
     if (fs.existsSync(clsPath)) {
       const clsRaw = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
       sourceTypes = Array.isArray(clsRaw.source_types) ? clsRaw.source_types : [];
+      elementTypes = Array.isArray(clsRaw.element_types) ? clsRaw.element_types : [];
       animationTypes = Array.isArray(clsRaw.animation_types) ? clsRaw.animation_types : [];
     }
     return {
@@ -446,6 +448,7 @@ ipcMain.handle('suggester-get-state', async () => {
       rules_path: rulesPath,
       examples_path: examplesPath,
       source_types: sourceTypes,
+      element_types: elementTypes,
       animation_types: animationTypes,
       classifications_path: clsPath,
     };
@@ -484,7 +487,7 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
       return val;
     };
 
-    let current = { source_types: [], animation_types: [] };
+    let current = { source_types: [], element_types: [], animation_types: [] };
     if (fs.existsSync(clsPath)) {
       current = JSON.parse(fs.readFileSync(clsPath, 'utf-8'));
     }
@@ -494,16 +497,23 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
         image: persistMedia('src', it.code || 'item', it.image),
       }));
     }
+    if (params && Array.isArray(params.element_types)) {
+      current.element_types = params.element_types.map(it => ({
+        ...it,
+        image: persistMedia('element', it.code || 'item', it.image),
+      }));
+    }
     if (params && Array.isArray(params.animation_types)) {
       current.animation_types = params.animation_types.map(it => ({
         ...it,
-        image: persistMedia(it.group || 'anim', it.code || 'item', it.image),
+        image: persistMedia('anim', it.code || 'item', it.image),
       }));
     }
     fs.writeFileSync(clsPath, JSON.stringify(current, null, 2), 'utf-8');
     return {
       success: true,
       source_types: current.source_types,
+      element_types: current.element_types,
       animation_types: current.animation_types,
       classifications_path: clsPath,
     };

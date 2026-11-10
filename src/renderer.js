@@ -1817,11 +1817,7 @@ const DEFAULT_SOURCE_TYPES = [
   { code: 'sa_ban', label: 'Sa bàn', description: 'Sa bàn chiến thuật, sơ đồ đội hình' }
 ];
 
-const DEFAULT_ANIMATION_TYPES = [
-  { code: 'auto', group: 'anim', label: '🔄 Mặc định (Auto)', param: 'auto', description: 'Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip' },
-  { code: 'zoom_in', group: 'anim', label: '🔍 Phóng to (Zoom In)', param: '100->108', description: 'Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh' },
-  { code: 'zoom_out', group: 'anim', label: '🔎 Thu nhỏ (Zoom Out)', param: '108->100', description: 'Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh' },
-  { code: 'static', group: 'anim', label: '⏹️ Đứng yên (Static)', param: '100->100', description: 'Đứng yên (100%) — không phóng to thu nhỏ' },
+const DEFAULT_ELEMENT_TYPES = [
   { code: 'auto', group: 'element', label: '✨ Tự động (Auto)', param: '', description: 'Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame)' },
   { code: 'none', group: 'element', label: '🚫 Không phủ (None)', param: '', description: 'Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)' },
   { code: 'tv_retro', group: 'element', label: '📺 Khung Sofa TV', param: 'tv FRAME2.png', description: 'Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn' },
@@ -1847,20 +1843,37 @@ const DEFAULT_ANIMATION_TYPES = [
   { code: 'intro', group: 'element', label: '🎬 Video Intro (intro.mp4)', param: 'intro.mp4', description: 'Video Intro mở đầu (intro.mp4)' }
 ];
 
+const DEFAULT_ANIMATION_TYPES = [
+  { code: 'auto', group: 'anim', label: '🔄 Mặc định (Auto)', param: 'auto', description: 'Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip' },
+  { code: 'zoom_in', group: 'anim', label: '🔍 Phóng to (Zoom In)', param: '100->108', description: 'Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh' },
+  { code: 'zoom_out', group: 'anim', label: '🔎 Thu nhỏ (Zoom Out)', param: '108->100', description: 'Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh' },
+  { code: 'static', group: 'anim', label: '⏹️ Đứng yên (Static)', param: '100->100', description: 'Đứng yên (100%) — không phóng to thu nhỏ' }
+];
+
 function initSourceSuggester() {
+  function mergeMissingDefaultElements(list) {
+    if (!Array.isArray(list) || !list.length) return JSON.parse(JSON.stringify(DEFAULT_ELEMENT_TYPES));
+    const existingCodes = new Set(list.map(x => x.code));
+    const merged = list.map(x => {
+      if (x.image === '__none__' && x.param) {
+        return { ...x, group: 'element', image: '' };
+      }
+      return { ...x, group: 'element' };
+    });
+    DEFAULT_ELEMENT_TYPES.forEach(defItem => {
+      if (!existingCodes.has(defItem.code)) {
+        merged.push(JSON.parse(JSON.stringify(defItem)));
+      }
+    });
+    return merged;
+  }
+
   function mergeMissingDefaultAnims(list) {
     if (!Array.isArray(list) || !list.length) return JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES));
-    const existingKeys = new Set(list.map(x => `${x.group || 'element'}_${x.code}`));
-    const merged = list.map(x => {
-      // Nếu dòng mặc định có sẵn file trong Elements nhưng bị dính '__none__' cũ thì mở lại
-      if (x.image === '__none__' && x.group === 'element' && x.param) {
-        return { ...x, image: '' };
-      }
-      return x;
-    });
+    const existingCodes = new Set(list.map(x => x.code));
+    const merged = list.map(x => ({ ...x, group: 'anim' }));
     DEFAULT_ANIMATION_TYPES.forEach(defItem => {
-      const k = `${defItem.group}_${defItem.code}`;
-      if (!existingKeys.has(k)) {
+      if (!existingCodes.has(defItem.code)) {
         merged.push(JSON.parse(JSON.stringify(defItem)));
       }
     });
@@ -1869,6 +1882,7 @@ function initSourceSuggester() {
 
   function loadLocalClassifications() {
     let src = null;
+    let el = null;
     let anim = null;
     try {
       const rawSrc = localStorage.getItem('sg_custom_source_types');
@@ -1876,19 +1890,37 @@ function initSourceSuggester() {
         const parsed = JSON.parse(rawSrc);
         if (Array.isArray(parsed) && parsed.length > 0) src = parsed;
       }
-      const rawAnim = localStorage.getItem('sg_custom_anim_types');
-      if (rawAnim) {
-        const parsed = JSON.parse(rawAnim);
+      const rawEl = localStorage.getItem('sg_custom_element_types');
+      if (rawEl) {
+        const parsed = JSON.parse(rawEl);
+        if (Array.isArray(parsed) && parsed.length > 0) el = mergeMissingDefaultElements(parsed);
+      }
+      const rawAnimV2 = localStorage.getItem('sg_custom_anim_types_v2');
+      if (rawAnimV2) {
+        const parsed = JSON.parse(rawAnimV2);
         if (Array.isArray(parsed) && parsed.length > 0) anim = mergeMissingDefaultAnims(parsed);
+      } else {
+        // Tương thích ngược với sg_custom_anim_types cũ (gộp cả element + anim)
+        const rawLegacy = localStorage.getItem('sg_custom_anim_types');
+        if (rawLegacy) {
+          const parsed = JSON.parse(rawLegacy);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const legacyEls = parsed.filter(x => x.group !== 'anim');
+            const legacyAnims = parsed.filter(x => x.group === 'anim');
+            if (!el && legacyEls.length) el = mergeMissingDefaultElements(legacyEls);
+            if (!anim && legacyAnims.length) anim = mergeMissingDefaultAnims(legacyAnims);
+          }
+        }
       }
     } catch (e) { /* ignore */ }
     return {
       sourceTypes: src || JSON.parse(JSON.stringify(DEFAULT_SOURCE_TYPES)),
+      elementTypes: el || JSON.parse(JSON.stringify(DEFAULT_ELEMENT_TYPES)),
       animationTypes: anim || JSON.parse(JSON.stringify(DEFAULT_ANIMATION_TYPES))
     };
   }
 
-  function saveLocalClassifications(sourceTypes, animationTypes) {
+  function saveLocalClassifications(sourceTypes, elementTypes, animationTypes) {
     try {
       const stripHeavyVideo = list => (list || []).map(it => {
         if (it.image && typeof it.image === 'string' && it.image.startsWith('data:video/') && it.image.length > 500000) {
@@ -1897,7 +1929,8 @@ function initSourceSuggester() {
         return it;
       });
       localStorage.setItem('sg_custom_source_types', JSON.stringify(stripHeavyVideo(sourceTypes)));
-      localStorage.setItem('sg_custom_anim_types', JSON.stringify(stripHeavyVideo(animationTypes)));
+      localStorage.setItem('sg_custom_element_types', JSON.stringify(stripHeavyVideo(elementTypes)));
+      localStorage.setItem('sg_custom_anim_types_v2', JSON.stringify(stripHeavyVideo(animationTypes)));
     } catch (e) { /* ignore */ }
   }
 
@@ -1912,11 +1945,15 @@ function initSourceSuggester() {
     rulesLocked: true,
     rulesOriginalText: '',
     srcLocked: true,
+    elLocked: true,
     animLocked: true,
     clsCollapsed: localStorage.getItem('sg_cls_collapsed') === '1',
+    clsHorizontal: localStorage.getItem('sg_cls_horiz') === '1',
     sourceTypes: initialCls.sourceTypes,
+    elementTypes: initialCls.elementTypes,
     animationTypes: initialCls.animationTypes,
     origSourceTypes: [],
+    origElementTypes: [],
     origAnimationTypes: [],
     rows: [],
     examples: [],
@@ -1933,10 +1970,12 @@ function initSourceSuggester() {
     btnEditRules: $('#sg-btn-edit-rules'),
     btnCancelRules: $('#sg-btn-cancel-rules'),
     btnSaveRules: $('#sg-btn-save-rules'),
-    // Classification tables DOM (2 bảng độc lập)
+    // Classification tables DOM (3 bảng độc lập: Source - Lớp phủ Design - Animation)
     clsCard: $('#sg-cls-card'),
     clsBody: $('#sg-cls-body'),
+    clsGrid: $('#sg-cls-grid'),
     clsSummary: $('#sg-cls-summary'),
+    btnLayoutCls: $('#sg-btn-layout-cls'),
     btnToggleCls: $('#sg-btn-toggle-cls'),
     // Bảng 1: Source
     srcStatus: $('#sg-src-status'),
@@ -1945,7 +1984,14 @@ function initSourceSuggester() {
     btnSaveSrc: $('#sg-btn-save-src'),
     btnAddSource: $('#sg-btn-add-source'),
     clsSourceTbody: $('#sg-cls-source-tbody'),
-    // Bảng 2: Animation & Lớp phủ
+    // Bảng 2: Lớp phủ Design (Element)
+    elStatus: $('#sg-el-status'),
+    btnEditEl: $('#sg-btn-edit-el'),
+    btnCancelEl: $('#sg-btn-cancel-el'),
+    btnSaveEl: $('#sg-btn-save-el'),
+    btnAddEl: $('#sg-btn-add-el'),
+    clsElTbody: $('#sg-cls-el-tbody'),
+    // Bảng 3: Animation (Chuyển động)
     animStatus: $('#sg-anim-status'),
     btnEditAnim: $('#sg-btn-edit-anim'),
     btnCancelAnim: $('#sg-btn-cancel-anim'),
@@ -1987,6 +2033,18 @@ function initSourceSuggester() {
     tbody: $('#sg-tbody')
   };
 
+  function getListByTableKey(tbl) {
+    if (tbl === 'src') return sgState.sourceTypes;
+    if (tbl === 'el') return sgState.elementTypes;
+    return sgState.animationTypes;
+  }
+
+  function getOrigListByTableKey(tbl) {
+    if (tbl === 'src') return sgState.origSourceTypes;
+    if (tbl === 'el') return sgState.origElementTypes;
+    return sgState.origAnimationTypes;
+  }
+
   function getValidLoaiList() {
     return sgState.sourceTypes.map(s => ({
       code: s.code,
@@ -1996,29 +2054,25 @@ function initSourceSuggester() {
   }
 
   function getValidElementsList() {
-    return sgState.animationTypes
-      .filter(a => a.group !== 'anim')
-      .map(a => ({
-        code: a.code,
-        label: `${a.label || a.code} (${a.code})`,
-        title: a.description || ''
-      }));
+    return sgState.elementTypes.map(e => ({
+      code: e.code,
+      label: `${e.label || e.code} (${e.code})`,
+      title: e.description || ''
+    }));
   }
 
   function getValidAnimsList() {
-    return sgState.animationTypes
-      .filter(a => a.group === 'anim')
-      .map(a => ({
-        code: a.code,
-        label: `${a.label || a.code} (${a.code})`,
-        title: a.description || ''
-      }));
+    return sgState.animationTypes.map(a => ({
+      code: a.code,
+      label: `${a.label || a.code} (${a.code})`,
+      title: a.description || ''
+    }));
   }
 
   function syncClassificationsEverywhere() {
-    // 1. Đồng bộ badge tổng số lượng
+    // 1. Đồng bộ badge tổng số lượng (3 bảng)
     if (sgDom.clsSummary) {
-      sgDom.clsSummary.textContent = `${sgState.sourceTypes.length} Source · ${sgState.animationTypes.length} Animation`;
+      sgDom.clsSummary.textContent = `${sgState.sourceTypes.length} Source · ${sgState.elementTypes.length} Lớp phủ · ${sgState.animationTypes.length} Animation`;
     }
 
     // 2. Đồng bộ Dropdown #sp-loai ở Tab ✂️ Cắt Clip (Tool B)
@@ -2035,7 +2089,7 @@ function initSourceSuggester() {
       spLoaiSel.value = curVal;
     }
 
-    // 3. Đồng bộ Tab 📋 Quy tắc (#rules-loai-grid & #rules-anim-grid)
+    // 3. Đồng bộ Tab 📋 Quy tắc (#rules-loai-grid, #rules-el-grid & #rules-anim-grid)
     const rulesLoaiGrid = $('#rules-loai-grid');
     if (rulesLoaiGrid) {
       const itemsHtml = sgState.sourceTypes.map(s => {
@@ -2048,20 +2102,41 @@ function initSourceSuggester() {
       rulesLoaiGrid.innerHTML = itemsHtml.join('');
     }
 
+    const rulesElGrid = $('#rules-el-grid');
+    if (rulesElGrid) {
+      rulesElGrid.innerHTML = sgState.elementTypes.map(el => {
+        const safeCode = String(el.code || '').replace(/</g, '&lt;');
+        const safeLbl = String(el.label || '').replace(/</g, '&lt;');
+        const safeDesc = String(el.description || '').replace(/"/g, '&quot;');
+        return `<div class="rules-loai-item" title="${safeDesc}"><code>${safeCode}</code><span>${safeLbl}</span></div>`;
+      }).join('');
+    }
+
     const rulesAnimGrid = $('#rules-anim-grid');
     if (rulesAnimGrid) {
       rulesAnimGrid.innerHTML = sgState.animationTypes.map(a => {
         const safeCode = String(a.code || '').replace(/</g, '&lt;');
         const safeLbl = String(a.label || '').replace(/</g, '&lt;');
         const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
-        const tag = a.group === 'anim' ? '🎬 Zoom' : '🖼️ Lớp phủ';
-        return `<div class="rules-loai-item" title="${safeDesc}"><code>${safeCode}</code><span>${tag}: ${safeLbl}</span></div>`;
+        const safeParam = a.param ? ` (${String(a.param).replace(/</g, '&lt;')})` : '';
+        return `<div class="rules-loai-item" title="${safeDesc}"><code>${safeCode}</code><span>${safeLbl}${safeParam}</span></div>`;
       }).join('');
     }
 
-    // 4. Render lại bảng phân loại & bảng Timeline hiện tại
+    // 4. Render lại 3 bảng phân loại & bảng Timeline hiện tại
     renderClassificationTables();
     renderTable();
+  }
+
+  function setClsLayoutHorizontal(horiz) {
+    sgState.clsHorizontal = Boolean(horiz);
+    localStorage.setItem('sg_cls_horiz', sgState.clsHorizontal ? '1' : '0');
+    if (sgDom.clsGrid) {
+      sgDom.clsGrid.classList.toggle('is-horizontal', sgState.clsHorizontal);
+    }
+    if (sgDom.btnLayoutCls) {
+      sgDom.btnLayoutCls.textContent = sgState.clsHorizontal ? '📐 Xếp dọc 3 bảng' : '📐 Xếp ngang 3 cột';
+    }
   }
 
   function setClsCollapsed(collapsed) {
@@ -2071,7 +2146,7 @@ function initSourceSuggester() {
       sgDom.clsBody.style.display = sgState.clsCollapsed ? 'none' : 'flex';
     }
     if (sgDom.btnToggleCls) {
-      sgDom.btnToggleCls.textContent = sgState.clsCollapsed ? '🔽 Mở rộng 2 bảng' : '🔼 Thu gọn';
+      sgDom.btnToggleCls.textContent = sgState.clsCollapsed ? '🔽 Mở rộng 3 bảng' : '🔼 Thu gọn';
     }
   }
 
@@ -2092,6 +2167,28 @@ function initSourceSuggester() {
       });
     }
     if (!sgState.srcLocked && sgState.clsCollapsed) {
+      setClsCollapsed(false);
+    }
+    renderClassificationTables();
+  }
+
+  function setElLocked(locked) {
+    sgState.elLocked = Boolean(locked);
+    if (sgDom.elStatus) {
+      sgDom.elStatus.textContent = sgState.elLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
+      sgDom.elStatus.classList.toggle('unsaved', !sgState.elLocked);
+    }
+    if (sgDom.btnEditEl) sgDom.btnEditEl.style.display = sgState.elLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnAddEl) sgDom.btnAddEl.style.display = sgState.elLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnCancelEl) sgDom.btnCancelEl.style.display = sgState.elLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveEl) sgDom.btnSaveEl.style.display = sgState.elLocked ? 'none' : 'inline-flex';
+
+    if (sgDom.clsCard) {
+      sgDom.clsCard.querySelectorAll('.sg-el-col-del').forEach(th => {
+        th.style.display = sgState.elLocked ? 'none' : 'table-cell';
+      });
+    }
+    if (!sgState.elLocked && sgState.clsCollapsed) {
       setClsCollapsed(false);
     }
     renderClassificationTables();
@@ -2121,11 +2218,12 @@ function initSourceSuggester() {
 
   function setClsLocked(locked) {
     setSrcLocked(locked);
+    setElLocked(locked);
     setAnimLocked(locked);
   }
 
-  let pendingImgTarget = null; // { tbl: 'src' | 'anim', idx: number }
-  let activeLightbox = null;   // { tbl: 'src' | 'anim', idx: number }
+  let pendingImgTarget = null; // { tbl: 'src' | 'el' | 'anim', idx: number }
+  let activeLightbox = null;   // { tbl: 'src' | 'el' | 'anim', idx: number }
 
   function isVideoMediaUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -2140,12 +2238,12 @@ function initSourceSuggester() {
     return `file:///${encoded}`;
   }
 
-  function getEffectiveItemImage(item) {
+  function getEffectiveItemImage(item, tbl = '') {
     if (!item) return '';
     if (item.image && item.image !== '__none__') return item.image;
     if (item.image === '__none__') return '';
-    // Nếu là Lớp phủ (element) có sẵn file ảnh hoặc video (.png/.jpg/.mp4/.webm) trong thư mục cố định Elements, tự động lấy làm minh họa mặc định
-    if (item.group === 'element' && item.param) {
+    // Nếu là Lớp phủ Design (Bảng 2: el) có sẵn file ảnh hoặc video (.png/.jpg/.mp4/.webm) trong thư mục cố định Elements, tự động lấy làm minh họa mặc định
+    if ((tbl === 'el' || item.group === 'element') && item.param) {
       const p = String(item.param).trim();
       if (/\.(png|jpe?g|webp|gif|bmp|mp4|webm|mov|mkv)$/i.test(p)) {
         return `file:///D:/Edit%20SofaZone/01_Tai_Nguyen_Co_Dinh/Elements/${encodeURIComponent(p)}`;
@@ -2155,7 +2253,7 @@ function initSourceSuggester() {
   }
 
   function renderImgCellHtml(tbl, idx, item) {
-    const mediaSrc = getEffectiveItemImage(item);
+    const mediaSrc = getEffectiveItemImage(item, tbl);
     const safeCode = String(item?.code || '').replace(/"/g, '&quot;');
     if (mediaSrc) {
       if (isVideoMediaUrl(mediaSrc)) {
@@ -2249,18 +2347,18 @@ function initSourceSuggester() {
       sgLog('Vui lòng chọn đúng định dạng Ảnh (.png, .jpg, .gif...) hoặc Video (.mp4, .webm, .mov...).', 'error');
       return;
     }
-    const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+    const list = getListByTableKey(tbl);
     const item = list[idx];
     if (!item) return;
 
     try {
       const mediaUrl = isVid ? await readVideoFileToUrl(file) : await compressImageToDataUrl(file);
       item.image = mediaUrl;
-      const origList = tbl === 'src' ? sgState.origSourceTypes : sgState.origAnimationTypes;
+      const origList = getOrigListByTableKey(tbl);
       if (origList && origList[idx]) {
         origList[idx].image = mediaUrl;
       }
-      await persistBothClassificationTables();
+      await persistAllClassificationTables();
       renderClassificationTables();
       if (activeLightbox && activeLightbox.tbl === tbl && activeLightbox.idx === idx) {
         updateLightboxModalView();
@@ -2281,17 +2379,19 @@ function initSourceSuggester() {
 
   function updateLightboxModalView() {
     if (!activeLightbox || !sgDom.modalClsImg) return;
-    const list = activeLightbox.tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+    const list = getListByTableKey(activeLightbox.tbl);
     if (!list || !list.length) return;
     const idx = ((activeLightbox.idx % list.length) + list.length) % list.length;
     activeLightbox.idx = idx;
     const item = list[idx];
-    const mediaSrc = getEffectiveItemImage(item);
+    const mediaSrc = getEffectiveItemImage(item, activeLightbox.tbl);
     const isVid = isVideoMediaUrl(mediaSrc);
 
     if (sgDom.modalClsImgCode) sgDom.modalClsImgCode.textContent = item.code || '';
     if (sgDom.modalClsImgTitle) {
-      const prefix = activeLightbox.tbl === 'src' ? '📂 Source: ' : (item.group === 'anim' ? '🎬 Chuyển động: ' : '🖼️ Lớp phủ V3: ');
+      const prefix = activeLightbox.tbl === 'src'
+        ? '📂 Source: '
+        : (activeLightbox.tbl === 'el' ? '🖼️ Lớp phủ Design: ' : '🎬 Animation: ');
       sgDom.modalClsImgTitle.textContent = `${prefix}${item.label || item.code || ''} (${idx + 1}/${list.length})`;
     }
     if (sgDom.modalClsImgDesc) {
@@ -2361,11 +2461,12 @@ function initSourceSuggester() {
   }
 
   function renderClassificationTables() {
-    if (!sgDom.clsSourceTbody || !sgDom.clsAnimTbody) return;
+    if (!sgDom.clsSourceTbody || !sgDom.clsElTbody || !sgDom.clsAnimTbody) return;
     const srcLocked = sgState.srcLocked;
+    const elLocked = sgState.elLocked;
     const animLocked = sgState.animLocked;
 
-    // --- BẢNG 1: SOURCE ---
+    // --- BẢNG 1: PHÂN LOẠI SOURCE ---
     sgDom.clsSourceTbody.innerHTML = sgState.sourceTypes.map((s, idx) => {
       const safeCode = String(s.code || '').replace(/"/g, '&quot;');
       const safeLabel = String(s.label || '').replace(/"/g, '&quot;');
@@ -2394,24 +2495,51 @@ function initSourceSuggester() {
       `;
     }).join('');
 
-    // --- BẢNG 2: ANIMATION & ELEMENT ---
+    // --- BẢNG 2: LỚP PHỦ DESIGN (ELEMENT) ---
+    sgDom.clsElTbody.innerHTML = sgState.elementTypes.map((el, idx) => {
+      const safeCode = String(el.code || '').replace(/"/g, '&quot;');
+      const safeLabel = String(el.label || '').replace(/"/g, '&quot;');
+      const safeParam = String(el.param || '').replace(/"/g, '&quot;');
+      const safeDesc = String(el.description || '').replace(/"/g, '&quot;');
+      const imgCell = renderImgCellHtml('el', idx, el);
+      if (elLocked) {
+        return `
+          <tr>
+            <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
+            <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
+            <td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>
+            <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
+            ${imgCell}
+          </tr>
+        `;
+      }
+      return `
+        <tr data-el-idx="${idx}">
+          <td><input type="text" class="sg-cls-input code-font sg-el-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: tv_retro"></td>
+          <td><input type="text" class="sg-cls-input sg-el-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên lớp phủ..."></td>
+          <td><input type="text" class="sg-cls-input sg-el-param" data-idx="${idx}" value="${safeParam}" placeholder="Tên file trong Elements/ (vd: tv FRAME2.png)"></td>
+          <td><input type="text" class="sg-cls-input sg-el-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng lớp phủ này..."></td>
+          ${imgCell}
+          <td style="text-align:center;">
+            <button class="sg-example-del sg-el-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // --- BẢNG 3: PHÂN LOẠI ANIMATION (CHUYỂN ĐỘNG) ---
     sgDom.clsAnimTbody.innerHTML = sgState.animationTypes.map((a, idx) => {
-      const grp = a.group === 'anim' ? 'anim' : 'element';
       const safeCode = String(a.code || '').replace(/"/g, '&quot;');
       const safeLabel = String(a.label || '').replace(/"/g, '&quot;');
       const safeParam = String(a.param || '').replace(/"/g, '&quot;');
       const safeDesc = String(a.description || '').replace(/"/g, '&quot;');
       const imgCell = renderImgCellHtml('anim', idx, a);
       if (animLocked) {
-        const badgeHtml = grp === 'anim'
-          ? `<span class="sg-group-badge sg-group-anim">🎬 Chuyển động</span>`
-          : `<span class="sg-group-badge sg-group-element">🖼️ Lớp phủ V3</span>`;
         return `
           <tr>
-            <td>${badgeHtml}</td>
             <td><span class="sg-code-chip" data-code="${safeCode}" title="Click để copy mã '${safeCode}' (hoặc chèn vào ô Quy tắc .txt)">${safeCode}</span></td>
             <td style="font-weight:600; color:#e2e8f0;">${safeLabel}</td>
-            <td style="font-family:var(--font-mono); font-size:0.7rem; color:#94a3b8; max-width:140px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${safeParam}">${safeParam || '—'}</td>
+            <td style="font-family:var(--font-mono); font-size:0.74rem; color:#38bdf8; font-weight:600;" title="${safeParam}">${safeParam || '—'}</td>
             <td style="color:var(--text-secondary); line-height:1.35;">${safeDesc}</td>
             ${imgCell}
           </tr>
@@ -2419,16 +2547,10 @@ function initSourceSuggester() {
       }
       return `
         <tr data-anim-idx="${idx}">
-          <td>
-            <select class="sg-cls-select sg-anim-group" data-idx="${idx}">
-              <option value="anim" ${grp === 'anim' ? 'selected' : ''}>🎬 Zoom</option>
-              <option value="element" ${grp === 'element' ? 'selected' : ''}>🖼️ Lớp phủ</option>
-            </select>
-          </td>
           <td><input type="text" class="sg-cls-input code-font sg-anim-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: zoom_in"></td>
-          <td><input type="text" class="sg-cls-input sg-anim-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên hiển thị..."></td>
-          <td><input type="text" class="sg-cls-input sg-anim-param" data-idx="${idx}" value="${safeParam}" placeholder="100->108 hoặc file.png"></td>
-          <td><input type="text" class="sg-cls-input sg-anim-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
+          <td><input type="text" class="sg-cls-input sg-anim-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên chuyển động..."></td>
+          <td><input type="text" class="sg-cls-input sg-anim-param" data-idx="${idx}" value="${safeParam}" placeholder="vd: 100->108"></td>
+          <td><input type="text" class="sg-cls-input sg-anim-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng chuyển động này..."></td>
           ${imgCell}
           <td style="text-align:center;">
             <button class="sg-example-del sg-anim-del" data-idx="${idx}" title="Xóa dòng này">✕</button>
@@ -2471,7 +2593,7 @@ function initSourceSuggester() {
           wrap.addEventListener('mouseenter', () => { vidEl.play().catch(() => {}); });
           wrap.addEventListener('mouseleave', () => { try { vidEl.pause(); } catch (_) {} });
           vidEl.addEventListener('error', () => {
-            const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+            const list = getListByTableKey(tbl);
             if (list && list[idx]) list[idx].image = '__none__';
             renderClassificationTables();
           }, { once: true });
@@ -2480,7 +2602,7 @@ function initSourceSuggester() {
         const imgEl = wrap.querySelector('img');
         if (imgEl) {
           imgEl.addEventListener('error', () => {
-            const list = tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+            const list = getListByTableKey(tbl);
             if (list && list[idx]) list[idx].image = '__none__';
             renderClassificationTables();
           }, { once: true });
@@ -2511,7 +2633,7 @@ function initSourceSuggester() {
       });
     }
 
-    // Events khi Bảng 1 đang mở khóa chỉnh sửa:
+    // Events khi Bảng 1 (Source) đang mở khóa chỉnh sửa:
     if (!srcLocked) {
       sgDom.clsSourceTbody.querySelectorAll('.sg-src-code').forEach(inp => {
         inp.addEventListener('input', () => { sgState.sourceTypes[Number(inp.dataset.idx)].code = inp.value; });
@@ -2538,11 +2660,38 @@ function initSourceSuggester() {
       });
     }
 
-    // Events khi Bảng 2 đang mở khóa chỉnh sửa:
-    if (!animLocked) {
-      sgDom.clsAnimTbody.querySelectorAll('.sg-anim-group').forEach(sel => {
-        sel.addEventListener('change', () => { sgState.animationTypes[Number(sel.dataset.idx)].group = sel.value; });
+    // Events khi Bảng 2 (Lớp phủ Design) đang mở khóa chỉnh sửa:
+    if (!elLocked) {
+      sgDom.clsElTbody.querySelectorAll('.sg-el-code').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.elementTypes[Number(inp.dataset.idx)].code = inp.value; });
       });
+      sgDom.clsElTbody.querySelectorAll('.sg-el-label').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.elementTypes[Number(inp.dataset.idx)].label = inp.value; });
+      });
+      sgDom.clsElTbody.querySelectorAll('.sg-el-param').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.elementTypes[Number(inp.dataset.idx)].param = inp.value; });
+      });
+      sgDom.clsElTbody.querySelectorAll('.sg-el-desc').forEach(inp => {
+        inp.addEventListener('input', () => { sgState.elementTypes[Number(inp.dataset.idx)].description = inp.value; });
+      });
+      sgDom.clsElTbody.querySelectorAll('.sg-el-del').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const i = Number(btn.dataset.idx);
+          const item = sgState.elementTypes[i];
+          const ok = await askConfirm(`Bạn có muốn xóa Lớp phủ Design "${item?.code || ''}" khỏi Bảng 2 không?`, {
+            title: '🗑 Xác nhận xóa Lớp phủ Design',
+            confirmText: 'Xóa dòng này',
+            danger: true
+          });
+          if (!ok) return;
+          sgState.elementTypes.splice(i, 1);
+          renderClassificationTables();
+        });
+      });
+    }
+
+    // Events khi Bảng 3 (Animation) đang mở khóa chỉnh sửa:
+    if (!animLocked) {
       sgDom.clsAnimTbody.querySelectorAll('.sg-anim-code').forEach(inp => {
         inp.addEventListener('input', () => { sgState.animationTypes[Number(inp.dataset.idx)].code = inp.value; });
       });
@@ -2559,8 +2708,8 @@ function initSourceSuggester() {
         btn.addEventListener('click', async () => {
           const i = Number(btn.dataset.idx);
           const item = sgState.animationTypes[i];
-          const ok = await askConfirm(`Bạn có muốn xóa loại Animation/Lớp phủ "${item?.code || ''}" khỏi Bảng 2 không?`, {
-            title: '🗑 Xác nhận xóa Animation / Lớp phủ',
+          const ok = await askConfirm(`Bạn có muốn xóa loại Animation "${item?.code || ''}" khỏi Bảng 3 không?`, {
+            title: '🗑 Xác nhận xóa Animation',
             confirmText: 'Xóa dòng này',
             danger: true
           });
@@ -2858,14 +3007,27 @@ function initSourceSuggester() {
             image: x.image || localImgMap[x.code] || ''
           }));
         }
-        if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
-          const localAnimImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image && x.image !== '__none__').map(x => [`${x.group}_${x.code}`, x.image]));
-          sgState.animationTypes = mergeMissingDefaultAnims(res.animation_types.map(x => ({
+        if (Array.isArray(res.element_types) && res.element_types.length > 0) {
+          const localElImgMap = Object.fromEntries(sgState.elementTypes.filter(x => x.image && x.image !== '__none__').map(x => [x.code, x.image]));
+          sgState.elementTypes = mergeMissingDefaultElements(res.element_types.map(x => ({
             ...x,
-            image: x.image || localAnimImgMap[`${x.group}_${x.code}`] || ''
+            group: 'element',
+            image: x.image || localElImgMap[x.code] || ''
           })));
         }
-        saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+        if (Array.isArray(res.animation_types) && res.animation_types.length > 0) {
+          // Tương thích cả bản mới (chỉ có anim) và bản cũ (gộp element + anim)
+          const onlyAnims = res.animation_types.filter(x => !x.group || x.group === 'anim');
+          const localAnimImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image && x.image !== '__none__').map(x => [x.code, x.image]));
+          if (onlyAnims.length > 0) {
+            sgState.animationTypes = mergeMissingDefaultAnims(onlyAnims.map(x => ({
+              ...x,
+              group: 'anim',
+              image: x.image || localAnimImgMap[x.code] || ''
+            })));
+          }
+        }
+        saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
         if (sgDom.rulesInput) {
           sgState.rulesOriginalText = res.rules || '';
           sgDom.rulesInput.value = res.rules || '';
@@ -2917,20 +3079,28 @@ function initSourceSuggester() {
     sgDom.timelineCsv.value = sgState.csvPath;
   }
 
-  // Đảm bảo khóa mặc định khi khởi tạo
+  // Đảm bảo khóa mặc định & bố cục khi khởi tạo
   setRulesLocked(true);
+  setClsLayoutHorizontal(sgState.clsHorizontal);
   setClsCollapsed(sgState.clsCollapsed);
   setClsLocked(true);
   syncClassificationsEverywhere();
 
-  // --- Sự kiện cho 2 Bảng Phân loại Source & Animation (Nút chỉnh sửa riêng ở 2 góc) ---
+  // --- Sự kiện cho 3 Bảng Phân loại Source · Lớp phủ Design · Animation ---
+  if (sgDom.btnLayoutCls) {
+    sgDom.btnLayoutCls.addEventListener('click', () => {
+      setClsLayoutHorizontal(!sgState.clsHorizontal);
+      if (sgState.clsCollapsed) setClsCollapsed(false);
+    });
+  }
+
   if (sgDom.btnToggleCls) {
     sgDom.btnToggleCls.addEventListener('click', () => {
       setClsCollapsed(!sgState.clsCollapsed);
     });
   }
 
-  async function persistBothClassificationTables() {
+  async function persistAllClassificationTables() {
     sgState.sourceTypes = sgState.sourceTypes
       .map(s => ({
         code: String(s.code || '').trim(),
@@ -2940,10 +3110,21 @@ function initSourceSuggester() {
       }))
       .filter(s => s.code);
 
+    sgState.elementTypes = sgState.elementTypes
+      .map(e => ({
+        code: String(e.code || '').trim(),
+        group: 'element',
+        label: String(e.label || e.code || '').trim(),
+        param: String(e.param || '').trim(),
+        description: String(e.description || '').trim(),
+        image: String(e.image || '').trim()
+      }))
+      .filter(e => e.code);
+
     sgState.animationTypes = sgState.animationTypes
       .map(a => ({
         code: String(a.code || '').trim(),
-        group: a.group === 'anim' ? 'anim' : 'element',
+        group: 'anim',
         label: String(a.label || a.code || '').trim(),
         param: String(a.param || '').trim(),
         description: String(a.description || '').trim(),
@@ -2952,27 +3133,32 @@ function initSourceSuggester() {
       .filter(a => a.code);
 
     const srcImgMap = Object.fromEntries(sgState.sourceTypes.filter(x => x.image).map(x => [x.code, x.image]));
-    const animImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [`${x.group}_${x.code}`, x.image]));
+    const elImgMap = Object.fromEntries(sgState.elementTypes.filter(x => x.image).map(x => [x.code, x.image]));
+    const animImgMap = Object.fromEntries(sgState.animationTypes.filter(x => x.image).map(x => [x.code, x.image]));
 
-    saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+    saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
 
     if (typeof window.api.suggesterSaveClassifications === 'function') {
       const res = await window.api.suggesterSaveClassifications({
         source_types: sgState.sourceTypes,
+        element_types: sgState.elementTypes,
         animation_types: sgState.animationTypes
       });
       if (res && res.error) throw new Error(res.error);
       if (Array.isArray(res.source_types)) {
         sgState.sourceTypes = res.source_types.map(x => ({ ...x, image: x.image || srcImgMap[x.code] || '' }));
       }
-      if (Array.isArray(res.animation_types)) {
-        sgState.animationTypes = res.animation_types.map(x => ({ ...x, image: x.image || animImgMap[`${x.group}_${x.code}`] || '' }));
+      if (Array.isArray(res.element_types)) {
+        sgState.elementTypes = res.element_types.map(x => ({ ...x, group: 'element', image: x.image || elImgMap[x.code] || '' }));
       }
-      saveLocalClassifications(sgState.sourceTypes, sgState.animationTypes);
+      if (Array.isArray(res.animation_types)) {
+        sgState.animationTypes = res.animation_types.map(x => ({ ...x, group: 'anim', image: x.image || animImgMap[x.code] || '' }));
+      }
+      saveLocalClassifications(sgState.sourceTypes, sgState.elementTypes, sgState.animationTypes);
     }
   }
 
-  // --- Sự kiện File Input & Lightbox Phóng to Ảnh ví dụ ---
+  // --- Sự kiện File Input & Lightbox Phóng to Ảnh/Video ví dụ ---
   if (sgDom.clsFileInput) {
     sgDom.clsFileInput.addEventListener('change', () => {
       const file = sgDom.clsFileInput.files?.[0];
@@ -3014,24 +3200,24 @@ function initSourceSuggester() {
   if (sgDom.modalClsImgRemove) {
     sgDom.modalClsImgRemove.addEventListener('click', async () => {
       if (!activeLightbox) return;
-      const list = activeLightbox.tbl === 'src' ? sgState.sourceTypes : sgState.animationTypes;
+      const list = getListByTableKey(activeLightbox.tbl);
       const item = list?.[activeLightbox.idx];
       if (!item) return;
-      const ok = await askConfirm(`Bạn có muốn xóa ảnh ví dụ của "${item.code}" không?`, {
-        title: '🗑️ Xác nhận xóa ảnh ví dụ',
-        confirmText: 'Xóa ảnh',
+      const ok = await askConfirm(`Bạn có muốn xóa ảnh/video ví dụ của "${item.code}" không?`, {
+        title: '🗑️ Xác nhận xóa ảnh / video ví dụ',
+        confirmText: 'Xóa',
         danger: true
       });
       if (!ok) return;
       item.image = '__none__';
-      const origList = activeLightbox.tbl === 'src' ? sgState.origSourceTypes : sgState.origAnimationTypes;
+      const origList = getOrigListByTableKey(activeLightbox.tbl);
       if (origList && origList[activeLightbox.idx]) {
         origList[activeLightbox.idx].image = '__none__';
       }
-      await persistBothClassificationTables();
+      await persistAllClassificationTables();
       renderClassificationTables();
       updateLightboxModalView();
-      sgLog(`Đã xóa ảnh ví dụ của "${item.code}".`, 'info');
+      sgLog(`Đã xóa ảnh/video ví dụ của "${item.code}".`, 'info');
     });
   }
   if (sgDom.modalClsImgStage) {
@@ -3134,7 +3320,7 @@ function initSourceSuggester() {
       if (!ok) return;
 
       try {
-        await persistBothClassificationTables();
+        await persistAllClassificationTables();
         setSrcLocked(true);
         syncClassificationsEverywhere();
         sgLog(`✅ Đã lưu và đồng bộ Bảng 1 (${sgState.sourceTypes.length} loại Source) trên toàn hệ thống!`, 'success');
@@ -3144,7 +3330,71 @@ function initSourceSuggester() {
     });
   }
 
-  // --- GÓC 2: Bảng 2 (Phân loại Animation & Lớp phủ) ---
+  // --- GÓC 2: Bảng 2 (Lớp phủ Design — Element) ---
+  if (sgDom.btnEditEl) {
+    sgDom.btnEditEl.addEventListener('click', () => {
+      sgState.origElementTypes = JSON.parse(JSON.stringify(sgState.elementTypes));
+      setElLocked(false);
+    });
+  }
+
+  if (sgDom.btnCancelEl) {
+    sgDom.btnCancelEl.addEventListener('click', async () => {
+      const changed = JSON.stringify(sgState.elementTypes) !== JSON.stringify(sgState.origElementTypes);
+      if (changed) {
+        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng 2 (Lớp phủ Design).\nBạn có chắc muốn hủy các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa Bảng 2 (Lớp phủ Design)',
+          confirmText: 'Hủy thay đổi',
+          cancelText: 'Tiếp tục sửa',
+          danger: true
+        });
+        if (!ok) return;
+      }
+      sgState.elementTypes = JSON.parse(JSON.stringify(sgState.origElementTypes));
+      setElLocked(true);
+      syncClassificationsEverywhere();
+      sgLog('Đã hủy chỉnh sửa Bảng 2 (Lớp phủ Design) và khóa lại.', 'info');
+    });
+  }
+
+  if (sgDom.btnAddEl) {
+    sgDom.btnAddEl.addEventListener('click', () => {
+      sgState.elementTypes.push({
+        code: `lop_phu_moi_${sgState.elementTypes.length + 1}`,
+        group: 'element',
+        label: '🖼️ Lớp phủ mới',
+        param: 'ten_file.png',
+        description: 'Mô tả khi nào dùng lớp phủ khung/texture này...'
+      });
+      renderClassificationTables();
+      const wrap = sgDom.clsElTbody?.closest('.sg-cls-table-wrap');
+      if (wrap) wrap.scrollTop = wrap.scrollHeight;
+    });
+  }
+
+  if (sgDom.btnSaveEl) {
+    sgDom.btnSaveEl.addEventListener('click', async () => {
+      const ok = await askConfirm(
+        `Bạn có muốn lưu Bảng 2 (${sgState.elementTypes.length} Lớp phủ Design) vào hệ thống không?\nToàn bộ AI, Dropdown, element_map.json và các Tool sẽ cập nhật ngay lập tức.`,
+        {
+          title: '💾 Xác nhận lưu Bảng 2: Lớp phủ Design',
+          confirmText: 'Lưu & Áp dụng ngay'
+        }
+      );
+      if (!ok) return;
+
+      try {
+        await persistAllClassificationTables();
+        setElLocked(true);
+        syncClassificationsEverywhere();
+        sgLog(`✅ Đã lưu và đồng bộ Bảng 2 (${sgState.elementTypes.length} Lớp phủ Design) trên toàn hệ thống!`, 'success');
+      } catch (err) {
+        sgLog(`Lỗi lưu Bảng 2: ${err.message}`, 'error');
+      }
+    });
+  }
+
+  // --- GÓC 3: Bảng 3 (Phân loại Animation — Chuyển động) ---
   if (sgDom.btnEditAnim) {
     sgDom.btnEditAnim.addEventListener('click', () => {
       sgState.origAnimationTypes = JSON.parse(JSON.stringify(sgState.animationTypes));
@@ -3156,8 +3406,8 @@ function initSourceSuggester() {
     sgDom.btnCancelAnim.addEventListener('click', async () => {
       const changed = JSON.stringify(sgState.animationTypes) !== JSON.stringify(sgState.origAnimationTypes);
       if (changed) {
-        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng 2 (Animation & Lớp phủ).\nBạn có chắc muốn hủy các thay đổi này không?', {
-          title: '✖ Xác nhận hủy chỉnh sửa Bảng 2 (Animation)',
+        const ok = await askConfirm('Bạn đang có thay đổi chưa lưu trong Bảng 3 (Phân loại Animation).\nBạn có chắc muốn hủy các thay đổi này không?', {
+          title: '✖ Xác nhận hủy chỉnh sửa Bảng 3 (Animation)',
           confirmText: 'Hủy thay đổi',
           cancelText: 'Tiếp tục sửa',
           danger: true
@@ -3167,7 +3417,7 @@ function initSourceSuggester() {
       sgState.animationTypes = JSON.parse(JSON.stringify(sgState.origAnimationTypes));
       setAnimLocked(true);
       syncClassificationsEverywhere();
-      sgLog('Đã hủy chỉnh sửa Bảng 2 (Animation) và khóa lại.', 'info');
+      sgLog('Đã hủy chỉnh sửa Bảng 3 (Animation) và khóa lại.', 'info');
     });
   }
 
@@ -3176,9 +3426,9 @@ function initSourceSuggester() {
       sgState.animationTypes.push({
         code: `anim_moi_${sgState.animationTypes.length + 1}`,
         group: 'anim',
-        label: '🎬 Hiệu ứng mới',
+        label: '🎬 Chuyển động mới',
         param: '100->110',
-        description: 'Mô tả khi nào dùng hiệu ứng / lớp phủ này...'
+        description: 'Mô tả khi nào dùng chuyển động này...'
       });
       renderClassificationTables();
       const wrap = sgDom.clsAnimTbody?.closest('.sg-cls-table-wrap');
@@ -3189,21 +3439,21 @@ function initSourceSuggester() {
   if (sgDom.btnSaveAnim) {
     sgDom.btnSaveAnim.addEventListener('click', async () => {
       const ok = await askConfirm(
-        `Bạn có muốn lưu Bảng 2 (${sgState.animationTypes.length} loại Animation & Lớp phủ) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
+        `Bạn có muốn lưu Bảng 3 (${sgState.animationTypes.length} loại Animation) vào hệ thống không?\nToàn bộ AI, Dropdown và các Tool sẽ cập nhật ngay lập tức.`,
         {
-          title: '💾 Xác nhận lưu Bảng 2: Phân loại Animation & Lớp phủ',
+          title: '💾 Xác nhận lưu Bảng 3: Phân loại Animation',
           confirmText: 'Lưu & Áp dụng ngay'
         }
       );
       if (!ok) return;
 
       try {
-        await persistBothClassificationTables();
+        await persistAllClassificationTables();
         setAnimLocked(true);
         syncClassificationsEverywhere();
-        sgLog(`✅ Đã lưu và đồng bộ Bảng 2 (${sgState.animationTypes.length} loại Animation/Lớp phủ) trên toàn hệ thống!`, 'success');
+        sgLog(`✅ Đã lưu và đồng bộ Bảng 3 (${sgState.animationTypes.length} loại Animation) trên toàn hệ thống!`, 'success');
       } catch (err) {
-        sgLog(`Lỗi lưu Bảng 2: ${err.message}`, 'error');
+        sgLog(`Lỗi lưu Bảng 3: ${err.message}`, 'error');
       }
     });
   }

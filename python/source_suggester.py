@@ -88,214 +88,182 @@ DEFAULT_SOURCE_TYPES = [
     },
 ]
 
-DEFAULT_ANIMATION_TYPES = [
+DEFAULT_ELEMENT_TYPES = [
     {
         "code": "auto",
-        "group": "anim",
-        "label": "🔄 Mặc định (Auto)",
-        "param": "auto",
-        "description": "Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip",
-    },
-    {
-        "code": "zoom_in",
-        "group": "anim",
-        "label": "🔍 Phóng to (Zoom In)",
-        "param": "100->108",
-        "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh",
-    },
-    {
-        "code": "zoom_out",
-        "group": "anim",
-        "label": "🔎 Thu nhỏ (Zoom Out)",
-        "param": "108->100",
-        "description": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh",
-    },
-    {
-        "code": "static",
-        "group": "anim",
-        "label": "⏹️ Đứng yên (Static)",
-        "param": "100->100",
-        "description": "Đứng yên (100%) — không phóng to thu nhỏ",
-    },
-    {
-        "code": "auto",
-        "group": "element",
         "label": "✨ Tự động (Auto)",
         "param": "",
         "description": "Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame, còn lại không phủ)",
     },
     {
         "code": "none",
-        "group": "element",
         "label": "🚫 Không phủ (None)",
         "param": "",
         "description": "Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)",
     },
     {
         "code": "tv_retro",
-        "group": "element",
         "label": "📺 Khung Sofa TV",
         "param": "tv FRAME2.png",
         "description": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn",
     },
     {
         "code": "tv_green_frame",
-        "group": "element",
         "label": "📺 Khung màn hình xanh",
         "param": "ChatGPT Image 20_46_49 15 thg 8, 2026.png",
         "description": "Khung màn hình xanh viền đen (TV / Monitor Green Screen)",
     },
     {
         "code": "tv_crt_gemini",
-        "group": "element",
         "label": "📺 TV CRT cổ điển",
         "param": "Gemini_Generated_Image_xf3xbcxf3xbcxf3x.png",
         "description": "Khung TV CRT cổ điển trong phòng tối (Green Screen)",
     },
     {
         "code": "tv_sony",
-        "group": "element",
         "label": "📺 TV Sony bàn gỗ",
         "param": "large-vecteezy_vintage-television-with-green-screen-on-a-wooden-table_54047797_large.mp4",
         "description": "Khung TV Sony cổ điển trên bàn gỗ (Video)",
     },
     {
         "code": "tv_dolly",
-        "group": "element",
         "label": "📺 TV Dolly In",
         "param": "Television - Retro - Green Screen - Screen - Dolly In - Free Stock Video Footage 4K [ No Copyright ].webm",
         "description": "Hiệu ứng TV retro dolly-in (Video)",
     },
     {
         "code": "film_grain",
-        "group": "element",
         "label": "🎞️ Phim 8mm hồi ức",
         "param": "8mm Film Frame Overlay - Free Retro Dirt Vintage Green Screen Effect for Editing look premiere HD - YouTube.mp4",
         "description": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức",
     },
     {
         "code": "scout_frame",
-        "group": "element",
         "label": "📋 Hồ sơ Scout",
         "param": "scout frame.png",
         "description": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)",
     },
     {
         "code": "stats_table",
-        "group": "element",
         "label": "📊 Bảng / Vòng gốc (Vàng nâu)",
         "param": "Comparison Table List Infographic Graph.png",
         "description": "Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)",
     },
     {
         "code": "stats_table_1",
-        "group": "element",
         "label": "📊 Bảng / Vòng mẫu 1 (Xanh đậm)",
         "param": "Comparison Table List Infographic Graph (1).png",
         "description": "Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)",
     },
     {
         "code": "stats_table_2",
-        "group": "element",
         "label": "📊 Bảng / Vòng mẫu 2 (Đỏ đậm)",
         "param": "Comparison Table List Infographic Graph (2).png",
         "description": "Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)",
     },
     {
         "code": "stats_table_3",
-        "group": "element",
         "label": "📊 Bảng / Vòng mẫu 3 (Đen xám)",
         "param": "Comparison Table List Infographic Graph (3).png",
         "description": "Bảng thống kê / vòng tròn mẫu 3 (Đen xám)",
     },
     {
         "code": "stats_table_4",
-        "group": "element",
         "label": "📊 Bảng / Vòng mẫu 4 (Xanh lá)",
         "param": "Comparison Table List Infographic Graph (4).png",
         "description": "Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)",
     },
     {
         "code": "stats_table_5",
-        "group": "element",
         "label": "📊 Bảng / Vòng mẫu 5 (Tím)",
         "param": "Comparison Table List Infographic Graph (5).png",
         "description": "Bảng thống kê / vòng tròn mẫu 5 (Tím)",
     },
     {
         "code": "circle_gold",
-        "group": "element",
         "label": "🌑 Viền tối góc xanh (5.png)",
         "param": "5.png",
         "description": "Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu",
     },
     {
         "code": "circle_blue",
-        "group": "element",
         "label": "🔵 Vòng tròn xanh (o.png)",
         "param": "o.png",
         "description": "Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)",
     },
     {
         "code": "paper_texture",
-        "group": "element",
         "label": "📜 Giấy cũ 1 (Sáng)",
         "param": "paper texture.png",
         "description": "Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu",
     },
     {
         "code": "paper_texture_2",
-        "group": "element",
         "label": "📜 Giấy cũ 2 (Tối)",
         "param": "paper texture 2.png",
         "description": "Lớp phủ giấy cũ 2 tối (paper texture 2.png)",
     },
     {
         "code": "texture_dark",
-        "group": "element",
         "label": "🌑 Phủ xám tối (textture.png)",
         "param": "textture.png",
         "description": "Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương",
     },
     {
         "code": "texture_2",
-        "group": "element",
         "label": "⬜ Phủ nền sáng (texture2.png)",
         "param": "texture2.png",
         "description": "Lớp phủ nền sáng (texture2.png) cho toàn video",
     },
     {
         "code": "grid_orange",
-        "group": "element",
         "label": "🟧 Lưới cam (Video)",
         "param": "vecteezy_orange-grid-animation-with-gradient-color-background_48391360.mp4",
         "description": "Nền lưới cam chuyển động (grid animation video)",
     },
     {
         "code": "intro",
-        "group": "element",
         "label": "🎬 Video Intro (intro.mp4)",
         "param": "intro.mp4",
         "description": "Video Intro mở đầu (intro.mp4)",
     },
 ]
 
+DEFAULT_ANIMATION_TYPES = [
+    {
+        "code": "auto",
+        "label": "🔄 Mặc định (Auto)",
+        "param": "auto",
+        "description": "Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip",
+    },
+    {
+        "code": "zoom_in",
+        "label": "🔍 Phóng to (Zoom In)",
+        "param": "100->108",
+        "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh",
+    },
+    {
+        "code": "zoom_out",
+        "label": "🔎 Thu nhỏ (Zoom Out)",
+        "param": "108->100",
+        "description": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh",
+    },
+    {
+        "code": "static",
+        "label": "⏹️ Đứng yên (Static)",
+        "param": "100->100",
+        "description": "Đứng yên (100%) — không phóng to thu nhỏ",
+    },
+]
+
 VALID_LOAI = [x["code"] for x in DEFAULT_SOURCE_TYPES]
 LOAI_DESCRIPTIONS = {x["code"]: x["description"] for x in DEFAULT_SOURCE_TYPES}
 
-VALID_ELEMENTS = [x["code"] for x in DEFAULT_ANIMATION_TYPES if x["group"] == "element"]
-ELEMENT_DESCRIPTIONS = {
-    x["code"]: x["description"]
-    for x in DEFAULT_ANIMATION_TYPES
-    if x["group"] == "element"
-}
+VALID_ELEMENTS = [x["code"] for x in DEFAULT_ELEMENT_TYPES]
+ELEMENT_DESCRIPTIONS = {x["code"]: x["description"] for x in DEFAULT_ELEMENT_TYPES}
 
-VALID_ANIMS = [x["code"] for x in DEFAULT_ANIMATION_TYPES if x["group"] == "anim"]
-ANIM_DESCRIPTIONS = {
-    x["code"]: x["description"]
-    for x in DEFAULT_ANIMATION_TYPES
-    if x["group"] == "anim"
-}
+VALID_ANIMS = [x["code"] for x in DEFAULT_ANIMATION_TYPES]
+ANIM_DESCRIPTIONS = {x["code"]: x["description"] for x in DEFAULT_ANIMATION_TYPES}
 
 
 class SourceSuggester:
@@ -333,6 +301,7 @@ class SourceSuggester:
             self._save_classifications_raw(
                 {
                     "source_types": DEFAULT_SOURCE_TYPES,
+                    "element_types": DEFAULT_ELEMENT_TYPES,
                     "animation_types": DEFAULT_ANIMATION_TYPES,
                 }
             )
@@ -361,26 +330,48 @@ class SourceSuggester:
     # ------------------------------------------------------------------
 
     def _load_classifications_raw(self):
-        """Doc file classifications.json, tra ve dict {source_types, animation_types}."""
+        """Doc file classifications.json, tra ve dict {source_types, element_types, animation_types}."""
         try:
             if os.path.exists(self.classifications_path):
                 with open(self.classifications_path, "r", encoding="utf-8") as f:
                     data = json.load(f)
                 if isinstance(data, dict):
                     src = data.get("source_types")
+                    el = data.get("element_types")
                     anim = data.get("animation_types")
+                    # Tuong thich nguoc neu file cu gop element va anim trong animation_types
+                    if not isinstance(el, list) or len(el) == 0:
+                        if isinstance(anim, list) and any(x.get("group") == "element" for x in anim):
+                            el = [
+                                {k: v for k, v in x.items() if k != "group"}
+                                for x in anim
+                                if x.get("group") != "anim"
+                            ]
+                            anim = [
+                                {k: v for k, v in x.items() if k != "group"}
+                                for x in anim
+                                if x.get("group") == "anim"
+                            ]
+                        else:
+                            el = list(DEFAULT_ELEMENT_TYPES)
+                    else:
+                        el = [{k: v for k, v in x.items() if k != "group"} for x in el]
+                    if isinstance(anim, list) and len(anim) > 0:
+                        anim = [{k: v for k, v in x.items() if k != "group"} for x in anim if x.get("group") != "element"]
+                    else:
+                        anim = list(DEFAULT_ANIMATION_TYPES)
                     return {
                         "source_types": src
                         if isinstance(src, list) and len(src) > 0
-                        else DEFAULT_SOURCE_TYPES,
-                        "animation_types": anim
-                        if isinstance(anim, list) and len(anim) > 0
-                        else DEFAULT_ANIMATION_TYPES,
+                        else list(DEFAULT_SOURCE_TYPES),
+                        "element_types": el if len(el) > 0 else list(DEFAULT_ELEMENT_TYPES),
+                        "animation_types": anim if len(anim) > 0 else list(DEFAULT_ANIMATION_TYPES),
                     }
         except Exception as e:
             self._log(f"[Suggester] Loi doc classifications.json: {str(e)}")
         return {
             "source_types": list(DEFAULT_SOURCE_TYPES),
+            "element_types": list(DEFAULT_ELEMENT_TYPES),
             "animation_types": list(DEFAULT_ANIMATION_TYPES),
         }
 
@@ -388,10 +379,10 @@ class SourceSuggester:
         """Ghi classifications.json va dong bo sang element_map.json + backup ngoai."""
         with open(self.classifications_path, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
-        self._sync_element_map(data.get("animation_types", []))
+        self._sync_element_map(data.get("element_types", []))
         self._sync_external_backup()
 
-    def _sync_element_map(self, animation_types):
+    def _sync_element_map(self, element_types):
         """Cap nhat templates/element_map.json khi user chinh sua hoac them element moi."""
         try:
             el_map_data = {"auto_map": {}, "elements": {}}
@@ -400,9 +391,7 @@ class SourceSuggester:
                     el_map_data = json.load(f)
             elements_dict = el_map_data.get("elements", {})
 
-            for item in animation_types:
-                if item.get("group") != "element":
-                    continue
+            for item in element_types:
                 code = str(item.get("code", "")).strip()
                 param_file = str(item.get("param", "")).strip()
                 desc = str(item.get("description", "")).strip()
@@ -427,10 +416,11 @@ class SourceSuggester:
             self._log(f"[Suggester] Bo qua dong bo element_map.json: {str(e)}")
 
     def get_classifications(self):
-        """Tra ve du lieu 2 bang phan loai Source va Animation cho UI."""
+        """Tra ve du lieu 3 bang phan loai Source, Lop phu Design va Animation cho UI."""
         data = self._load_classifications_raw()
         return {
             "source_types": data["source_types"],
+            "element_types": data["element_types"],
             "animation_types": data["animation_types"],
             "classifications_path": self.classifications_path,
         }
@@ -472,8 +462,8 @@ class SourceSuggester:
             self._log(f"[Suggester] Bo qua copy cls_media ({code}): {str(e)}")
         return media_val
 
-    def save_classifications(self, source_types=None, animation_types=None):
-        """Luu cap nhat 2 bang Phan loai Source va Animation tu UI."""
+    def save_classifications(self, source_types=None, element_types=None, animation_types=None):
+        """Luu cap nhat 3 bang Phan loai Source, Lop phu Design va Animation tu UI."""
         current = self._load_classifications_raw()
 
         if source_types is not None and isinstance(source_types, list):
@@ -500,28 +490,47 @@ class SourceSuggester:
             if clean_src:
                 current["source_types"] = clean_src
 
+        if element_types is not None and isinstance(element_types, list):
+            clean_el = []
+            seen_el = set()
+            for it in element_types:
+                code = re.sub(
+                    r"[^a-zA-Z0-9_]",
+                    "_",
+                    str(it.get("code", "")).strip().lower(),
+                ).strip("_")
+                if not code or code in seen_el:
+                    continue
+                seen_el.add(code)
+                img_val = self._persist_cls_media("element", code, str(it.get("image", "")).strip())
+                clean_el.append(
+                    {
+                        "code": code,
+                        "label": str(it.get("label", code)).strip() or code,
+                        "param": str(it.get("param", "")).strip(),
+                        "description": str(it.get("description", "")).strip(),
+                        "image": img_val,
+                    }
+                )
+            if clean_el:
+                current["element_types"] = clean_el
+
         if animation_types is not None and isinstance(animation_types, list):
             clean_anim = []
-            seen_pairs = set()
+            seen_anim = set()
             for it in animation_types:
                 code = re.sub(
                     r"[^a-zA-Z0-9_]",
                     "_",
                     str(it.get("code", "")).strip().lower(),
                 ).strip("_")
-                group = (
-                    "anim"
-                    if str(it.get("group", "")).strip().lower() == "anim"
-                    else "element"
-                )
-                if not code or (group, code) in seen_pairs:
+                if not code or code in seen_anim:
                     continue
-                seen_pairs.add((group, code))
-                img_val = self._persist_cls_media(group, code, str(it.get("image", "")).strip())
+                seen_anim.add(code)
+                img_val = self._persist_cls_media("anim", code, str(it.get("image", "")).strip())
                 clean_anim.append(
                     {
                         "code": code,
-                        "group": group,
                         "label": str(it.get("label", code)).strip() or code,
                         "param": str(it.get("param", "")).strip(),
                         "description": str(it.get("description", "")).strip(),
@@ -533,7 +542,7 @@ class SourceSuggester:
 
         self._save_classifications_raw(current)
         self._log(
-            f"[Suggester] Da luu bang phan loai: {len(current['source_types'])} Source, {len(current['animation_types'])} Animation/Element"
+            f"[Suggester] Da luu 3 bang phan loai: {len(current['source_types'])} Source, {len(current['element_types'])} Lop phu Design, {len(current['animation_types'])} Animation"
         )
         return self.get_classifications()
 
@@ -549,24 +558,30 @@ class SourceSuggester:
                 loai_dict[c] = f"{lbl} — {desc}" if lbl and desc else (desc or lbl or c)
 
         element_dict = {}
-        anim_dict = {}
-        for x in cls_data["animation_types"]:
+        for x in cls_data["element_types"]:
             c = x.get("code", "").strip()
-            grp = x.get("group", "element")
             if not c:
                 continue
             lbl = x.get("label", "")
             desc = x.get("description", "")
             param = x.get("param", "")
             full_desc = desc or lbl or c
-            if param and grp == "anim" and param != "auto":
-                full_desc = f"{full_desc} (Thông số: {param})"
-            elif param and grp == "element":
+            if param:
                 full_desc = f"{full_desc} [File: {param}]"
-            if grp == "anim":
-                anim_dict[c] = full_desc
-            else:
-                element_dict[c] = full_desc
+            element_dict[c] = full_desc
+
+        anim_dict = {}
+        for x in cls_data["animation_types"]:
+            c = x.get("code", "").strip()
+            if not c:
+                continue
+            lbl = x.get("label", "")
+            desc = x.get("description", "")
+            param = x.get("param", "")
+            full_desc = desc or lbl or c
+            if param and param != "auto":
+                full_desc = f"{full_desc} (Thông số: {param})"
+            anim_dict[c] = full_desc
 
         if "auto" not in element_dict:
             element_dict["auto"] = ELEMENT_DESCRIPTIONS["auto"]

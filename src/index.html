@@ -939,34 +939,32 @@
           </div>
         </div>
 
-        <!-- VALID LOAI & VALID ANIMATION (2 container song song có thể kéo rộng / dài) -->
+        <!-- VALID LOAI, VALID ELEMENT & VALID ANIMATION (3 container song song có thể kéo rộng / dài) -->
         <div class="rules-cls-split" id="rules-cls-split">
           <div class="rules-card rules-cls-left">
-            <div class="rules-card-header">📂 Danh sách Phân loại Source (VALID_LOAI — Đồng bộ từ Bảng Phân loại)</div>
+            <div class="rules-card-header">📂 1. Danh sách Phân loại Source (VALID_LOAI — Track V1/V2)</div>
             <div class="rules-card-body">
               <div class="rules-loai-grid" id="rules-loai-grid">
-                <div class="rules-loai-item"><code>rai_1</code><span>Rải đơn</span></div>
-                <div class="rules-loai-item"><code>rai_2_1</code><span>Rải đôi (1)</span></div>
-                <div class="rules-loai-item"><code>rai_2_2</code><span>Rải đôi (2)</span></div>
-                <div class="rules-loai-item"><code>rai_3</code><span>Rải ba</span></div>
-                <div class="rules-loai-item"><code>rai_4</code><span>Rải bốn</span></div>
-                <div class="rules-loai-item"><code>phong_van</code><span>Phỏng vấn</span></div>
-                <div class="rules-loai-item"><code>training</code><span>Tập luyện</span></div>
-                <div class="rules-loai-item"><code>binh_luan_chay</code><span>Bình luận</span></div>
-                <div class="rules-loai-item"><code>khan_dai</code><span>Khán đài</span></div>
-                <div class="rules-loai-item"><code>anh_thong_so</code><span>Thống số</span></div>
-                <div class="rules-loai-item"><code>anh_thoi_diem</code><span>Thời điểm</span></div>
-                <div class="rules-loai-item"><code>anh_chung_bao</code><span>Chung báo</span></div>
-                <div class="rules-loai-item"><code>sa_ban</code><span>Sa bàn</span></div>
-                <div class="rules-loai-item rules-loai-default"><code>chua_phan_loai</code><span>Chưa phân loại (mặc định)</span></div>
+                <!-- Rendered dynamically by JS from classifications.json -->
               </div>
             </div>
           </div>
 
-          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner" data-min-w="220" title="Kéo trái/phải để chỉnh độ rộng 2 khung Phân loại (Nhấp đúp để đặt lại)"></div>
+          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner-1" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa khung Source và Lớp phủ Design (Nhấp đúp để đặt lại)"></div>
+
+          <div class="rules-card rules-cls-mid">
+            <div class="rules-card-header">🖼️ 2. Danh sách Lớp phủ Design (element — Track V3/V4)</div>
+            <div class="rules-card-body">
+              <div class="rules-loai-grid" id="rules-el-grid">
+                <!-- Rendered dynamically by JS from classifications.json -->
+              </div>
+            </div>
+          </div>
+
+          <div class="split-resizer inner-split-resizer" data-tab-key="rules-cls-inner-2" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa khung Lớp phủ Design và Animation (Nhấp đúp để đặt lại)"></div>
 
           <div class="rules-card rules-cls-right">
-            <div class="rules-card-header">🎬 Danh sách Phân loại Animation &amp; Lớp phủ (Đồng bộ từ Bảng Phân loại)</div>
+            <div class="rules-card-header">🎬 3. Danh sách Animation (anim — Chuyển động Keyframe)</div>
             <div class="rules-card-body">
               <div class="rules-loai-grid" id="rules-anim-grid">
                 <!-- Rendered dynamically by JS from classifications.json -->
@@ -1071,31 +1069,32 @@
         <div class="sg-left">
 
           <div class="sg-zone-banner zone-cls">
-            <div class="sg-zone-title">🗂️ KHU VỰC 1: PHÂN LOẠI &amp; QUY TẮC CHUẨN</div>
-            <div class="sg-zone-sub">Quản lý danh mục Source, Animation, ảnh ví dụ và nguyên tắc dạy AI dùng chung cho mọi video</div>
+            <div class="sg-zone-title">🗂️ KHU VỰC 1: 3 BẢNG PHÂN LOẠI (SOURCE · LỚP PHỦ DESIGN · ANIMATION) &amp; QUY TẮC</div>
+            <div class="sg-zone-sub">Mỗi đoạn Voice gồm 3 thành phần: <strong>1. Source</strong> (Clip/Ảnh gốc) → <strong>2. Lớp phủ Design</strong> (Khung TV, Phim 8mm, Bảng số liệu...) → <strong>3. Animation</strong> (Zoom In/Out, Static...)</div>
           </div>
 
-          <!-- 1. HAI BẢNG PHÂN LOẠI SOURCE & ANIMATION -->
+          <!-- 1. BA BẢNG PHÂN LOẠI: SOURCE - LỚP PHỦ DESIGN - ANIMATION -->
           <div class="sp-card sg-cls-card" id="sg-cls-card">
             <div class="sg-cls-header">
               <div class="sg-cls-title-group">
-                <span>📋 1. Bảng Phân loại Source &amp; Animation</span>
-                <span class="sg-stat-pill" id="sg-cls-summary">13 Source · 20 Animation</span>
+                <span>📋 1. Ba Bảng Phân loại: Source · Lớp phủ Design · Animation</span>
+                <span class="sg-stat-pill" id="sg-cls-summary">12 Source · 23 Lớp phủ · 4 Animation</span>
               </div>
               <div class="sg-cls-actions">
-                <button class="sg-mini-btn" id="sg-btn-toggle-cls" title="Thu gọn / Mở rộng 2 bảng phân loại">🔼 Thu gọn</button>
+                <button class="sg-mini-btn" id="sg-btn-layout-cls" title="Chuyển đổi hiển thị 3 bảng: Xếp dọc (rộng rãi) hoặc Xếp ngang 3 cột">📐 Đổi bố cục</button>
+                <button class="sg-mini-btn" id="sg-btn-toggle-cls" title="Thu gọn / Mở rộng 3 bảng phân loại">🔼 Thu gọn</button>
               </div>
             </div>
 
             <div class="sg-cls-body" id="sg-cls-body">
               <div class="sg-cls-hint">
-                💡 Bấm vào <code>Mã</code> bất kỳ để copy hoặc chèn thẳng xuống ô <strong>File quy tắc (.txt)</strong> ngay bên dưới. Bấm vào <strong>Ảnh ví dụ</strong> để phóng to.
+                💡 Bấm vào <code>Mã</code> bất kỳ để copy hoặc chèn thẳng xuống ô <strong>File quy tắc (.txt)</strong> bên dưới. Di chuột vào <strong>Video</strong> để chạy thử hiệu ứng, hoặc bấm vào <strong>Ảnh / Video</strong> để phóng to.
               </div>
 
               <div class="sg-cls-grid" id="sg-cls-grid">
                 <!-- BẢNG 1: PHÂN LOẠI SOURCE -->
-                <div class="sg-cls-panel sg-cls-panel-left">
-                  <div class="sg-cls-panel-head">
+                <div class="sg-cls-panel sg-cls-panel-1" id="sg-cls-panel-src">
+                  <div class="sg-cls-panel-head head-src">
                     <span>📂 Bảng 1: Phân loại Source (<code>loai_source</code> — Track V1/V2)</span>
                     <div class="sg-cls-panel-actions">
                       <span class="sg-badge" id="sg-src-status">🔒 Đang khóa</span>
@@ -1105,28 +1104,61 @@
                       <button class="btn-primary sg-cls-btn" id="sg-btn-save-src" style="display:none;">💾 Lưu</button>
                     </div>
                   </div>
-                  <div class="sg-cls-table-wrap">
+                  <div class="sg-cls-table-wrap" id="sg-cls-src-wrap">
                     <table class="sg-cls-table" id="sg-cls-source-table">
                       <thead>
                         <tr>
-                          <th style="width:100px;">Mã (code)</th>
-                          <th style="width:104px;">Tên hiển thị</th>
+                          <th style="width:96px;">Mã (code)</th>
+                          <th style="width:105px;">Tên hiển thị</th>
                           <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả hiệu ứng / phân loại">Ảnh / Video</th>
+                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả loại Source">Ảnh / Video</th>
                           <th class="sg-cls-col-del sg-src-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
                       <tbody id="sg-cls-source-tbody"></tbody>
                     </table>
                   </div>
+                  <div class="v-split-resizer" data-vkey="sg-cls-src-h" data-target="#sg-cls-src-wrap" data-min-h="110" data-max-h="560" title="Kéo lên/xuống để chỉnh chiều cao Bảng 1: Source (Nhấp đúp để đặt lại)"></div>
                 </div>
 
-                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner" data-min-w="190" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 1 và Bảng 2 (Nhấp đúp để đặt lại)"></div>
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner-1" data-min-w="180" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 1 và Bảng 2 (Nhấp đúp để đặt lại)"></div>
 
-                <!-- BẢNG 2: PHÂN LOẠI ANIMATION & LỚP PHỦ -->
-                <div class="sg-cls-panel sg-cls-panel-right">
-                  <div class="sg-cls-panel-head">
-                    <span>🎬 Bảng 2: Phân loại Animation &amp; Lớp phủ (<code>anim</code> &amp; <code>element</code>)</span>
+                <!-- BẢNG 2: PHÂN LOẠI LỚP PHỦ DESIGN (ELEMENT) -->
+                <div class="sg-cls-panel sg-cls-panel-2" id="sg-cls-panel-el">
+                  <div class="sg-cls-panel-head head-el">
+                    <span>🖼️ Bảng 2: Lớp phủ Design (<code>element</code> — Khung TV / Phim 8mm / Bảng số liệu V3/V4)</span>
+                    <div class="sg-cls-panel-actions">
+                      <span class="sg-badge" id="sg-el-status">🔒 Đang khóa</span>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-el">✏️ Chỉnh sửa</button>
+                      <button class="sg-mini-btn sg-cls-add-btn" id="sg-btn-add-el" style="display:none;">＋ Thêm</button>
+                      <button class="btn-secondary sg-cls-btn" id="sg-btn-cancel-el" style="display:none;">✖ Hủy</button>
+                      <button class="btn-primary sg-cls-btn" id="sg-btn-save-el" style="display:none;">💾 Lưu</button>
+                    </div>
+                  </div>
+                  <div class="sg-cls-table-wrap" id="sg-cls-el-wrap">
+                    <table class="sg-cls-table" id="sg-cls-el-table">
+                      <thead>
+                        <tr>
+                          <th style="width:96px;">Mã (code)</th>
+                          <th style="width:125px;">Tên hiển thị</th>
+                          <th style="width:115px;">File Lớp phủ (Elements)</th>
+                          <th>Mô tả ý nghĩa / Khi nào dùng để Design</th>
+                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả Lớp phủ Design">Ảnh / Video</th>
+                          <th class="sg-cls-col-del sg-el-col-del" style="width:32px; display:none;"></th>
+                        </tr>
+                      </thead>
+                      <tbody id="sg-cls-el-tbody"></tbody>
+                    </table>
+                  </div>
+                  <div class="v-split-resizer" data-vkey="sg-cls-el-h" data-target="#sg-cls-el-wrap" data-min-h="110" data-max-h="560" title="Kéo lên/xuống để chỉnh chiều cao Bảng 2: Lớp phủ Design (Nhấp đúp để đặt lại)"></div>
+                </div>
+
+                <div class="split-resizer inner-split-resizer" data-tab-key="sg-cls-inner-2" data-min-w="180" title="Kéo trái/phải để chỉnh độ rộng giữa Bảng 2 và Bảng 3 (Nhấp đúp để đặt lại)"></div>
+
+                <!-- BẢNG 3: PHÂN LOẠI ANIMATION (CHUYỂN ĐỘNG TRONG ĐOẠN ĐÓ) -->
+                <div class="sg-cls-panel sg-cls-panel-3" id="sg-cls-panel-anim">
+                  <div class="sg-cls-panel-head head-anim">
+                    <span>🎬 Bảng 3: Phân loại Animation (<code>anim</code> — Chuyển động Keyframe trong đoạn đó)</span>
                     <div class="sg-cls-panel-actions">
                       <span class="sg-badge" id="sg-anim-status">🔒 Đang khóa</span>
                       <button class="btn-secondary sg-cls-btn" id="sg-btn-edit-anim">✏️ Chỉnh sửa</button>
@@ -1135,27 +1167,25 @@
                       <button class="btn-primary sg-cls-btn" id="sg-btn-save-anim" style="display:none;">💾 Lưu</button>
                     </div>
                   </div>
-                  <div class="sg-cls-table-wrap">
+                  <div class="sg-cls-table-wrap" id="sg-cls-anim-wrap">
                     <table class="sg-cls-table" id="sg-cls-anim-table">
                       <thead>
                         <tr>
-                          <th style="width:86px;">Nhóm</th>
                           <th style="width:94px;">Mã (code)</th>
-                          <th style="width:112px;">Tên hiển thị</th>
-                          <th style="width:105px;">Thông số / File</th>
-                          <th>Mô tả ý nghĩa / Khi nào dùng</th>
-                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả hiệu ứng / phân loại">Ảnh / Video</th>
+                          <th style="width:118px;">Tên hiển thị</th>
+                          <th style="width:96px;">Thông số Keyframe</th>
+                          <th>Mô tả chuyển động / Khi nào dùng</th>
+                          <th style="width:78px; text-align:center;" title="Ảnh hoặc Video ngắn (5-10s) mô tả hiệu ứng Animation">Ảnh / Video</th>
                           <th class="sg-cls-col-del sg-anim-col-del" style="width:32px; display:none;"></th>
                         </tr>
                       </thead>
                       <tbody id="sg-cls-anim-tbody"></tbody>
                     </table>
                   </div>
+                  <div class="v-split-resizer" data-vkey="sg-cls-anim-h" data-target="#sg-cls-anim-wrap" data-min-h="100" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao Bảng 3: Animation (Nhấp đúp để đặt lại)"></div>
                 </div>
               </div>
               <input type="file" id="sg-cls-file-input" accept="image/*,video/mp4,video/webm,video/quicktime,video/*" style="display:none;" />
-
-              <div class="v-split-resizer" data-vkey="sg-cls-grid-h" data-target="#sg-cls-grid" data-min-h="140" data-max-h="680" title="Kéo lên/xuống để mở rộng hoặc thu gọn chiều cao 2 bảng Phân loại (Nhấp đúp để đặt lại)"></div>
             </div>
           </div>
 
@@ -1227,8 +1257,8 @@
         <div class="sg-right">
 
           <div class="sg-zone-banner zone-ai">
-            <div class="sg-zone-title">🤖 KHU VỰC 2: AI ĐƯA RA GỢI Ý CHO VIDEO ĐANG DỰNG</div>
-            <div class="sg-zone-sub">Chọn file Timeline CSV của bài mới → AI tự động phân tích &amp; gắn Source + Animation dựa theo Phân loại bên trái</div>
+            <div class="sg-zone-title">🤖 KHU VỰC 2: AI GỢI Ý (SOURCE + LỚP PHỦ DESIGN + ANIMATION) CHO VIDEO ĐANG DỰNG</div>
+            <div class="sg-zone-sub">Chọn file Timeline CSV của bài mới → AI tự động phân tích &amp; gắn <strong>Source</strong> + <strong>Lớp phủ Design</strong> + <strong>Animation</strong> dựa theo 3 bảng bên trái</div>
           </div>
 
           <!-- 1. CHỌN FILE TIMELINE CSV & CHẠY AI GỢI Ý -->
@@ -1248,7 +1278,7 @@
               </div>
               <div class="sg-ai-run-btn-col">
                 <button class="btn-generate sg-ai-run-btn" id="sg-btn-suggest">
-                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source + Animation</span>
+                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source · Lớp phủ · Animation</span>
                 </button>
               </div>
             </div>
@@ -1285,10 +1315,10 @@
                   <tr>
                     <th style="width:62px;">Đoạn/Câu</th>
                     <th style="min-width:210px;">Lời thoại (text)</th>
-                    <th style="width:135px;">Source chính</th>
-                    <th style="width:135px;">+ Source phụ</th>
-                    <th style="width:155px;">Lớp phủ (Element V3)</th>
-                    <th style="width:125px;">Chuyển động</th>
+                    <th style="width:138px;" title="Loại Source chính ở Track V1 (Lấy từ Bảng 1)">📂 Source chính</th>
+                    <th style="width:132px;" title="Loại Source phụ ghép thêm ở Track V2 (nếu có)">＋ Source phụ</th>
+                    <th style="width:168px;" title="Lớp phủ Design đè lên đoạn Clip/Ảnh (Khung TV, Phim 8mm, Bảng số liệu... — Lấy từ Bảng 2)">🖼️ Lớp phủ Design</th>
+                    <th style="width:142px;" title="Chuyển động Animation trong đoạn đó (Zoom In 100->108%, Zoom Out, Static... — Lấy từ Bảng 3)">🎬 Animation</th>
                     <th style="width:185px;">
                       Thời kỳ / Cầu thủ
                       <button class="sg-fill-btn" id="sg-btn-fill-thoiky"
