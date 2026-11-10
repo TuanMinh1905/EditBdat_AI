@@ -160,6 +160,8 @@
         </div>
       </section>
 
+      <div class="split-resizer" data-tab-key="create" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
+
       <!-- Right Panel: Prompt & Output -->
       <section class="panel prompt-panel">
         <div class="panel-header">
@@ -445,6 +447,8 @@
           </div>
         </div>
 
+        <div class="split-resizer" data-tab-key="clip-splitter" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
+
         <!-- ===== CỘT PHẢI: KẾT QUẢ ===== -->
         <div class="splitter-right">
 
@@ -669,6 +673,8 @@
             </div>
           </button>
         </div>
+
+        <div class="split-resizer" data-tab-key="premiere-gen" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
 
         <!-- ===== CỘT PHẢI: KẾT QUẢ ===== -->
         <div class="pgen-right">
@@ -999,29 +1005,37 @@
             <div>• <code>File .json</code> = <strong>Bài mẫu bạn đã làm sẵn</strong> (gặp câu nào na ná thì AI lôi bài mẫu tương ứng ra bắt chước).</div>
           </div>
 
-          <!-- Card 1: Quy tắc phong cách -->
+          <!-- Card 1: Hiển thị & Chỉnh sửa File .txt (Khóa mặc định) -->
           <div class="sp-card">
             <div class="sp-card-header" style="display:flex; justify-content:space-between; align-items:center;">
-              <span>📝 1. Quy tắc Source &amp; Animation của bạn</span>
-              <span class="sg-badge" id="sg-rules-status">Đã đồng bộ</span>
+              <span>📄 1. File quy tắc (.txt)</span>
+              <span class="sg-badge" id="sg-rules-status">🔒 Đang khóa</span>
             </div>
             <div class="sg-file-bar">
               <span class="sg-file-path" id="sg-rules-filepath" title="templates/source_style_rules.txt">📄 templates/source_style_rules.txt</span>
               <div style="display:flex; gap:4px; flex-shrink:0;">
                 <button class="sg-mini-btn" id="sg-btn-reload-rules" title="Đọc lại nội dung mới nhất từ file .txt">🔄 Đọc lại</button>
-                <button class="sg-mini-btn" id="sg-btn-open-rules" title="Mở trực tiếp file .txt trên máy">📂 Mở .txt</button>
+                <button class="sg-mini-btn" id="sg-btn-open-rules" title="Mở file .txt bằng app ngoài">📂 Mở ngoài</button>
               </div>
             </div>
             <p class="sp-hint" style="margin-bottom:6px;">
-              Nội dung bên dưới được đồng bộ trực tiếp với file <code>source_style_rules.txt</code>. Viết bằng lời của bạn — AI sẽ tuân thủ tuyệt đối mỗi lần gợi ý.
+              Hiển thị nguyên nội dung file <code>source_style_rules.txt</code>. Mặc định được <strong>khóa an toàn</strong> — bấm <strong>Chỉnh sửa</strong> khi cần sửa.
             </p>
-            <textarea id="sg-rules-input" class="sg-rules-textarea" rows="6"
-              placeholder="Bạn có thể viết bất cứ lúc nào. Ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none cho thoáng mắt&#10;- Câu hồi ức thời niên thiếu dùng Lớp phủ film_grain (phim nhựa 8mm)&#10;- Câu giới thiệu đội hình / ảnh chụp dùng anh_thoi_diem + khung tv_retro + zoom_in&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
-              <span class="sp-hint" id="sg-rules-char">0 ký tự</span>
-              <button class="btn-secondary" id="sg-btn-save-rules" style="padding:6px 12px; font-size:0.78rem;">
-                💾 Lưu quy tắc vào .txt
-              </button>
+            <textarea id="sg-rules-input" class="sg-rules-textarea is-locked" rows="8" readonly
+              placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
+              <span class="sp-hint" id="sg-rules-char">0 dòng · 0 ký tự</span>
+              <div style="display:flex; gap:6px; align-items:center;">
+                <button class="btn-secondary" id="sg-btn-edit-rules" style="padding:6px 12px; font-size:0.78rem;">
+                  ✏️ Chỉnh sửa
+                </button>
+                <button class="btn-secondary" id="sg-btn-cancel-rules" style="padding:6px 10px; font-size:0.78rem; display:none;">
+                  ✖ Hủy
+                </button>
+                <button class="btn-primary" id="sg-btn-save-rules" style="padding:6px 12px; font-size:0.78rem; display:none;">
+                  💾 Lưu &amp; Khóa lại
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1075,6 +1089,8 @@
           </div>
 
         </div>
+
+        <div class="split-resizer" data-tab-key="source-suggester" title="Kéo để phóng to / thu nhỏ (Nhấp đúp để đặt lại)"></div>
 
         <!-- CỘT PHẢI: BẢNG CHỈNH SỬA INLINE + XUẤT CSV -->
         <div class="sg-right">

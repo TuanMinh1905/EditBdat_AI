@@ -157,8 +157,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
-    minWidth: 1100,
-    minHeight: 700,
+    minWidth: 720,
+    minHeight: 560,
     frame: false,
     transparent: false,
     backgroundColor: '#0a0a0f',
@@ -396,18 +396,65 @@ ipcMain.handle('save-csv-file', async (event, defaultPath) => {
 });
 
 ipcMain.handle('suggester-get-state', async () => {
+  const rulesPath = path.join(__dirname, 'templates', 'source_style_rules.txt');
+  const examplesPath = path.join(__dirname, 'templates', 'source_examples.json');
   try {
-    return await callPython('/api/source-suggester/get-state', {});
+    const res = await callPython('/api/source-suggester/get-state', {});
+    if (res && !res.error) {
+      return {
+        ...res,
+        rules_path: res.rules_path || rulesPath,
+        examples_path: res.examples_path || examplesPath,
+      };
+    }
   } catch (e) {
-    return { error: e.message };
+    // Fallback doc truc tiep neu backend chua san sang
+  }
+  try {
+    const rules = fs.existsSync(rulesPath) ? fs.readFileSync(rulesPath, 'utf-8') : '';
+    let examples = [];
+    if (fs.existsSync(examplesPath)) {
+      const raw = JSON.parse(fs.readFileSync(examplesPath, 'utf-8'));
+      if (Array.isArray(raw)) {
+        examples = raw.map((ex, idx) => ({
+          id: ex.id || (idx + 1),
+          text: ex.text || '',
+          loai_source: ex.loai_source || 'rai_1',
+          element: ex.element || 'auto',
+          anim: ex.anim || 'auto',
+          thoi_ky: ex.thoi_ky || '',
+          note: ex.note || '',
+          has_embedding: Boolean(ex.embedding),
+          created_at: ex.created_at || ''
+        }));
+      }
+    }
+    return {
+      success: true,
+      rules,
+      examples,
+      total_examples: examples.length,
+      rules_path: rulesPath,
+      examples_path: examplesPath,
+    };
+  } catch (err) {
+    return { error: err.message };
   }
 });
 
 ipcMain.handle('suggester-save-rules', async (event, params) => {
+  const rulesPath = path.join(__dirname, 'templates', 'source_style_rules.txt');
   try {
-    return await callPython('/api/source-suggester/save-rules', params);
+    const res = await callPython('/api/source-suggester/save-rules', params);
+    if (res && !res.error) return res;
   } catch (e) {
-    return { error: e.message };
+    // Fallback ghi truc tiep
+  }
+  try {
+    fs.writeFileSync(rulesPath, (params && params.rules) ? params.rules : '', 'utf-8');
+    return { success: true };
+  } catch (err) {
+    return { error: err.message };
   }
 });
 

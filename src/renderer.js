@@ -801,6 +801,7 @@ function initEvents() {
 // --- Init ---
 async function init() {
   initEvents();
+  initSplitResizers();
   initClipSplitter();
   initPremiereGen();
   initSourceSuggester();
@@ -1615,6 +1616,8 @@ function initSourceSuggester() {
     defaultThoiKy: localStorage.getItem('sg_default_thoiky') || '',
     rulesPath: '',
     examplesPath: '',
+    rulesLocked: true,
+    rulesOriginalText: '',
     rows: [],
     examples: [],
     isSuggesting: false
@@ -1627,6 +1630,8 @@ function initSourceSuggester() {
     rulesFilepath: $('#sg-rules-filepath'),
     btnReloadRules: $('#sg-btn-reload-rules'),
     btnOpenRules: $('#sg-btn-open-rules'),
+    btnEditRules: $('#sg-btn-edit-rules'),
+    btnCancelRules: $('#sg-btn-cancel-rules'),
     btnSaveRules: $('#sg-btn-save-rules'),
     timelineCsv: $('#sg-timeline-csv'),
     btnBrowseCsv: $('#sg-btn-browse-csv'),
@@ -1668,6 +1673,43 @@ function initSourceSuggester() {
     const b = (p2 || '').trim();
     if (b && b !== a) return `${a} + ${b}`;
     return a;
+  }
+
+  function updateRulesMeta(text) {
+    if (!sgDom.rulesChar) return;
+    const str = String(text || '');
+    const lineCount = str.trim() ? str.split(/\r?\n/).filter(l => l.trim() !== '').length : 0;
+    sgDom.rulesChar.textContent = `${lineCount} dòng · ${str.length} ký tự`;
+  }
+
+  function setRulesLocked(locked) {
+    sgState.rulesLocked = Boolean(locked);
+    if (sgDom.rulesInput) {
+      sgDom.rulesInput.readOnly = sgState.rulesLocked;
+      sgDom.rulesInput.classList.toggle('is-locked', sgState.rulesLocked);
+    }
+    if (sgDom.rulesStatus) {
+      sgDom.rulesStatus.textContent = sgState.rulesLocked ? '🔒 Đang khóa' : '🔓 Đang chỉnh sửa';
+      sgDom.rulesStatus.classList.toggle('unsaved', !sgState.rulesLocked);
+    }
+    if (sgDom.btnEditRules) sgDom.btnEditRules.style.display = sgState.rulesLocked ? 'inline-flex' : 'none';
+    if (sgDom.btnCancelRules) sgDom.btnCancelRules.style.display = sgState.rulesLocked ? 'none' : 'inline-flex';
+    if (sgDom.btnSaveRules) sgDom.btnSaveRules.style.display = sgState.rulesLocked ? 'none' : 'inline-flex';
+
+    if (!sgState.rulesLocked && sgDom.rulesInput) {
+      sgState.rulesOriginalText = sgDom.rulesInput.value;
+      sgDom.rulesInput.focus();
+    }
+  }
+
+  async function saveRulesText(newText, logMsg) {
+    const res = await window.api.suggesterSaveRules({ rules: newText });
+    if (res && res.error) throw new Error(res.error);
+    sgState.rulesOriginalText = newText;
+    if (sgDom.rulesInput) sgDom.rulesInput.value = newText;
+    updateRulesMeta(newText);
+    setRulesLocked(true);
+    if (logMsg) sgLog(logMsg, 'success');
   }
 
   function renderExamples() {
@@ -1873,12 +1915,10 @@ function initSourceSuggester() {
           sgDom.examplesFilepath.textContent = `📄 ${sgState.examplesPath}`;
         }
         if (sgDom.rulesInput) {
+          sgState.rulesOriginalText = res.rules || '';
           sgDom.rulesInput.value = res.rules || '';
-          if (sgDom.rulesChar) sgDom.rulesChar.textContent = `${(res.rules || '').length} ký tự`;
-          if (sgDom.rulesStatus) {
-            sgDom.rulesStatus.textContent = 'Đã đồng bộ';
-            sgDom.rulesStatus.classList.remove('unsaved');
-          }
+          updateRulesMeta(res.rules || '');
+          setRulesLocked(true);
         }
         sgState.examples = res.examples || [];
         renderExamples();
@@ -1923,30 +1963,41 @@ function initSourceSuggester() {
     sgDom.timelineCsv.value = sgState.csvPath;
   }
 
-  // Khi rules thay đổi
+  // Đảm bảo khóa mặc định khi khởi tạo
+  setRulesLocked(true);
+
+  // Khi rules thay đổi trong lúc mở khóa
   if (sgDom.rulesInput) {
     sgDom.rulesInput.addEventListener('input', () => {
-      const len = sgDom.rulesInput.value.length;
-      if (sgDom.rulesChar) sgDom.rulesChar.textContent = `${len} ký tự`;
-      if (sgDom.rulesStatus) {
-        sgDom.rulesStatus.textContent = 'Chưa lưu';
-        sgDom.rulesStatus.classList.add('unsaved');
-      }
+      updateRulesMeta(sgDom.rulesInput.value);
     });
   }
 
-  // Lưu quy tắc
+  // Mở khóa để chỉnh sửa file .txt trực tiếp
+  if (sgDom.btnEditRules) {
+    sgDom.btnEditRules.addEventListener('click', () => {
+      setRulesLocked(false);
+    });
+  }
+
+  // Hủy chỉnh sửa & khóa lại nội dung cũ
+  if (sgDom.btnCancelRules) {
+    sgDom.btnCancelRules.addEventListener('click', () => {
+      if (sgDom.rulesInput) {
+        sgDom.rulesInput.value = sgState.rulesOriginalText || '';
+        updateRulesMeta(sgDom.rulesInput.value);
+      }
+      setRulesLocked(true);
+      sgLog('Đã hủy chỉnh sửa và khóa lại file .txt.', 'info');
+    });
+  }
+
+  // Lưu & Khóa lại
   if (sgDom.btnSaveRules) {
     sgDom.btnSaveRules.addEventListener('click', async () => {
       try {
         const rules = sgDom.rulesInput ? sgDom.rulesInput.value : '';
-        const res = await window.api.suggesterSaveRules({ rules });
-        if (res.error) throw new Error(res.error);
-        if (sgDom.rulesStatus) {
-          sgDom.rulesStatus.textContent = 'Đã lưu ✓';
-          sgDom.rulesStatus.classList.remove('unsaved');
-        }
-        sgLog('Đã lưu quy tắc phong cách vào file source_style_rules.txt.', 'success');
+        await saveRulesText(rules, 'Đã lưu file source_style_rules.txt và khóa lại.');
       } catch (err) {
         sgLog(`Lỗi lưu quy tắc: ${err.message}`, 'error');
       }
@@ -2058,10 +2109,9 @@ function initSourceSuggester() {
 
         if (res.error) throw new Error(res.error);
 
-        if (sgDom.rulesStatus) {
-          sgDom.rulesStatus.textContent = 'Đã đồng bộ';
-          sgDom.rulesStatus.classList.remove('unsaved');
-        }
+        sgState.rulesOriginalText = rulesText;
+        updateRulesMeta(rulesText);
+        setRulesLocked(true);
 
         sgState.rows = (res.rows || []).map(r => ({
           ...r,
@@ -2076,7 +2126,7 @@ function initSourceSuggester() {
       } finally {
         sgState.isSuggesting = false;
         sgDom.btnSuggest.disabled = false;
-        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '🤖 AI Gợi ý Source theo phong cách của tôi';
+        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '🤖 AI Gợi ý Source + Animation';
       }
     });
   }
@@ -2168,4 +2218,64 @@ function initSourceSuggester() {
 
   // Thử tải ngay nếu backend đã chạy
   loadBackendState();
+}
+
+// ============================================================
+// SPLIT RESIZER — Kéo phóng to / thu nhỏ 2 cột cho mọi Tab
+// ============================================================
+
+function initSplitResizers() {
+  const resizers = $$('.split-resizer');
+  if (!resizers.length) return;
+
+  resizers.forEach(resizer => {
+    const container = resizer.parentElement;
+    const leftPane = resizer.previousElementSibling;
+    const tabKey = resizer.dataset.tabKey || 'default';
+    if (!container || !leftPane) return;
+
+    const storageKey = `split_w_${tabKey}`;
+    const savedW = parseInt(localStorage.getItem(storageKey), 10);
+    if (!Number.isNaN(savedW) && savedW >= 240) {
+      leftPane.style.setProperty('--left-w', `${savedW}px`);
+    }
+
+    let isDragging = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', e => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      isDragging = true;
+      startX = e.clientX;
+      startWidth = leftPane.getBoundingClientRect().width;
+      resizer.classList.add('active');
+      document.body.classList.add('is-resizing');
+    });
+
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      const containerWidth = container.getBoundingClientRect().width;
+      const minW = 240;
+      const maxW = Math.max(minW, Math.min(containerWidth * 0.75, containerWidth - 280));
+      const newW = Math.round(Math.min(maxW, Math.max(minW, startWidth + (e.clientX - startX))));
+      leftPane.style.setProperty('--left-w', `${newW}px`);
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      resizer.classList.remove('active');
+      document.body.classList.remove('is-resizing');
+      const finalW = Math.round(leftPane.getBoundingClientRect().width);
+      localStorage.setItem(storageKey, String(finalW));
+    });
+
+    // Nhấp đúp để đặt lại kích thước mặc định
+    resizer.addEventListener('dblclick', () => {
+      leftPane.style.removeProperty('--left-w');
+      localStorage.removeItem(storageKey);
+    });
+  });
 }
