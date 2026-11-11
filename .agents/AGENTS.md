@@ -505,3 +505,4 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - UI luu ket qua theo noi dung CSV, giu nhom da xong khi request sau loi. Chay tiep chi gui dong chua xong. Khong xuat CSV khi con dong pending/analyzing/error; khong hoc tu dong manual/error.
 - Source trong o CSV phai giu trong khi xuat XML, them marker CAN LAM THU CONG; khong goi fallback pick_clips cho dong nay.
 - Tests: python/test_source_suggester.py, src/testSourceSuggester.js; test_assets.py bao gom truong hop source trong. Test Gemini bang mock; test API that can quyen su dung khoa va gui noi dung ra dich vu.
+- API key da luu nam o state.settings.geminiApiKey (khong phai apiKey); ca phan tich va luu vi du phai dung dung ten truong nay. Test fallback khi o nhap key trong nam trong src/testSourceSuggester.js.

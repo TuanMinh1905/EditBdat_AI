@@ -7,7 +7,8 @@
 - AI phải chọn mã cụ thể theo 5 bảng và quy tắc hiện tại, có lý do; hỗ trợ lớp phủ ghép `tv_retro + texture_2`, Animation tùy chỉnh và `si`. Quy tắc gửi trong request chỉ dùng cho lượt chạy, không tự lưu đè file quy tắc.
 - Dòng làm thủ công: `needs_review=true`, `analysis_status=manual`, các lựa chọn để trống và tô vàng. Kết quả thiếu, trùng, sai mã hoặc `auto` được yêu cầu bổ sung một lần; nếu vẫn sai thì đánh dấu lỗi, không thay bằng mặc định hay độ tin cậy 75%.
 - Lưu kết quả trong `localStorage.sg_analysis` theo đường dẫn và nội dung CSV; khôi phục khi mở lại mà không tự gọi AI. Không xuất khi còn dòng chờ/lỗi; không đưa dòng thủ công/lỗi vào kho ví dụ. CSV vẫn giữ 10 cột; XML để trống cảnh có Source trống và đặt marker làm thủ công, không lấy clip ngẫu nhiên từ catalog.
-- Kiểm thử: `node --test src/testSourceSuggester.js src/testAssetPreviewLoading.js src/testAssetVerification.js src/testBackendStartup.js`; từ `python/`, chạy `..\.venv\Scripts\python.exe -m unittest test_source_suggester test_assets`. Gemini được mô phỏng trong các test; thử với API thật chưa thực hiện do cơ chế xét duyệt chặn việc dùng khóa đã lưu và gửi kịch bản ra ngoài.
+- Kiểm thử: `node --test src/testSourceSuggester.js src/testAssetPreviewLoading.js src/testAssetVerification.js src/testBackendStartup.js`; từ `python/`, chạy `..\.venv\Scripts\python.exe -m unittest test_source_suggester test_assets`. Gemini được mô phỏng trong các test. Sau khi user cho phép dùng khóa đã lưu và gửi kịch bản, đã gọi Gemini thật với 12 câu mẫu cùng toàn bài 406 dòng; dịch vụ trả `503 UNAVAILABLE` (quá tải), chưa có kết quả phân loại thật để xác nhận.
+- Đọc API key dự phòng từ `state.settings.geminiApiKey` đúng với cấu hình ứng dụng (trước đó phần gợi ý/huấn luyện dùng nhầm `apiKey`); đã thêm kiểm thử khi ô nhập key trống nhưng cấu hình đã lưu có key.
 - Cần đóng/mở lại ứng dụng để nạp Python backend mới, rồi chọn CSV. `Ctrl+R` chỉ tải lại giao diện.
 
 ---

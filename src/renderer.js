@@ -4291,7 +4291,7 @@ function initSourceSuggester() {
         return;
       }
 
-      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
+      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.geminiApiKey) || '';
       if (!apiKey) {
         sgLog('Chưa có Gemini API Key! Vui lòng vào tab Cài đặt để nhập API Key.', 'error');
         return;
@@ -4389,7 +4389,7 @@ function initSourceSuggester() {
       });
       if (!ok) return;
 
-      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
+      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.geminiApiKey) || '';
       sgDom.btnLearn.disabled = true;
       sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
       try {

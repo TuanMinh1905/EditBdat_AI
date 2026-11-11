@@ -134,6 +134,15 @@ test('missing API key leaves unclassified rows and gives an actionable message',
   assert.ok(h.calls.log.some(([message]) => /API Key/.test(message)));
 });
 
+test('uses the saved geminiApiKey when the settings input is empty', async () => {
+  const h = harness({ key: '', count: 1 });
+  h.context.state.settings.geminiApiKey = 'saved-test-key';
+  await h.sgDom.btnBrowseCsv.click();
+  assert.equal(h.calls.ai.length, 1);
+  assert.equal(h.calls.ai[0].api_key, 'saved-test-key');
+  assert.equal(h.sgState.rows[0].analysis_status, 'complete');
+});
+
 test('missing or reordered API results cannot become successful rows', async () => {
   for (const bad of ['missing', 'reordered']) {
     const h = harness({ suggest: p => ({ rows: bad === 'missing' ? p.rows.slice(0, 1).map(complete) : p.rows.map(complete).reverse() }) });
