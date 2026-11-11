@@ -3474,6 +3474,9 @@ function initSourceSuggester() {
               ${optsEl}
             </select>
           </td>
+          <td style="text-align:center;">
+            <input type="checkbox" class="sg-chk-si" data-idx="${idx}" ${r.si === 'yes' ? 'checked' : ''} title="Bật/Tắt tách người khỏi nền ảnh (Subject Isolation) cho câu này">
+          </td>
           <td>
             <select class="sg-select sg-sel-anim" data-idx="${idx}">
               ${optsAnim}
@@ -3525,6 +3528,14 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].element = sel.value;
+        sgState.rows[i].confidence = 1.0;
+      });
+    });
+
+    sgDom.tbody.querySelectorAll('.sg-chk-si').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const i = Number(chk.dataset.idx);
+        sgState.rows[i].si = chk.checked ? 'yes' : '';
         sgState.rows[i].confidence = 1.0;
       });
     });
@@ -3657,6 +3668,7 @@ function initSourceSuggester() {
         anim: r.anim || 'auto',
         bgm: r.bgm || 'auto',
         sfx: r.sfx || 'auto',
+        si: r.si || '',
         thoi_ky: r.thoi_ky || defTk || '',
         confidence: null,
         reason: '',

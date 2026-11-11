@@ -41,7 +41,7 @@ Voice.mp3/mp4 (30p) + Word Kịch bản ──(CapCut + Whisper)──► 1_CSV_
   • AI đề xuất bộ 5 thông số (loai_source, element, anim, bgm, sfx) + thoi_ky cho từng dòng Time
   • User chỉnh sửa trực tiếp trên bảng Timeline 11 cột
   • Lưu bài mẫu vào Kho ví dụ để AI học thông minh hơn qua từng dự án
-  • Xuất file 2_CSV_PhanLoaiSource.csv (9 cột)
+  • Xuất file 2_CSV_PhanLoaiSource.csv (10 cột, có thêm cột si cho Subject Isolation)
     │
     ▼
 [Bước 2 — Tool B: Cắt Clip (Tab ✂️ Cắt Clip)] ✅
@@ -97,7 +97,7 @@ Toàn bộ hệ thống phân loại được tổ chức thành **5 bảng riê
 - **Cột Phải (Phần Phân loại & Kết quả Timeline)**:
   - **Thanh lọc Filter Pills 5 bảng**: `Tất cả (5)`, `1. Source`, `2. Lớp phủ`, `3. Animation`, `4. Sound nền`, `5. Sound Effect`.
   - **Mỗi bảng có cụm nút độc lập ở góc phải**: `🔒 Đang khóa` / `✏️ Chỉnh sửa` / `＋ Thêm` / `💾 Lưu` / `✖ Hủy`.
-  - **Bảng Timeline 11 cột đầy đủ**: `Đoạn/Câu`, `Lời thoại`, `Source chính`, `+ Source phụ`, `Lớp phủ (Element V3)`, `Chuyển động (Anim)`, `🎵 Sound nền`, `🔊 Sound Effect`, `Thời kỳ / Cầu thủ`, `Ghi chú dạy AI`, `Độ tự tin`.
+  - **Bảng Timeline 12 cột đầy đủ**: `Đoạn/Câu`, `Lời thoại`, `Source chính`, `+ Source phụ`, `Lớp phủ (Element V3)`, `👤 Tách nền (SI)`, `Chuyển động (Anim)`, `🎵 Sound nền`, `🔊 Sound Effect`, `Thời kỳ / Cầu thủ`, `Ghi chú dạy AI`, `Độ tự tin`.
 
 ### 2. Kéo giãn (Resizable) & Responsive toàn bộ container:
 - **Kéo rộng ngang (`.split-resizer` & `.inner-split-resizer`)**: 2 cột chính của mọi tab và giữa các bảng phân loại nằm cạnh nhau.
@@ -135,13 +135,13 @@ Code_AI/
 
 ---
 
-## 6. Cấu trúc CSV Xuất Ra (`2_CSV_PhanLoaiSource.csv` — 9 Cột)
+## 6. Cấu trúc CSV Xuất Ra (`2_CSV_PhanLoaiSource.csv` — 10 Cột)
 
 ```csv
-doan,cau,y,loai_source,thoi_ky,element,anim,bgm,sfx
-1,1,1,rai_1,Euro 2008 · Tây Ban Nha / Xavi,auto,zoom_in,bgm_default,none
-1,1,1.1,anh_thong_so + rai_1,Euro 2008 · Xavi / Tây Ban Nha,stats_table_1,static,bgm_default,data_beep
-1,2,,rai_4 + anh_thoi_diem,Euro 2008 · Tây Ban Nha / Xavi,scout_frame,zoom_out,bgm_momentum,camera_shutter
+doan,cau,y,loai_source,thoi_ky,element,anim,bgm,sfx,si
+1,1,1,rai_1,Euro 2008 · Tây Ban Nha / Xavi,auto,zoom_in,bgm_default,none,
+1,1,1.1,anh_thong_so + rai_1,Euro 2008 · Xavi / Tây Ban Nha,stats_table_1,static,bgm_default,data_beep,
+1,2,,rai_4 + anh_thoi_diem,Euro 2008 · Tây Ban Nha / Xavi,scout_frame,zoom_out,bgm_momentum,camera_shutter,yes
 ```
 
 ---

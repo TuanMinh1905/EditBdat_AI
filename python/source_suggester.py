@@ -1273,7 +1273,7 @@ class SourceSuggester:
         Neu element == 'auto' -> de trong '' trong CSV de Premiere XML Generator dung auto_map mac dinh.
         """
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
-        fieldnames = ["doan", "cau", "y", "loai_source", "thoi_ky", "element", "anim", "bgm", "sfx"]
+        fieldnames = ["doan", "cau", "y", "loai_source", "thoi_ky", "element", "anim", "bgm", "sfx", "si"]
 
         with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -1283,6 +1283,7 @@ class SourceSuggester:
                 anim_val = self.sanitize_anim(r.get("anim", "auto"))
                 bgm_val = self.sanitize_bgm(r.get("bgm", "auto"))
                 sfx_val = self.sanitize_sfx(r.get("sfx", "auto"))
+                si_val = str(r.get("si", "")).strip().lower()
                 out_row = {
                     "doan": str(r.get("doan", "")).strip(),
                     "cau": str(r.get("cau", "")).strip(),
@@ -1295,6 +1296,7 @@ class SourceSuggester:
                     "anim": anim_val,
                     "bgm": bgm_val,
                     "sfx": sfx_val,
+                    "si": "yes" if si_val in ("yes", "true", "1") else "",
                 }
                 writer.writerow(out_row)
 
@@ -1558,6 +1560,7 @@ class SourceSuggester:
                     "anim": anim,
                     "bgm": bgm,
                     "sfx": sfx,
+                    "si": "yes" if str(ai_item.get("si", "")).strip().lower() in ("yes", "true", "1") else "",
                     "thoi_ky": thoi_ky,
                     "confidence": round(conf, 2),
                     "reason": reason,
