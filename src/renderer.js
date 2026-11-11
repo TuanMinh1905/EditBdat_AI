@@ -2436,6 +2436,7 @@ function initSourceSuggester() {
   let assetPreviewRequest = 0;
 
   async function refreshAssetPreviews() {
+    if (!state.backendReady) return;
     const requestId = ++assetPreviewRequest;
     try {
       const result = await window.api.assetPreviews(getAssetRoots());
@@ -4333,11 +4334,13 @@ function initSourceSuggester() {
       if (sgState.csvPath) {
         await loadCsvFile(sgState.csvPath);
       }
+    } else {
+      sgLog('Backend Python chưa chạy nên chưa tải được preview. Hãy xem nhật ký lỗi Python ở tab Tạo mới.', 'error');
     }
   });
 
-  // Thử tải ngay nếu backend đã chạy
-  loadBackendState();
+  // Wait for the health-checked backend-ready event before making API calls.
+  if (state.backendReady) loadBackendState();
 }
 
 // ============================================================

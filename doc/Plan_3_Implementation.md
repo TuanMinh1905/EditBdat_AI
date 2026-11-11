@@ -53,3 +53,13 @@ node --check src/renderer.js
 Backend kiểm tra: dry-run/apply/idempotency, trùng tên, rollback khi lỗi ghi metadata, sound trong thư mục con, auto/none/ghép mã/texture, mã lạ, thiếu root, CSV sai, chặn đường dẫn vượt thư mục, preview Range, đường dẫn XML, bỏ qua tài nguyên thiếu và giữ khoảng BGM tắt.
 
 Frontend kiểm tra luồng verify → modal → export bằng mã hàm thực tế với DOM mô phỏng. Đã kiểm tra cú pháp toàn bộ Python bằng `ast.parse`, JavaScript bằng `node --check` và đối chiếu trực tiếp mapping với thư viện thật. Chưa kiểm thử bằng thao tác trong cửa sổ Electron/Premiere; không khởi chạy `npm start` từ terminal agent theo quy tắc dự án.
+
+## Sửa kết nối preview khi mở ứng dụng (2026-11-11)
+
+Thông báo `connect ECONNREFUSED 127.0.0.1:5599` nghĩa là backend chưa nhận kết nối tại thời điểm gọi preview. Luồng cũ tải preview ngay khi UI mở và coi dòng stdout `Server ready` là đã kết nối, dù Python in dòng này trước khi bind cổng.
+
+- Electron ưu tiên Python trong `.venv` của project nếu có; nếu không có thì dùng lệnh Python hệ thống như trước.
+- Sau tín hiệu stdout, Electron đợi `GET /api/health` trả `200` và `status=ok` mới phát `backend-ready`.
+- Preview chờ backend sẵn sàng. Lỗi spawn, traceback lúc khởi động, timeout và backend dừng được thông báo rõ hơn.
+- Kiểm thử thêm: `node --test src/testBackendStartup.js` (4 ca mô phỏng); `node src/testBackendStartup.js --smoke` chạy cả 4 ca và 1 ca dùng Python thật trên cổng riêng, gọi API preview rồi dừng tiến trình thử. Tất cả đạt.
+- Cần đóng hẳn rồi mở lại ứng dụng để áp dụng thay đổi `main.js`.

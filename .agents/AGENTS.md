@@ -466,3 +466,12 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 |---|---|---|
 | 2026-11-11 | Hoàn tất Plan 3: đổi tên 30 file, đồng bộ mapping, preview qua API, modal xác minh trước Gen XML, thêm Sounds picker, bỏ qua file tài nguyên thiếu và kiểm thử hồi quy | Mã phân loại trỏ đúng file; vẫn dựng thử được khi chưa đủ tài nguyên |
 
+
+## 13. Backend readiness và lỗi preview lúc khởi động (2026-11-11)
+
+- Lỗi mới: `ECONNREFUSED 127.0.0.1:5599` khi preview chạy trước backend. Dòng stdout `Server ready` trong Python xuất hiện trước bind cổng nên không được coi là bằng chứng HTTP đã sẵn sàng.
+- `startPython()` ưu tiên `.venv` của project (nếu tồn tại), kiểm tra `/api/health` sau tín hiệu stdout rồi mới phát `backend-ready`. Preview phải đợi readiness này.
+- Luôn xử lý sự kiện `error` của child process, lưu đoạn stderr cuối để báo lỗi import và cập nhật trạng thái nếu backend thoát sau khi khởi động.
+- File test bổ sung: `src/testBackendStartup.js`; chạy mô phỏng bằng `node --test src/testBackendStartup.js`, chạy Python thật trên cổng riêng bằng `node src/testBackendStartup.js --smoke`. Không khởi chạy Electron từ terminal agent.
+- Thay đổi main/preload/backend yêu cầu khởi động lại toàn bộ app, không chỉ reload renderer.
+

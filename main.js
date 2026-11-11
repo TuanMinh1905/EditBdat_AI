@@ -45,22 +45,77 @@ function startPython() {
   return new Promise((resolve, reject) => {
     const pythonScript = path.join(__dirname, 'python', 'main.py');
 
-    // Try python, then python3
-    const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+    const localPython = path.join(__dirname, '.venv', process.platform === 'win32' ? 'Scripts/python.exe' : 'bin/python');
+    const pythonCmd = fs.existsSync(localPython)
+      ? localPython : (process.platform === 'win32' ? 'python' : 'python3');
+    console.log('[Python] Interpreter:', pythonCmd);
 
-    pythonProcess = spawn(pythonCmd, [pythonScript, '--port', String(PYTHON_PORT)], {
+    const child = spawn(pythonCmd, [pythonScript, '--port', String(PYTHON_PORT)], {
       cwd: __dirname,
+      windowsHide: true,
       env: { ...process.env, PYTHONUNBUFFERED: '1' }
     });
+    pythonProcess = child;
 
     let started = false;
+    let settled = false;
+    let readyOutput = '';
+    let stderrTail = '';
+    let pollTimer;
+    let healthRequest;
+    const startupTimer = setTimeout(() => {
+      fail(new Error('Python chưa mở được cổng 5599 sau 30 giây. ' + stderrTail.trim()));
+      child.kill();
+    }, 30000);
 
-    pythonProcess.stdout.on('data', (data) => {
+    function cleanup() {
+      clearTimeout(startupTimer);
+      clearTimeout(pollTimer);
+      if (healthRequest) healthRequest.destroy();
+    }
+
+    function fail(error) {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    }
+
+    function checkHealth() {
+      if (settled) return;
+      let retried = false;
+      const retry = () => {
+        if (!settled && !retried) {
+          retried = true;
+          pollTimer = setTimeout(checkHealth, 250);
+        }
+      };
+      healthRequest = http.get({ hostname: '127.0.0.1', port: PYTHON_PORT,
+        path: '/api/health', timeout: 1000 }, response => {
+        let body = '';
+        response.on('data', chunk => { body += chunk; });
+        response.on('error', retry);
+        response.on('end', () => {
+          if (settled) return;
+          try {
+            if (response.statusCode !== 200 || JSON.parse(body).status !== 'ok') return retry();
+            started = true;
+            settled = true;
+            cleanup();
+            resolve();
+          } catch (_) { retry(); }
+        });
+      });
+      healthRequest.on('error', retry);
+      healthRequest.on('timeout', () => { healthRequest.destroy(); retry(); });
+    }
+
+    child.stdout.on('data', (data) => {
       const msg = data.toString();
       console.log('[Python]', msg);
-      if (!started && msg.includes('Server ready')) {
-        started = true;
-        resolve();
+      readyOutput = (readyOutput + msg).slice(-512);
+      if (!settled && !healthRequest && readyOutput.includes('Server ready')) {
+        checkHealth();
       }
       // Forward to renderer
       if (mainWindow && !mainWindow.isDestroyed()) {
@@ -68,28 +123,32 @@ function startPython() {
       }
     });
 
-    pythonProcess.stderr.on('data', (data) => {
+    child.stderr.on('data', (data) => {
       const msg = data.toString();
+      stderrTail = (stderrTail + msg).slice(-2000);
       console.error('[Python Error]', msg);
       if (mainWindow && !mainWindow.isDestroyed()) {
         mainWindow.webContents.send('python-error', msg);
       }
     });
 
-    pythonProcess.on('close', (code) => {
-      console.log(`[Python] Process exited with code ${code}`);
-      pythonProcess = null;
-      if (!started) {
-        reject(new Error(`Python process exited with code ${code}`));
-      }
+    child.on('error', error => {
+      fail(new Error(`Không khởi động được Python (${pythonCmd}): ${error.message}`));
     });
 
-    // Timeout after 15 seconds
-    setTimeout(() => {
+    child.on('close', (code) => {
+      console.log(`[Python] Process exited with code ${code}`);
+      if (pythonProcess === child) pythonProcess = null;
       if (!started) {
-        reject(new Error('Python backend timed out'));
+        fail(new Error(`Python thoát với mã ${code}. ${stderrTail.trim()}`));
+      } else {
+        backendStatus = false;
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          mainWindow.webContents.send('backend-ready', false);
+          mainWindow.webContents.send('python-error', `Backend Python đã dừng (mã ${code}). ${stderrTail.trim()}`);
+        }
       }
-    }, 15000);
+    });
   });
 }
 
@@ -103,6 +162,12 @@ function stopPython() {
 // --- HTTP helper to call Python backend ---
 function callPython(endpoint, data) {
   return new Promise((resolve, reject) => {
+    if (backendStatus !== true) {
+      reject(new Error(backendStatus === false
+        ? 'Backend Python chưa chạy. Hãy khởi động lại ứng dụng và xem nhật ký lỗi Python.'
+        : 'Backend Python đang khởi động. Vui lòng chờ trạng thái Sẵn sàng.'));
+      return;
+    }
     const postData = JSON.stringify(data);
     const options = {
       hostname: '127.0.0.1',
@@ -671,6 +736,7 @@ app.whenReady().then(async () => {
     console.error('Failed to start Python backend:', e.message);
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('backend-ready', false);
+      mainWindow.webContents.send('python-error', e.message);
     }
   }
 });
