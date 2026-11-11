@@ -31,6 +31,7 @@ contextBridge.exposeInMainWorld('api', {
   onBackendReady: (callback) => ipcRenderer.on('backend-ready', (_, ready) => callback(ready)),
   onPythonLog: (callback) => ipcRenderer.on('python-log', (_, msg) => callback(msg)),
   onPythonError: (callback) => ipcRenderer.on('python-error', (_, msg) => callback(msg)),
+  onPythonWarning: (callback) => ipcRenderer.on('python-warning', (_, msg) => callback(msg)),
 
   // Tool B: Clip Splitter
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),

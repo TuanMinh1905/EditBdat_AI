@@ -983,6 +983,9 @@ function initEvents() {
   window.api.onPythonError((msg) => {
     addLog(msg.trim(), 'error');
   });
+  window.api.onPythonWarning?.((msg) => {
+    addLog(msg.trim(), 'warn');
+  });
 }
 
 // --- Init ---
@@ -2324,7 +2327,7 @@ function initSourceSuggester() {
     }
   }
 
-  function setSrcLocked(locked) {
+  function setSrcLocked(locked, render = true) {
     sgState.srcLocked = Boolean(locked);
     if (sgDom.srcStatus) {
       sgDom.srcStatus.textContent = sgState.srcLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
@@ -2343,10 +2346,10 @@ function initSourceSuggester() {
     if (!sgState.srcLocked && sgState.clsCollapsed) {
       setClsCollapsed(false);
     }
-    renderClassificationTables();
+    if (render) renderClassificationTables();
   }
 
-  function setElLocked(locked) {
+  function setElLocked(locked, render = true) {
     sgState.elLocked = Boolean(locked);
     if (sgDom.elStatus) {
       sgDom.elStatus.textContent = sgState.elLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
@@ -2365,10 +2368,10 @@ function initSourceSuggester() {
     if (!sgState.elLocked && sgState.clsCollapsed) {
       setClsCollapsed(false);
     }
-    renderClassificationTables();
+    if (render) renderClassificationTables();
   }
 
-  function setAnimLocked(locked) {
+  function setAnimLocked(locked, render = true) {
     sgState.animLocked = Boolean(locked);
     if (sgDom.animStatus) {
       sgDom.animStatus.textContent = sgState.animLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
@@ -2387,10 +2390,10 @@ function initSourceSuggester() {
     if (!sgState.animLocked && sgState.clsCollapsed) {
       setClsCollapsed(false);
     }
-    renderClassificationTables();
+    if (render) renderClassificationTables();
   }
 
-  function setBgmLocked(locked) {
+  function setBgmLocked(locked, render = true) {
     sgState.bgmLocked = Boolean(locked);
     if (sgDom.bgmStatus) {
       sgDom.bgmStatus.textContent = sgState.bgmLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
@@ -2403,10 +2406,10 @@ function initSourceSuggester() {
     const bgmDelCols = document.querySelectorAll('.sg-bgm-col-del');
     bgmDelCols.forEach(th => { th.style.display = sgState.bgmLocked ? 'none' : 'table-cell'; });
     if (!sgState.bgmLocked && sgState.clsCollapsed) setClsCollapsed(false);
-    renderClassificationTables();
+    if (render) renderClassificationTables();
   }
 
-  function setSfxLocked(locked) {
+  function setSfxLocked(locked, render = true) {
     sgState.sfxLocked = Boolean(locked);
     if (sgDom.sfxStatus) {
       sgDom.sfxStatus.textContent = sgState.sfxLocked ? '🔒 Đang khóa' : '🔓 Đang sửa';
@@ -2419,15 +2422,16 @@ function initSourceSuggester() {
     const sfxDelCols = document.querySelectorAll('.sg-sfx-col-del');
     sfxDelCols.forEach(th => { th.style.display = sgState.sfxLocked ? 'none' : 'table-cell'; });
     if (!sgState.sfxLocked && sgState.clsCollapsed) setClsCollapsed(false);
-    renderClassificationTables();
+    if (render) renderClassificationTables();
   }
 
-  function setClsLocked(locked) {
-    setSrcLocked(locked);
-    setElLocked(locked);
-    setAnimLocked(locked);
-    setBgmLocked(locked);
-    setSfxLocked(locked);
+  function setClsLocked(locked, render = true) {
+    setSrcLocked(locked, false);
+    setElLocked(locked, false);
+    setAnimLocked(locked, false);
+    setBgmLocked(locked, false);
+    setSfxLocked(locked, false);
+    if (render) renderClassificationTables();
   }
 
   let pendingImgTarget = null; // { tbl: 'src' | 'el' | 'anim', idx: number }
@@ -2447,12 +2451,37 @@ function initSourceSuggester() {
     } catch (err) { sgLog(`Không tải được preview tài nguyên: ${err.message}`, 'error'); }
   }
   window.addEventListener('asset-roots-changed', () => {
-    if (sharedClsAudio) sharedClsAudio.pause();
+    releasePreviewMedia(sharedClsAudio);
     sharedClsAudio = null;
-    sharedClsAudioCode = null;
+    sharedClsAudioKey = null;
+    updateAudioPreviewButtons();
+    stopClassificationVideoPreviews();
     assetPreviews.clear();
     refreshAssetPreviews();
   });
+
+  function releasePreviewMedia(media) {
+    if (!media) return;
+    try {
+      media.pause();
+      if (media.getAttribute('src')) {
+        media.removeAttribute('src');
+        media.load(); // Abort any pending download as well as playback.
+      }
+    } catch (_) {}
+  }
+
+  function stopClassificationVideoPreviews() {
+    sgDom.clsCard?.querySelectorAll('video.sg-cls-thumb').forEach(releasePreviewMedia);
+  }
+
+  function bindThumbnailVideoPreview(wrap, video) {
+    wrap.addEventListener('mouseenter', () => {
+      if (!video.getAttribute('src') && video.dataset.src) video.src = video.dataset.src;
+      video.play().catch(() => {});
+    });
+    wrap.addEventListener('mouseleave', () => releasePreviewMedia(video));
+  }
 
   function isVideoMediaUrl(url) {
     if (!url || typeof url !== 'string') return false;
@@ -2485,7 +2514,7 @@ function initSourceSuggester() {
         return `
           <td class="sg-cls-img-cell">
             <div class="sg-cls-thumb-wrap is-video" data-tbl="${tbl}" data-idx="${idx}" title="Di chuột để chạy thử video · Click để phóng to video hiệu ứng của '${safeCode}' (hoặc kéo-thả ảnh/video mới vào đây)">
-              <video class="sg-cls-thumb" src="${mediaSrc}" muted loop playsinline preload="metadata"></video>
+              <video class="sg-cls-thumb" data-src="${mediaSrc}" muted loop playsinline preload="none"></video>
               <span class="sg-cls-video-badge">▶ Video</span>
               <div class="sg-cls-thumb-zoom">🔍</div>
             </div>
@@ -2495,7 +2524,7 @@ function initSourceSuggester() {
       return `
         <td class="sg-cls-img-cell">
           <div class="sg-cls-thumb-wrap" data-tbl="${tbl}" data-idx="${idx}" title="Click để phóng to ảnh ví dụ của '${safeCode}' (hoặc kéo-thả ảnh/video mới vào đây)">
-            <img class="sg-cls-thumb" src="${mediaSrc}" alt="${safeCode}" />
+            <img class="sg-cls-thumb" src="${mediaSrc}" alt="${safeCode}" loading="lazy" decoding="async" />
             <div class="sg-cls-thumb-zoom">🔍</div>
           </div>
         </td>
@@ -2624,9 +2653,7 @@ function initSourceSuggester() {
     }
 
     // Dừng video cũ trước khi chuyển
-    if (sgDom.modalClsVideoPreview) {
-      try { sgDom.modalClsVideoPreview.pause(); } catch (_) {}
-    }
+    releasePreviewMedia(sgDom.modalClsVideoPreview);
 
     if (mediaSrc) {
       if (isVid) {
@@ -2666,6 +2693,7 @@ function initSourceSuggester() {
   }
 
   function openClsImageModal(tbl, idx) {
+    stopClassificationVideoPreviews();
     activeLightbox = { tbl, idx };
     updateLightboxModalView();
     if (sgDom.modalClsImg) {
@@ -2675,10 +2703,7 @@ function initSourceSuggester() {
 
   function closeClsImageModal() {
     activeLightbox = null;
-    if (sgDom.modalClsVideoPreview) {
-      try { sgDom.modalClsVideoPreview.pause(); } catch (_) {}
-      sgDom.modalClsVideoPreview.removeAttribute('src');
-    }
+    releasePreviewMedia(sgDom.modalClsVideoPreview);
     if (sgDom.modalClsImg) {
       sgDom.modalClsImg.style.display = 'none';
     }
@@ -2686,42 +2711,57 @@ function initSourceSuggester() {
 
   // Shared audio element for preview in classification tables
   let sharedClsAudio = null;
-  let sharedClsAudioCode = null;
+  let sharedClsAudioKey = null;
+
+  function updateAudioPreviewButtons() {
+    sgDom.clsCard?.querySelectorAll('.sg-audio-play-btn').forEach(btn => {
+      const isPlaying = sharedClsAudioKey === `${btn.dataset.tbl}/${btn.dataset.code}`;
+      btn.classList.toggle('is-playing', isPlaying);
+      btn.textContent = isPlaying ? '⏹ Dừng' : '▶ Nghe';
+      btn.title = isPlaying ? 'Dừng phát' : 'Nghe thử';
+    });
+  }
 
   function toggleAudioPreview(tbl, code, param) {
     if (!param) return;
-    const audioUrl = assetPreviews.get(`${tbl}/${code}`)?.url;
+    const key = `${tbl}/${code}`;
+    const audioUrl = assetPreviews.get(key)?.url;
     if (!audioUrl) { sgLog(`Chưa tìm thấy file âm thanh: ${code}`, 'error'); return; }
 
-    if (sharedClsAudio && sharedClsAudioCode === code) {
-      sharedClsAudio.pause();
+    if (sharedClsAudio && sharedClsAudioKey === key) {
+      releasePreviewMedia(sharedClsAudio);
       sharedClsAudio = null;
-      sharedClsAudioCode = null;
-      renderClassificationTables();
+      sharedClsAudioKey = null;
+      updateAudioPreviewButtons();
       return;
     }
-    if (sharedClsAudio) { try { sharedClsAudio.pause(); } catch(_) {} }
-    sharedClsAudio = new Audio(audioUrl);
-    sharedClsAudioCode = code;
-    sharedClsAudio.volume = tbl === 'bgm' ? 0.35 : 0.7;
-    sharedClsAudio.play().catch(err => {
+    releasePreviewMedia(sharedClsAudio);
+    const audio = new Audio(audioUrl);
+    sharedClsAudio = audio;
+    sharedClsAudioKey = key;
+    audio.volume = tbl === 'bgm' ? 0.35 : 0.7;
+    audio.play().catch(err => {
+      if (sharedClsAudio !== audio) return;
       sgLog(`Không phát được audio: ${err.message}`, 'error');
-      if (sharedClsAudioCode === code) {
-        sharedClsAudioCode = null;
-        renderClassificationTables();
-      }
+      releasePreviewMedia(audio);
+      sharedClsAudio = null;
+      sharedClsAudioKey = null;
+      updateAudioPreviewButtons();
     });
-    sharedClsAudio.addEventListener('ended', () => {
-      sharedClsAudioCode = null;
-      renderClassificationTables();
+    audio.addEventListener('ended', () => {
+      if (sharedClsAudio !== audio) return;
+      releasePreviewMedia(audio);
+      sharedClsAudio = null;
+      sharedClsAudioKey = null;
+      updateAudioPreviewButtons();
     }, { once: true });
-    renderClassificationTables();
+    updateAudioPreviewButtons();
   }
 
   function renderAudioCellHtml(tbl, idx, item) {
     const param = String(item.param || '').trim();
     const code = String(item.code || '');
-    const isPlaying = sharedClsAudioCode === code;
+    const isPlaying = sharedClsAudioKey === `${tbl}/${code}`;
     if (code === 'auto' || code === 'none' || !param) {
       return `<td class="sg-cls-img-cell" style="text-align:center; color:var(--text-tertiary); font-size:0.7rem;">—</td>`;
     }
@@ -2734,6 +2774,7 @@ function initSourceSuggester() {
 
   function renderClassificationTables() {
     if (!sgDom.clsSourceTbody || !sgDom.clsElTbody || !sgDom.clsAnimTbody) return;
+    stopClassificationVideoPreviews();
     const srcLocked = sgState.srcLocked;
     const elLocked = sgState.elLocked;
     const animLocked = sgState.animLocked;
@@ -2991,8 +3032,7 @@ function initSourceSuggester() {
         // Nếu là video thumbnail: di chuột vào tự động phát thử hiệu ứng, rời chuột tạm dừng
         const vidEl = wrap.querySelector('video');
         if (vidEl) {
-          wrap.addEventListener('mouseenter', () => { vidEl.play().catch(() => {}); });
-          wrap.addEventListener('mouseleave', () => { try { vidEl.pause(); } catch (_) {} });
+          bindThumbnailVideoPreview(wrap, vidEl);
           vidEl.addEventListener('error', () => {
             wrap.title = 'Không tải được video. Kiểm tra file hoặc codec video.';
             const badge = wrap.querySelector('.sg-cls-video-badge');
@@ -3591,7 +3631,7 @@ function initSourceSuggester() {
         }
         sgState.examples = res.examples || [];
         renderExamples();
-        setClsLocked(true);
+        setClsLocked(true, false);
         syncClassificationsEverywhere();
         await refreshAssetPreviews();
       }
@@ -3641,7 +3681,7 @@ function initSourceSuggester() {
   setRulesLocked(true);
   setClsLayoutHorizontal(sgState.clsHorizontal);
   setClsCollapsed(sgState.clsCollapsed);
-  setClsLocked(true);
+  setClsLocked(true, false);
   syncClassificationsEverywhere();
 
   // --- Sự kiện cho 3 Bảng Phân loại Source · Lớp phủ Design · Animation ---

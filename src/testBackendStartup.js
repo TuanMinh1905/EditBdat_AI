@@ -15,7 +15,7 @@ const startup = source.slice(source.indexOf('function startPython()'), source.in
 
 function context(overrides = {}) {
   return vm.createContext({ __dirname: root, process, path, fs, http, spawn,
-    console: { log() {}, error() {} }, setTimeout, clearTimeout,
+    console: { log() {}, error() {}, warn() {} }, setTimeout, clearTimeout,
     pythonProcess: null, backendStatus: null, mainWindow: null, PYTHON_PORT: 5599,
     ...overrides });
 }
@@ -91,6 +91,23 @@ test('startup timeout kills only its own child and rejects', async () => {
   assert.equal(child.killed, true);
 });
 
+test('stderr splits mixed chunks into warnings, info and real errors without dropping a trailing line', async () => {
+  const child = fakeChild();
+  const messages = [];
+  const ctx = context({ spawn: () => child,
+    mainWindow: { isDestroyed: () => false, webContents: { send: (channel, message) => messages.push({ channel, message }) } } });
+  vm.runInContext(startup, ctx);
+  const promise = ctx.startPython();
+  child.stderr.emit('data', Buffer.from('WARN'));
+  assert.equal(messages.length, 0);
+  child.stderr.emit('data', Buffer.from('ING:waitress.queue:Task queue depth is 2\nINFO:waitress:Ready\nERROR:backend:Failed\nModuleNotFoundError: flask'));
+  assert.deepEqual(messages.map(item => item.channel), ['python-warning', 'python-log', 'python-error']);
+  child.emit('close', 1);
+  await assert.rejects(promise, /ModuleNotFoundError/);
+  assert.equal(messages.at(-1).channel, 'python-error');
+  assert.match(messages.at(-1).message, /ModuleNotFoundError/);
+});
+
 test('real project Python starts and serves preview after health readiness', {
   skip: !process.argv.includes('--smoke'), timeout: 40000,
 }, async () => {
@@ -100,16 +117,43 @@ test('real project Python starts and serves preview after health readiness', {
   await once(reservation, 'listening');
   const port = reservation.address().port;
   await new Promise(resolve => reservation.close(resolve));
-  const ctx = context({ PYTHON_PORT: port });
+  const warnings = [];
+  const ctx = context({ PYTHON_PORT: port,
+    console: { log() {}, error() {}, warn: (...args) => warnings.push(args.join(' ')) } });
   vm.runInContext(startup, ctx);
   try {
     await ctx.startPython();
-    const response = await fetch(`http://127.0.0.1:${port}/api/asset-thumbnail`, {
+    const baseUrl = `http://127.0.0.1:${port}`;
+    const librarySmoke = process.argv.includes('--library-smoke');
+    const library = 'D:\\Edit SofaZone\\01_Tai_Nguyen_Co_Dinh';
+    const response = await fetch(`${baseUrl}/api/asset-thumbnail`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ element_dir: path.join(root, 'output'), sound_root: path.join(root, 'output') }),
+      body: JSON.stringify({ element_dir: librarySmoke ? path.join(library, 'Elements') : path.join(root, 'output'),
+        sound_root: librarySmoke ? path.join(library, 'Sounds') : path.join(root, 'output') }),
     });
     assert.equal(response.status, 200);
-    assert.ok(Array.isArray((await response.json()).items));
+    const { items } = await response.json();
+    assert.ok(Array.isArray(items));
+    if (librarySmoke) {
+      const images = items.filter(item => item.exists && item.kind === 'element' && /\.png$/i.test(item.file))
+        .sort((a, b) => fs.statSync(b.path).size - fs.statSync(a.path).size).slice(0, 6);
+      assert.equal(images.length, 6);
+      const began = Date.now();
+      const downloads = images.map(async item => {
+        const media = await fetch(baseUrl + item.url);
+        assert.equal(media.status, 200);
+        assert.match(media.headers.get('cache-control'), /max-age=3600/);
+        const length = (await media.arrayBuffer()).byteLength;
+        assert.equal(length, fs.statSync(item.path).size);
+        const cached = await fetch(baseUrl + item.url, { headers: { 'If-None-Match': media.headers.get('etag') } });
+        assert.equal(cached.status, 304);
+        return length;
+      });
+      const health = await fetch(baseUrl + '/api/health');
+      assert.equal(health.status, 200);
+      const bytes = (await Promise.all(downloads)).reduce((sum, length) => sum + length, 0);
+      console.log(`Concurrent preview smoke: ${images.length} images, ${bytes} bytes, ${Date.now() - began} ms, health OK; queue warnings: ${warnings.filter(line => line.includes('waitress.queue')).length}`);
+    }
   } finally {
     if (ctx.pythonProcess) {
       const closed = once(ctx.pythonProcess, 'close');

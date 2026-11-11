@@ -61,6 +61,8 @@ function startPython() {
     let settled = false;
     let readyOutput = '';
     let stderrTail = '';
+    let stderrPending = '';
+    child.stderr.setEncoding?.('utf8');
     let pollTimer;
     let healthRequest;
     const startupTimer = setTimeout(() => {
@@ -123,13 +125,24 @@ function startPython() {
       }
     });
 
+    function forwardStderrLine(line) {
+      if (!line.trim()) return;
+      const warning = /^\s*WARN(?:ING)?[:\s]/.test(line)
+        || /\b(?:DeprecationWarning|UserWarning|FutureWarning|RuntimeWarning):/.test(line);
+      const info = /^\s*(?:INFO|DEBUG)[:\s]/.test(line);
+      const channel = warning ? 'python-warning' : info ? 'python-log' : 'python-error';
+      if (warning) console.warn('[Python Warning]', line);
+      else if (info) console.log('[Python]', line);
+      else console.error('[Python Error]', line);
+      if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, line);
+    }
+
     child.stderr.on('data', (data) => {
       const msg = data.toString();
       stderrTail = (stderrTail + msg).slice(-2000);
-      console.error('[Python Error]', msg);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('python-error', msg);
-      }
+      const lines = (stderrPending + msg).split(/\r?\n/);
+      stderrPending = lines.pop();
+      lines.forEach(forwardStderrLine);
     });
 
     child.on('error', error => {
@@ -137,6 +150,8 @@ function startPython() {
     });
 
     child.on('close', (code) => {
+      forwardStderrLine(stderrPending);
+      stderrPending = '';
       console.log(`[Python] Process exited with code ${code}`);
       if (pythonProcess === child) pythonProcess = null;
       if (!started) {

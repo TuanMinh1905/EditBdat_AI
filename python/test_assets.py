@@ -214,6 +214,20 @@ class AssetTests(unittest.TestCase):
             self.assertEqual(stream.status_code, 206)
             self.assertEqual(stream.data, b'2345')
             self.assertEqual(stream.headers['Content-Type'], 'audio/mpeg')
+            self.assertEqual(stream.cache_control.max_age, 3600)
+            self.assertTrue(stream.cache_control.private)
+            etag = stream.headers['ETag']
+        with client.get(bgm['url'], headers={'If-None-Match': etag}) as cached:
+            self.assertEqual(cached.status_code, 304)
+        (self.sounds / 'Background/old music.mp3').write_bytes(b'new media contents')
+        refreshed = client.post('/api/asset-thumbnail', json=params)
+        new_bgm = next(item for item in refreshed.json['items'] if item['kind'] == 'bgm')
+        self.assertNotEqual(bgm['url'], new_bgm['url'])
+        with client.get(bgm['url']) as outdated:
+            self.assertEqual(outdated.cache_control.max_age, 0)
+        with client.get(new_bgm['url']) as updated:
+            self.assertEqual(updated.data, b'new media contents')
+            self.assertEqual(updated.cache_control.max_age, 3600)
         self.assertEqual(client.get('/api/asset-thumbnail/unknown/asset.mp3').status_code, 404)
 
 

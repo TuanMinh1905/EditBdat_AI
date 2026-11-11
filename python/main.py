@@ -623,6 +623,12 @@ def api_verify_assets():
 _asset_preview_paths = {}
 
 
+def _asset_revision(path):
+    """Version preview URLs whenever a resource's contents change on disk."""
+    stat = path.stat()
+    return f'{stat.st_mtime_ns:x}-{stat.st_size:x}'
+
+
 @app.route('/api/asset-thumbnail', methods=['POST'])
 def api_asset_previews():
     """Register mapped media only; return URLs usable by image/video/audio tags."""
@@ -637,7 +643,7 @@ def api_asset_previews():
                 if token is None:
                     token = secrets.token_urlsafe(24)
                     _asset_preview_paths[token] = path
-                item['url'] = f'/api/asset-thumbnail/{token}/asset{path.suffix.lower()}'
+                item['url'] = f'/api/asset-thumbnail/{token}/asset{path.suffix.lower()}?v={_asset_revision(path)}'
         return jsonify(items=items)
     except Exception as exc:
         log(f'[Assets] {exc}')
@@ -650,7 +656,12 @@ def api_asset_thumbnail(token, filename):
     path = _asset_preview_paths.get(token)
     if path is None or filename != f'asset{path.suffix.lower()}' or not path.is_file():
         abort(404)
-    return send_file(path, conditional=True)
+    # Versioned URLs can be reused by the browser across table updates.
+    current_version = request.args.get('v') == _asset_revision(path)
+    response = send_file(path, conditional=True, max_age=3600 if current_version else 0)
+    response.cache_control.public = False
+    response.cache_control.private = True
+    return response
 
 
 @app.route('/api/premiere/generate-xml', methods=['POST'])
@@ -994,7 +1005,8 @@ if __name__ == '__main__':
     # Use waitress for production-ready serving on Windows
     try:
         from waitress import serve
-        serve(app, host='127.0.0.1', port=args.port, threads=4)
+        # Allow the browser's concurrent previews plus API calls to progress.
+        serve(app, host='127.0.0.1', port=args.port, threads=8)
     except ImportError:
         # Fallback to Flask dev server
         app.run(host='127.0.0.1', port=args.port, debug=False)

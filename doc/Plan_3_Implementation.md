@@ -63,3 +63,15 @@ Thông báo `connect ECONNREFUSED 127.0.0.1:5599` nghĩa là backend chưa nhậ
 - Preview chờ backend sẵn sàng. Lỗi spawn, traceback lúc khởi động, timeout và backend dừng được thông báo rõ hơn.
 - Kiểm thử thêm: `node --test src/testBackendStartup.js` (4 ca mô phỏng); `node src/testBackendStartup.js --smoke` chạy cả 4 ca và 1 ca dùng Python thật trên cổng riêng, gọi API preview rồi dừng tiến trình thử. Tất cả đạt.
 - Cần đóng hẳn rồi mở lại ứng dụng để áp dụng thay đổi `main.js`.
+
+## Giảm hàng đợi khi tải preview (2026-11-11)
+
+`WARNING:waitress.queue:Task queue depth is N` báo request đang chờ worker, không tự nó chứng minh backend bị dừng. [Waitress mô tả cơ chế hàng đợi tại đây](https://docs.pylonsproject.org/projects/waitress/en/latest/design.html). Trước bản sửa, mọi stderr bị gắn nhãn `[Python Error]`, kể cả WARNING.
+
+- Phân loại stderr theo từng dòng (kể cả dòng bị chia qua nhiều chunk): WARNING → `python-warning`, INFO/DEBUG → `python-log`, lỗi/traceback → `python-error`. Giữ nguyên cảnh báo và lỗi thật.
+- Video trong bảng chưa có `src` và dùng `preload=none` cho tới khi hover. Khi rời chuột/mở lightbox/dựng lại bảng, luồng tải cũ được giải phóng. Ảnh dùng lazy loading và async decoding.
+- Nút nghe/dừng chỉ cập nhật trạng thái nút; không tạo lại 5 bảng. Thao tác khóa đồng loạt các bảng được gộp để tránh render 5 lần.
+- URL tài nguyên có phiên bản theo mtime/size; cache private 1 giờ cho phiên bản hiện tại. URL đổi khi file đổi; URL phiên bản cũ không được giữ cache lâu. Giữ HTTP Range và ETag/304.
+- Waitress dùng 8 worker cho preview và API thay vì 4. Vẫn có thể xuất hiện cảnh báo ngắn khi tải nhiều request; không tắt logger để che cảnh báo.
+
+Kiểm thử bổ sung: `node --test src/testAssetPreviewLoading.js src/testAssetVerification.js src/testBackendStartup.js` (22 ca đạt, smoke mặc định bỏ qua), 12 ca backend đạt; `node src/testBackendStartup.js --smoke --library-smoke` đạt với Python thật và thư viện thật. Tải đồng thời 6 ảnh lớn tổng 35.2 MB cùng API health: hoàn thành khoảng 479 ms trong lần chạy kiểm tra, không có cảnh báo queue; lượt kiểm tra ETag trả 304. Đây là kết quả trên máy hiện tại, không phải cam kết mọi tải đều không có hàng đợi.

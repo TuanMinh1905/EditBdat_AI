@@ -475,3 +475,12 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - File test bổ sung: `src/testBackendStartup.js`; chạy mô phỏng bằng `node --test src/testBackendStartup.js`, chạy Python thật trên cổng riêng bằng `node src/testBackendStartup.js --smoke`. Không khởi chạy Electron từ terminal agent.
 - Thay đổi main/preload/backend yêu cầu khởi động lại toàn bộ app, không chỉ reload renderer.
 
+
+## 14. Preview media và mức log Waitress (2026-11-11)
+
+- `waitress.queue:Task queue depth` là WARNING khi worker đang bận; không gắn mọi stderr thành Error. Main phân tách từng dòng và chuyển WARNING qua IPC `python-warning`/`onPythonWarning`; giữ ERROR/traceback riêng.
+- Video thumbnail chỉ gán src khi hover; `preload=none`. Khi không còn xem phải pause, bỏ src và gọi load để hủy download. Ảnh dùng lazy loading.
+- Không render lại toàn bộ bảng chỉ để đổi trạng thái nút audio. Gộp render khi khóa 5 bảng.
+- API media có URL phiên bản mtime/size và cache private; file đổi phải có URL mới. Giữ Range, ETag và 304. Waitress hiện dùng 8 worker cho API/media, không tắt cảnh báo queue.
+- Thêm `src/testAssetPreviewLoading.js`; kiểm thử song song file thật bằng `node src/testBackendStartup.js --smoke --library-smoke` trên cổng riêng, không chạy Electron từ terminal agent.
+
