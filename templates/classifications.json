@@ -248,7 +248,7 @@
       "code": "zoom_in",
       "label": "🔍 Phóng to (Zoom In)",
       "param": "100->108",
-      "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật/bức ảnh",
+      "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật chính của bức ảnh",
       "image": ""
     },
     {
@@ -263,6 +263,20 @@
       "label": "⏹️ Đứng yên (Static)",
       "param": "100->100",
       "description": "Đứng yên (100%) — không phóng to thu nhỏ",
+      "image": ""
+    },
+    {
+      "code": "flash_zoom_cut",
+      "label": "⚡ Chớp sáng phóng to (Flash Zoom Cut)",
+      "param": "Scale: 100->170, Flash: 0->100->0",
+      "description": "Giữ khung rộng, chớp sáng trắng cực ngắn (~0.12s), cắt sang cận cảnh chủ thể (scale 170%) rồi giữ nguyên. Thời điểm chuyển khoảng 1.8s. Dùng khi cần nhấn mạnh nhân vật, tạo điểm nhấn mạnh theo voice hoặc nhạc.",
+      "image": ""
+    },
+    {
+      "code": "typewriter_reveal",
+      "label": "⌨️ Chữ đánh máy (Typewriter Reveal)",
+      "param": "Characters: 0->100%, Cursor: on->off",
+      "description": "Hiện từng ký tự từ trái sang phải, con trỏ '|' di chuyển theo chữ rồi biến mất khi hoàn tất. Thời gian gõ khoảng 1.0s. Dùng để giới thiệu nhân vật, địa điểm, năm tháng, tiêu đề hoặc một câu trích dẫn.",
       "image": ""
     }
   ],
