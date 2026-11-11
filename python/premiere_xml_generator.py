@@ -21,6 +21,13 @@ from urllib.parse import quote
 from datetime import timedelta
 from pathlib import Path
 
+try:
+    from subject_isolator import remove_background, is_available as si_is_available, get_subject_path
+except ImportError:
+    def remove_background(*a, **kw): return None
+    def si_is_available(): return False
+    def get_subject_path(p): return p
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -987,11 +994,17 @@ def generate_xml(
 
     # Track V3: Element overlays (per-clip) — chi tao khi co element_dir
     track_v3 = None
+    track_v_subject = None  # Track cho Subject Isolation (nguoi da tach nen)
     track_v4 = None
     if element_dir:
         track_v3 = ET.SubElement(video_el, "track")
         ET.SubElement(track_v3, "enabled").text = "TRUE"
         ET.SubElement(track_v3, "locked").text = "FALSE"
+
+        # Track V_Subject: Subject Isolation (nguoi da tach nen, nam giua V3 overlay va V4 texture)
+        track_v_subject = ET.SubElement(video_el, "track")
+        ET.SubElement(track_v_subject, "enabled").text = "TRUE"
+        ET.SubElement(track_v_subject, "locked").text = "FALSE"
 
         # Track V4: Full-video texture/grain
         track_v4 = ET.SubElement(video_el, "track")
@@ -1224,6 +1237,43 @@ def generate_xml(
                 clip_index += 1
                 element_count += 1
 
+        # --- Subject Isolation tren V_Subject (tach nguoi khoi nen anh) ---
+        csv_si_val = (sp.get("si", "") or "").strip().lower()
+        if (csv_si_val == "yes" and element_dir and track_v_subject is not None
+                and clips and si_is_available()):
+            for clip in clips:
+                if not clip.get("is_image"):
+                    continue  # Chi xu ly anh, khong xu ly video
+                # Kiem tra element co ho tro SI khong
+                el_ids_for_si = resolve_element_ids(loai_str, csv_element_val, auto_map)
+                has_si_element = any(
+                    elements.get(eid, {}).get("subject_isolation", False)
+                    for eid in el_ids_for_si
+                )
+                if not has_si_element and not csv_si_val == "yes":
+                    continue
+                # Tach nen
+                subject_path = remove_background(clip["path"], log=log)
+                if not subject_path or not os.path.exists(subject_path):
+                    continue
+                # Dat subject PNG len track V_Subject
+                ci_subj = _make_clip_item(
+                    clip_index,
+                    subject_path,
+                    0,
+                    dur,
+                    f_in,
+                    f_out,
+                    is_image=True,
+                    file_duration=dur,
+                    fps=fps,
+                    file_registered=file_registered,
+                )
+                track_v_subject.append(ci_subj)
+                clip_index += 1
+                element_count += 1
+                log(f"[A] Subject Isolation: {os.path.basename(subject_path)} → V_Subject")
+
     # --- Full-video texture/grain tren V4 ---
     if element_dir and track_v4 is not None and texture_id:
         tex_ids = [t.strip() for t in texture_id.split("+") if t.strip()]
@@ -1400,7 +1450,8 @@ def generate_xml(
         "total_bgm_clips": bgm_clip_count,
         "total_sfx_clips": sfx_clip_count,
         "skipped_assets": skipped_assets,
-        "animations_enabled": enable_animations,
+        "animations_enabled": enable_animations,
+        "si_available": si_is_available(),
     }
 
 

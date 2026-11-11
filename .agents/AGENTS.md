@@ -46,7 +46,8 @@ Code_AI/
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
 │   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại 5 bảng (Source/Element/Anim/BGM/SFX) theo phong cách (RAG Embedding + Rules)
 │   ├── token_tracker.py             # Đếm & lưu số lượng Token Gemini API đã sử dụng theo từng API Key
-│   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro — V1/V2 Source, V3 Element, V4 Texture, A1 Voice, A2 BGM, A3 SFX
+│   ├── subject_isolator.py          # Subject Isolation: tách người khỏi nền ảnh bằng rembg (U2-Net) → PNG trong suốt
+│   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro — V1/V2 Source, V3 Element, V_Subject (SI), V4 Texture, A1 Voice, A2 BGM, A3 SFX
 ├── schemas/
 │   └── timeline.schema.json         # JSON Schema cho timeline
 ├── templates/                       # Template JSX, preset effects, element map, sound map
@@ -441,6 +442,15 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - **API param:** `enable_animations` (boolean, default true)
 - **UI:** Checkbox "Bật Animation" trong tab Gen XML (card #10)
 
+### Subject Isolation (SI):
+- **Mục đích:** Tách người (subject) khỏi nền ảnh, chèn overlay GIỮA nền và người tạo hiệu ứng 3D.
+- **Thư viện:** `rembg` (U2-Net AI model, ~170MB tải lần đầu), `Pillow`
+- **File:** `python/subject_isolator.py` — wrapper quanh rembg, có cache (kiểm tra `_subject.png` tồn tại)
+- **Cách dùng:** Trong CSV `2_CSV_PhanLoaiSource.csv`, thêm cột `si` với giá trị `yes` cho các dòng muốn bật SI. Chỉ áp dụng cho source là **ảnh** (.jpg/.png/.bmp) + có element overlay.
+- **Track Premiere:** V1 (nền gốc) → V3 (overlay) → V_Subject (người đã tách) → V4 (texture)
+- **element_map.json:** Các element hỗ trợ SI có `"subject_isolation": true` (tv_retro, tv_green_frame, tv_crt_gemini, scout_frame)
+- **Output:** File `{tên_gốc}_subject.png` cùng thư mục với ảnh gốc
+
 
 ## 12. Plan 3 — Xác minh và chuẩn hóa tài nguyên (2026-11-11)
 
@@ -465,6 +475,7 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-11 | Hoàn tất Plan 3: đổi tên 30 file, đồng bộ mapping, preview qua API, modal xác minh trước Gen XML, thêm Sounds picker, bỏ qua file tài nguyên thiếu và kiểm thử hồi quy | Mã phân loại trỏ đúng file; vẫn dựng thử được khi chưa đủ tài nguyên |
+| 2026-11-11 | Thêm Subject Isolation: `subject_isolator.py` (rembg), cột `si` trong CSV, Track V_Subject giữa V3 và V4, flag `subject_isolation` trong element_map.json + classifications.json, thêm 2 animation preset (flash_zoom_cut, typewriter_reveal) | Tạo hiệu ứng 3D parallax cho ảnh có overlay — tách người ra khỏi nền |
 
 
 ## 13. Backend readiness và lỗi preview lúc khởi động (2026-11-11)

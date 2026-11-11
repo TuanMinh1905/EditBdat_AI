@@ -574,6 +574,7 @@ class SourceSuggester:
                         "scope": existing.get("scope", "clip"),
                         "is_image": is_img,
                         "opacity": existing.get("opacity", 100),
+                        "subject_isolation": existing.get("subject_isolation", False),
                         "note": desc or item.get("label", code),
                     }
             el_map_data["elements"] = elements_dict

@@ -1,5 +1,5 @@
 {
-  "_doc": "Mapping element_id → file & cau hinh trong Premiere XML. track: V3 (per-clip), V4 (full-video). scope: 'clip' hoac 'full'. opacity: 0-100.",
+  "_doc": "Mapping element_id → file & cau hinh trong Premiere XML. track: V3 (per-clip), V4 (full-video). scope: 'clip' hoac 'full'. opacity: 0-100. subject_isolation: true → khi source la anh, tach nguoi ra khoi nen va chen overlay GIUA nen va nguoi.",
   "auto_map": {
     "_doc": "Khi CSV khong co cot element, tu dong map loai_source → element_id",
     "phong_van": "tv_retro",
@@ -14,6 +14,7 @@
       "scope": "clip",
       "is_image": true,
       "opacity": 100,
+      "subject_isolation": true,
       "note": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn"
     },
     "tv_green_frame": {
@@ -22,6 +23,7 @@
       "scope": "clip",
       "is_image": true,
       "opacity": 100,
+      "subject_isolation": true,
       "note": "Khung màn hình xanh viền đen (TV / Monitor Green Screen)"
     },
     "tv_crt_gemini": {
@@ -30,6 +32,7 @@
       "scope": "clip",
       "is_image": true,
       "opacity": 100,
+      "subject_isolation": true,
       "note": "Khung TV CRT cổ điển trong phòng tối (Green Screen)"
     },
     "tv_sony": {
@@ -62,6 +65,7 @@
       "scope": "clip",
       "is_image": true,
       "opacity": 100,
+      "subject_isolation": true,
       "note": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)"
     },
     "stats_table": {
