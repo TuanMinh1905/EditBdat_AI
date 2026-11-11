@@ -1384,7 +1384,7 @@
               </div>
               <div class="sg-ai-run-btn-col">
                 <button class="btn-generate sg-ai-run-btn" id="sg-btn-suggest">
-                  <span id="sg-btn-suggest-text">🤖 AI Gợi ý Source · Lớp phủ · Animation · BGM · SFX</span>
+                  <span id="sg-btn-suggest-text">🤖 Phân tích / chạy tiếp theo quy tắc hiện tại</span>
                 </button>
               </div>
             </div>
@@ -1397,8 +1397,9 @@
             <div class="sg-toolbar">
               <div class="sg-toolbar-info">
                 <span class="sg-stat-pill">Tổng: <strong id="sg-stat-total">0</strong> câu</span>
+                <span class="sg-stat-pill" id="sg-analysis-progress" role="status" aria-live="polite">Đã phân tích: 0/0</span>
                 <span class="sg-stat-pill sg-stat-warn"
-                  title="Các dòng AI chưa chắc chắn (< 70%) được tô vàng để bạn kiểm tra trước">
+                  title="Dòng cần làm thủ công, lỗi phân tích hoặc độ tin cậy dưới 70% được tô vàng">
                   Cần xem kỹ: <strong id="sg-stat-low">0</strong>
                 </span>
               </div>
@@ -1434,13 +1435,13 @@
                         title="Điền giá trị dòng đầu tiên xuống các dòng đang trống">⬇ Điền trống</button>
                     </th>
                     <th style="width:140px;">Ghi chú dạy AI</th>
-                    <th style="width:76px;">Độ tự tin</th>
+                    <th style="min-width:135px;">Trạng thái / Độ tự tin</th>
                   </tr>
                 </thead>
                 <tbody id="sg-tbody">
                   <tr>
                     <td colspan="12" class="sg-empty-row">
-                      Hãy chọn file <code>1_CSV_Timeline.csv</code> ở khung phía trên rồi bấm <strong>🤖 AI Gợi ý Source + Animation</strong>.
+                      Chọn <code>1_CSV_Timeline.csv</code> ở khung phía trên. AI tự phân tích từng đoạn, câu và ý, rồi điền lựa chọn cụ thể theo 5 bảng và quy tắc của bạn.
                     </td>
                   </tr>
                 </tbody>

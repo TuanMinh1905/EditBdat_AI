@@ -161,6 +161,18 @@ class AssetTests(unittest.TestCase):
             self.assertIn(xml.path_to_url(item['path']), paths)
         self.assertTrue(report['all_ok'])
 
+    def test_manual_blank_source_never_picks_unrelated_catalog_clip(self):
+        timeline = self.csv('timeline.csv', [dict(doan='1', cau='1', y='', start='0', text='Cảnh chung kết cụ thể')])
+        source = self.csv('source.csv', [dict(doan='1', cau='1', y='', loai_source='', element='', bgm='', sfx='')])
+        catalog = self.csv('catalog.csv', [dict(ten_file='clip.mp4', loai='rai_1', duration_s='30')])
+        output = self.root / 'manual.xml'
+        with patch.object(xml, 'pick_clips') as pick:
+            result = xml.generate_xml(timeline, source, catalog, str(self.root / 'voice.mp3'), str(self.root),
+                                     str(output), enable_animations=False, log=lambda _: None)
+        pick.assert_not_called()
+        self.assertTrue(any('thu cong' in item for item in result['missing']))
+        self.assertIn('CAN LAM THU CONG', output.read_text(encoding='utf-8'))
+
     def test_export_skips_missing_optional_media(self):
         timeline = self.csv('timeline.csv', [dict(doan='1', cau='1', y='', start='0', text='Test')])
         source = self.csv('source.csv', [dict(doan='1', cau='1', y='', loai_source='phong_van', element='tv_retro + unknown', bgm='auto', sfx='auto')])

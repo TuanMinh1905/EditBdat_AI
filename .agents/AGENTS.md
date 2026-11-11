@@ -495,3 +495,13 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - API media có URL phiên bản mtime/size và cache private; file đổi phải có URL mới. Giữ Range, ETag và 304. Waitress hiện dùng 8 worker cho API/media, không tắt cảnh báo queue.
 - Thêm `src/testAssetPreviewLoading.js`; kiểm thử song song file thật bằng `node src/testBackendStartup.js --smoke --library-smoke` trên cổng riêng, không chạy Electron từ terminal agent.
 
+
+## 15. Phan loai Timeline bang AI (2026-11-11)
+
+- Chon CSV phai goi AI tu dong. Dong chua phan tich de trong, khong gan rai_1/auto hoac confidence mac dinh.
+- Moi request toi da 32 dong, kem context_rows (toan bai) va previous_rows de giu ngu canh doan/cau/y va BGM. rules la snapshot cho request, khong tu ghi de file.
+- AI chon ma cu the tu 5 bang; element ho tro nhieu ma ghep bang +. needs_review=true danh dau dong lam thu cong: de trong cac lua chon va to vang.
+- Kiem tra tung row_index, trung/thiếu dong, ma phan loai, confidence va reason; yeu cau bo sung mot lan. Loi con lai giu trong, analysis_status=error; khong gia lap ket qua AI.
+- UI luu ket qua theo noi dung CSV, giu nhom da xong khi request sau loi. Chay tiep chi gui dong chua xong. Khong xuat CSV khi con dong pending/analyzing/error; khong hoc tu dong manual/error.
+- Source trong o CSV phai giu trong khi xuat XML, them marker CAN LAM THU CONG; khong goi fallback pick_clips cho dong nay.
+- Tests: python/test_source_suggester.py, src/testSourceSuggester.js; test_assets.py bao gom truong hop source trong. Test Gemini bang mock; test API that can quyen su dung khoa va gui noi dung ra dich vu.

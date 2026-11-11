@@ -1,5 +1,17 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-11)
 
+## Sửa luồng phân loại Timeline (2026-11-11)
+
+- Chọn `1_CSV_Timeline.csv` bắt đầu phân tích AI ngay. Trước khi có kết quả, các ô phân loại để trống và ghi trạng thái chờ; không điền sẵn `rai_1`/`auto`.
+- Mỗi lượt xử lý tối đa 32 dòng, kèm toàn bộ bài (`context_rows`) và lựa chọn ngay trước nhóm đó (`previous_rows`) để hiểu từng đoạn/câu/ý và nối BGM. Có tiến độ; lỗi giữa chừng giữ kết quả đã xong, lần chạy tiếp chỉ xử lý dòng còn thiếu.
+- AI phải chọn mã cụ thể theo 5 bảng và quy tắc hiện tại, có lý do; hỗ trợ lớp phủ ghép `tv_retro + texture_2`, Animation tùy chỉnh và `si`. Quy tắc gửi trong request chỉ dùng cho lượt chạy, không tự lưu đè file quy tắc.
+- Dòng làm thủ công: `needs_review=true`, `analysis_status=manual`, các lựa chọn để trống và tô vàng. Kết quả thiếu, trùng, sai mã hoặc `auto` được yêu cầu bổ sung một lần; nếu vẫn sai thì đánh dấu lỗi, không thay bằng mặc định hay độ tin cậy 75%.
+- Lưu kết quả trong `localStorage.sg_analysis` theo đường dẫn và nội dung CSV; khôi phục khi mở lại mà không tự gọi AI. Không xuất khi còn dòng chờ/lỗi; không đưa dòng thủ công/lỗi vào kho ví dụ. CSV vẫn giữ 10 cột; XML để trống cảnh có Source trống và đặt marker làm thủ công, không lấy clip ngẫu nhiên từ catalog.
+- Kiểm thử: `node --test src/testSourceSuggester.js src/testAssetPreviewLoading.js src/testAssetVerification.js src/testBackendStartup.js`; từ `python/`, chạy `..\.venv\Scripts\python.exe -m unittest test_source_suggester test_assets`. Gemini được mô phỏng trong các test; thử với API thật chưa thực hiện do cơ chế xét duyệt chặn việc dùng khóa đã lưu và gửi kịch bản ra ngoài.
+- Cần đóng/mở lại ứng dụng để nạp Python backend mới, rồi chọn CSV. `Ctrl+R` chỉ tải lại giao diện.
+
+---
+
 > **Mục đích file này:** Cho AI ở conversation mới đọc để nắm bắt toàn bộ bối cảnh, kiến trúc hệ thống, các tính năng đã hoàn thiện và các quy tắc cốt lõi của dự án.
 >
 > **Project path:** `c:\Users\GP\Desktop\Edit Bdat\Code_AI`  

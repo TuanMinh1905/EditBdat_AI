@@ -2083,6 +2083,8 @@ function initSourceSuggester() {
     clsFilter: 'all',
     rows: [],
     examples: [],
+    backendLoaded: false,
+    isLoadingCsv: false,
     isSuggesting: false
   };
 
@@ -3172,15 +3174,15 @@ function initSourceSuggester() {
   }
 
   function splitLoaiSource(loaiStr) {
-    if (!loaiStr) return ['rai_1', ''];
+    if (!loaiStr) return ['', ''];
     const parts = String(loaiStr).split('+').map(s => s.trim()).filter(Boolean);
-    return [parts[0] || 'rai_1', parts[1] || ''];
+    return [parts[0] || '', parts[1] || ''];
   }
 
   function combineLoaiSource(p1, p2) {
-    const a = (p1 || 'rai_1').trim();
+    const a = (p1 || '').trim();
     const b = (p2 || '').trim();
-    if (b && b !== a) return `${a} + ${b}`;
+    if (b && b !== a) return a ? `${a} + ${b}` : b;
     return a;
   }
 
@@ -3377,14 +3379,41 @@ function initSourceSuggester() {
     });
   }
 
+  function isUnanalyzed(row) {
+    return !['complete', 'edited', 'manual'].includes(row.analysis_status);
+  }
+
+  function escapeSuggesterHtml(value) {
+    return String(value || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function saveAnalysis() {
+    try {
+      localStorage.setItem('sg_analysis', JSON.stringify({ csvPath: sgState.csvPath, rows: sgState.rows }));
+    } catch (err) { sgLog(`Không lưu được phiên phân tích: ${err.message}`, 'warn'); }
+  }
+
+  function markRowEdited(index) {
+    const row = sgState.rows[index];
+    const complete = ['loai_source', 'element', 'anim', 'bgm', 'sfx'].every(key => Boolean(row[key]));
+    row.analysis_status = complete ? 'edited' : 'pending';
+    row.needs_review = !complete;
+    row.confidence = complete ? 1 : null;
+    saveAnalysis();
+    renderTable();
+  }
+
   function updateStats() {
     if (!sgDom.statTotal || !sgDom.statLow) return;
     const total = sgState.rows.length;
-    const lowCount = sgState.rows.filter(r => typeof r.confidence === 'number' && r.confidence < 0.7).length;
+    const lowCount = sgState.rows.filter(r => r.needs_review || (typeof r.confidence === 'number' && r.confidence < 0.7)).length;
     sgDom.statTotal.textContent = total;
     sgDom.statLow.textContent = lowCount;
-    if (sgDom.btnLearn) sgDom.btnLearn.disabled = total === 0;
-    if (sgDom.btnExport) sgDom.btnExport.disabled = total === 0;
+    const unresolved = sgState.rows.filter(isUnanalyzed).length;
+    const progress = $('#sg-analysis-progress');
+    if (progress) progress.textContent = `Đã phân tích: ${total - unresolved}/${total}`;
+    if (sgDom.btnLearn) sgDom.btnLearn.disabled = sgState.isSuggesting || !sgState.rows.some(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
+    if (sgDom.btnExport) sgDom.btnExport.disabled = sgState.isSuggesting || total === 0 || unresolved > 0;
   }
 
   function renderTable() {
@@ -3394,8 +3423,8 @@ function initSourceSuggester() {
     if (!sgState.rows.length) {
       sgDom.tbody.innerHTML = `
         <tr>
-          <td colspan="9" class="sg-empty-row">
-            Hãy chọn file <code>1_CSV_Timeline.csv</code> ở cột bên trái để bắt đầu.
+          <td colspan="12" class="sg-empty-row">
+            Chọn <code>1_CSV_Timeline.csv</code> ở phía trên để AI tự phân tích từng đoạn, câu và ý.
           </td>
         </tr>
       `;
@@ -3404,11 +3433,12 @@ function initSourceSuggester() {
 
     sgDom.tbody.innerHTML = sgState.rows.map((r, idx) => {
       const [p1, p2] = splitLoaiSource(r.loai_source);
-      const curEl = r.element || 'auto';
-      const curAnim = r.anim || 'auto';
+      const curEl = r.element || '';
+      const curAnim = r.anim || '';
       const conf = typeof r.confidence === 'number' ? r.confidence : null;
-      const isLow = conf !== null && conf < 0.7;
-      const confPct = conf !== null ? `${Math.round(conf * 100)}%` : '—';
+      const isLow = r.needs_review || (conf !== null && conf < 0.7);
+      const statusLabels = { pending: 'Chờ AI', analyzing: 'Đang phân tích', error: 'Cần chạy lại', manual: 'Làm thủ công', edited: 'Đã chỉnh sửa' };
+      const confPct = statusLabels[r.analysis_status] || (conf !== null ? `${Math.round(conf * 100)}%` : 'Chờ AI');
       const confClass = conf === null ? 'sg-conf-mid' : (conf >= 0.8 ? 'sg-conf-high' : (conf >= 0.7 ? 'sg-conf-mid' : 'sg-conf-low'));
       const locLabel = [r.doan, r.cau, r.y].filter(Boolean).join('.');
       const safeText = String(r.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -3420,7 +3450,8 @@ function initSourceSuggester() {
       const validElements = getValidElementsList();
       const validAnims = getValidAnimsList();
 
-      const opts1 = validLoai.map(o =>
+      const emptyOption = `<option value="">${r.analysis_status === 'manual' ? '— Làm thủ công —' : '— Chưa phân loại —'}</option>`;
+      const opts1 = emptyOption + validLoai.map(o =>
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p1 ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
@@ -3428,24 +3459,25 @@ function initSourceSuggester() {
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p2 ? 'selected' : ''}>+ ${o.label}</option>`
       ).join('');
 
-      const optsEl = validElements.map(o =>
+      const comboOption = curEl.includes(' + ') ? `<option value="${escapeSuggesterHtml(curEl)}" selected>${escapeSuggesterHtml(curEl)}</option>` : '';
+      const optsEl = emptyOption + comboOption + validElements.map(o =>
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curEl ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
-      const optsAnim = validAnims.map(o =>
+      const optsAnim = emptyOption + validAnims.map(o =>
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curAnim ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
       const validBgms = getValidBgmsList();
       const validSfxs = getValidSfxsList();
-      const curBgm = r.bgm || 'auto';
-      const curSfx = r.sfx || 'auto';
+      const curBgm = r.bgm || '';
+      const curSfx = r.sfx || '';
 
-      const optsBgm = validBgms.map(o =>
+      const optsBgm = emptyOption + validBgms.map(o =>
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curBgm ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
-      const optsSfx = validSfxs.map(o =>
+      const optsSfx = emptyOption + validSfxs.map(o =>
         `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === curSfx ? 'selected' : ''}>${o.label}</option>`
       ).join('');
 
@@ -3511,7 +3543,7 @@ function initSourceSuggester() {
         const i = Number(sel.dataset.idx);
         const p2El = sgDom.tbody.querySelector(`.sg-sel-p2[data-idx="${i}"]`);
         sgState.rows[i].loai_source = combineLoaiSource(sel.value, p2El ? p2El.value : '');
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3519,8 +3551,8 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         const p1El = sgDom.tbody.querySelector(`.sg-sel-p1[data-idx="${i}"]`);
-        sgState.rows[i].loai_source = combineLoaiSource(p1El ? p1El.value : 'rai_1', sel.value);
-        sgState.rows[i].confidence = 1.0;
+        sgState.rows[i].loai_source = combineLoaiSource(p1El ? p1El.value : '', sel.value);
+        markRowEdited(i);
       });
     });
 
@@ -3528,7 +3560,7 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].element = sel.value;
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3536,7 +3568,7 @@ function initSourceSuggester() {
       chk.addEventListener('change', () => {
         const i = Number(chk.dataset.idx);
         sgState.rows[i].si = chk.checked ? 'yes' : '';
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3544,7 +3576,7 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].anim = sel.value;
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3552,7 +3584,7 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].bgm = sel.value;
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3560,7 +3592,7 @@ function initSourceSuggester() {
       sel.addEventListener('change', () => {
         const i = Number(sel.dataset.idx);
         sgState.rows[i].sfx = sel.value;
-        sgState.rows[i].confidence = 1.0;
+        markRowEdited(i);
       });
     });
 
@@ -3568,6 +3600,7 @@ function initSourceSuggester() {
       inp.addEventListener('input', () => {
         const i = Number(inp.dataset.idx);
         sgState.rows[i].thoi_ky = inp.value;
+        saveAnalysis();
       });
     });
 
@@ -3575,8 +3608,10 @@ function initSourceSuggester() {
       inp.addEventListener('input', () => {
         const i = Number(inp.dataset.idx);
         sgState.rows[i].note = inp.value;
+        saveAnalysis();
       });
     });
+    sgDom.tbody.querySelectorAll('select, input').forEach(el => { el.disabled = sgState.isSuggesting; });
   }
 
   async function loadBackendState() {
@@ -3641,6 +3676,7 @@ function initSourceSuggester() {
           setRulesLocked(true);
         }
         sgState.examples = res.examples || [];
+        sgState.backendLoaded = true;
         renderExamples();
         setClsLocked(true, false);
         syncClassificationsEverywhere();
@@ -3651,8 +3687,11 @@ function initSourceSuggester() {
     }
   }
 
-  async function loadCsvFile(csvPath) {
-    if (!csvPath) return;
+  async function loadCsvFile(csvPath, { autoAnalyze = false } = {}) {
+    if (!csvPath || sgState.isSuggesting || sgState.isLoadingCsv) return;
+    sgState.isLoadingCsv = true;
+    if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
+    if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = true;
     try {
       const res = await window.api.suggesterLoadCsv({ csv_path: csvPath });
       if (res.error) throw new Error(res.error);
@@ -3663,21 +3702,38 @@ function initSourceSuggester() {
       const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
       sgState.rows = (res.rows || []).map(r => ({
         ...r,
-        loai_source: r.loai_source || 'rai_1',
-        element: r.element || 'auto',
-        anim: r.anim || 'auto',
-        bgm: r.bgm || 'auto',
-        sfx: r.sfx || 'auto',
+        loai_source: r.loai_source || '',
+        element: r.element || '',
+        anim: r.anim || '',
+        bgm: r.bgm || '',
+        sfx: r.sfx || '',
         si: r.si || '',
         thoi_ky: r.thoi_ky || defTk || '',
         confidence: null,
+        analysis_status: 'pending',
+        needs_review: false,
         reason: '',
         note: ''
       }));
+      if (!autoAnalyze) {
+        try {
+          const saved = JSON.parse(localStorage.getItem('sg_analysis') || 'null');
+          const signature = rows => JSON.stringify(rows.map(r => [r.doan, r.cau, r.y, r.start, r.text]));
+          if (saved && saved.csvPath === csvPath && signature(saved.rows) === signature(sgState.rows)) {
+            sgState.rows = saved.rows.map(r => ({ ...r, analysis_status: r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status }));
+          }
+        } catch (err) { /* A stale cache never replaces the selected CSV. */ }
+      }
       renderTable();
+      saveAnalysis();
       sgLog(`Đã tải ${sgState.rows.length} câu thoại từ ${csvPath.split(/[\\/]/).pop()}`, 'success');
+      if (autoAnalyze) await runSuggestions({ automatic: true });
     } catch (err) {
       sgLog(`Lỗi đọc CSV: ${err.message}`, 'error');
+    } finally {
+      sgState.isLoadingCsv = false;
+      if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = false;
+      if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = false;
     }
   }
 
@@ -4192,7 +4248,7 @@ function initSourceSuggester() {
     sgDom.btnBrowseCsv.addEventListener('click', async () => {
       const filePath = await window.api.selectCsvFile();
       if (!filePath) return;
-      await loadCsvFile(filePath);
+      await loadCsvFile(filePath, { autoAnalyze: true });
     });
   }
 
@@ -4222,15 +4278,15 @@ function initSourceSuggester() {
         }
       });
       renderTable();
+      saveAnalysis();
       sgLog(`Đã điền Thời kỳ "${firstVal}" cho ${filled} dòng trống.`, 'info');
     });
   }
 
-  // Bấm nút AI Gợi ý Source
-  if (sgDom.btnSuggest) {
-    sgDom.btnSuggest.addEventListener('click', async () => {
+  // Analyze bounded groups while retaining the entire script as context.
+  async function runSuggestions({ automatic = false } = {}) {
       if (sgState.isSuggesting) return;
-      if (!sgState.rows.length && !sgState.csvPath) {
+      if (!sgState.rows.length) {
         sgLog('Vui lòng chọn file 1_CSV_Timeline.csv trước!', 'error');
         return;
       }
@@ -4241,63 +4297,93 @@ function initSourceSuggester() {
         return;
       }
 
-      const hasExistingSuggestions = sgState.rows.some(r => typeof r.confidence === 'number');
-      if (hasExistingSuggestions) {
+      let indices = sgState.rows.flatMap((r, i) => isUnanalyzed(r) ? [i] : []);
+      if (!indices.length && !automatic) {
         const ok = await askConfirm('Bảng hiện tại đã có kết quả gợi ý hoặc chỉnh sửa.\nChạy lại AI sẽ ghi đè dữ liệu trên bảng, bạn có muốn tiếp tục không?', {
           title: '🤖 Xác nhận chạy lại AI Gợi ý',
           confirmText: 'Tiếp tục chạy'
         });
         if (!ok) return;
+        indices = sgState.rows.map((_, i) => i);
       }
+      if (!indices.length) return;
 
       sgState.isSuggesting = true;
       sgDom.btnSuggest.disabled = true;
+      if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
+      if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = true;
       if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '⏳ AI đang phân tích theo phong cách của bạn...';
       sgLog(`Đang gửi ${sgState.rows.length} câu thoại cho Gemini (kèm ${sgState.examples.length} mẫu ví dụ)...`, 'info');
 
       try {
+        if (!sgState.backendLoaded) await loadBackendState();
+        if (!sgState.backendLoaded) throw new Error('Chưa tải được bảng phân loại và quy tắc. Kiểm tra kết nối backend rồi chạy lại.');
         const rulesText = sgDom.rulesInput ? sgDom.rulesInput.value : '';
         const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
-
-        const res = await window.api.suggesterSuggest({
-          rows: sgState.rows,
-          csv_path: sgState.csvPath,
-          api_key: apiKey,
-          default_thoi_ky: defTk,
-          rules: rulesText
-        });
-
-        if (res.error) throw new Error(res.error);
-
-        sgState.rulesOriginalText = rulesText;
-        updateRulesMeta(rulesText);
-        setRulesLocked(true);
-
-        sgState.rows = (res.rows || []).map(r => ({
-          ...r,
-          bgm: r.bgm || 'auto',
-          sfx: r.sfx || 'auto',
-          note: ''
-        }));
-        renderTable();
-
-        const lowCount = sgState.rows.filter(r => typeof r.confidence === 'number' && r.confidence < 0.7).length;
-        sgLog(`Hoàn tất gợi ý ${sgState.rows.length} câu! Có ${lowCount} câu cần bạn xem kỹ (tô vàng).`, 'success');
+        const contextRows = sgState.rows.map(({ doan, cau, y, start, text }) => ({ doan, cau, y, start, text }));
+        for (const i of indices) {
+          Object.assign(sgState.rows[i], { loai_source: '', element: '', anim: '', bgm: '', sfx: '', si: '',
+            confidence: null, reason: '', needs_review: false, analysis_status: 'pending' });
+        }
+        for (let offset = 0; offset < indices.length; offset += 32) {
+          const batchIndices = indices.slice(offset, offset + 32);
+          for (const i of batchIndices) sgState.rows[i].analysis_status = 'analyzing';
+          renderTable();
+          if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = `⏳ AI đang phân tích ${offset + 1}–${offset + batchIndices.length}/${indices.length} câu, ý...`;
+          const res = await window.api.suggesterSuggest({
+            rows: batchIndices.map(i => sgState.rows[i]),
+            context_rows: contextRows,
+            previous_rows: sgState.rows.slice(Math.max(0, batchIndices[0] - 4), batchIndices[0]),
+            csv_path: sgState.csvPath, api_key: apiKey, default_thoi_ky: defTk, rules: rulesText
+          });
+          if (res.error) throw new Error(res.error);
+          if (!Array.isArray(res.rows) || res.rows.length !== batchIndices.length ||
+              res.rows.some((r, i) => r.row_index !== i || r.text !== sgState.rows[batchIndices[i]].text)) {
+            throw new Error('AI trả thiếu dòng hoặc sai thứ tự; giữ trống các dòng chưa có kết quả.');
+          }
+          res.rows.forEach((r, localIndex) => {
+            const i = batchIndices[localIndex];
+            sgState.rows[i] = { ...sgState.rows[i], ...r, row_index: i };
+          });
+          saveAnalysis();
+          renderTable();
+          sgLog(`Đã xử lý ${offset + batchIndices.length}/${indices.length} câu, ý.`, 'info');
+        }
+        const unresolved = sgState.rows.filter(isUnanalyzed).length;
+        const manual = sgState.rows.filter(r => r.analysis_status === 'manual').length;
+        sgLog(unresolved ? `Còn ${unresolved} dòng chưa có kết quả hợp lệ. Bấm AI để chạy tiếp các dòng này.` :
+          `Đã phân tích đủ ${sgState.rows.length} câu, ý; ${manual} dòng cần làm thủ công được để trống và tô vàng.`, unresolved ? 'warn' : 'success');
       } catch (err) {
+        sgState.rows.forEach(r => {
+          if (['pending', 'analyzing'].includes(r.analysis_status)) {
+            Object.assign(r, { analysis_status: 'error', needs_review: true, confidence: null,
+              reason: `Chưa có kết quả AI: ${err.message}` });
+          }
+        });
         sgLog(`Lỗi AI gợi ý: ${err.message}`, 'error');
       } finally {
         sgState.isSuggesting = false;
         sgDom.btnSuggest.disabled = false;
-        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '🤖 AI Gợi ý Source + Animation';
+        if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = false;
+        if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = false;
+        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = sgState.rows.some(isUnanalyzed) ?
+          '🤖 Phân tích các câu, ý chưa hoàn tất' : '🤖 Phân tích lại theo quy tắc hiện tại';
+        saveAnalysis();
+        renderTable();
       }
-    });
+  }
+
+  if (sgDom.btnSuggest) {
+    sgDom.btnSuggest.addEventListener('click', () => runSuggestions());
   }
 
   // Bấm nút Lưu vào Kho ví dụ (Dạy AI)
   if (sgDom.btnLearn) {
     sgDom.btnLearn.addEventListener('click', async () => {
-      if (!sgState.rows.length) return;
-      const ok = await askConfirm(`Bạn có muốn lưu ${sgState.rows.length} câu hiện tại vào Kho ví dụ (source_examples.json) để dạy AI không?`, {
+      if (sgState.isSuggesting) return;
+      const learnRows = sgState.rows.filter(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
+      if (!learnRows.length) return;
+      const ok = await askConfirm(`Bạn có muốn lưu ${learnRows.length} câu đã phân loại vào Kho ví dụ (source_examples.json) để dạy AI không?`, {
         title: '🧠 Xác nhận lưu vào Kho ví dụ',
         confirmText: 'Có, lưu để dạy AI'
       });
@@ -4305,10 +4391,10 @@ function initSourceSuggester() {
 
       const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.apiKey) || '';
       sgDom.btnLearn.disabled = true;
-      sgLog(`Đang lưu ${sgState.rows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
+      sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
       try {
         const res = await window.api.suggesterSaveExamples({
-          items: sgState.rows,
+          items: learnRows,
           api_key: apiKey
         });
         if (res.error) throw new Error(res.error);
@@ -4348,7 +4434,7 @@ function initSourceSuggester() {
   // Xuất file 2_CSV_PhanLoaiSource.csv
   if (sgDom.btnExport) {
     sgDom.btnExport.addEventListener('click', async () => {
-      if (!sgState.rows.length) return;
+      if (!sgState.rows.length || sgState.isSuggesting || sgState.rows.some(isUnanalyzed)) return;
       let defaultOut = '2_CSV_PhanLoaiSource.csv';
       if (sgState.csvPath) {
         const dir = sgState.csvPath.replace(/[\\/][^\\/]+$/, '');
@@ -4383,7 +4469,7 @@ function initSourceSuggester() {
   window.api.onBackendReady(async (ready) => {
     if (ready) {
       await loadBackendState();
-      if (sgState.csvPath) {
+      if (sgState.csvPath && !sgState.rows.length && !sgState.isSuggesting) {
         await loadCsvFile(sgState.csvPath);
       }
     } else {
@@ -4392,7 +4478,11 @@ function initSourceSuggester() {
   });
 
   // Wait for the health-checked backend-ready event before making API calls.
-  if (state.backendReady) loadBackendState();
+  if (state.backendReady) {
+    loadBackendState().then(() => {
+      if (sgState.csvPath && !sgState.rows.length) return loadCsvFile(sgState.csvPath);
+    });
+  }
 }
 
 // ============================================================

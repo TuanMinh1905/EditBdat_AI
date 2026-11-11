@@ -840,16 +840,13 @@ def api_suggester_suggest():
         "csv_path": "...",
         "api_key": "...",
         "default_thoi_ky": "...",
-        "rules": "..."             // tuy chon: luu luon rules truoc khi goi
+        "rules": "..."             // quy tac cho lan phan tich nay, khong tu ghi file
     }
     """
     try:
         data = request.get_json() or {}
         api_key = data.get('api_key', '')
         default_thoi_ky = data.get('default_thoi_ky', '')
-
-        if 'rules' in data and data['rules'] is not None:
-            source_suggester.save_rules(data['rules'])
 
         rows = data.get('rows')
         if not rows:
@@ -862,6 +859,9 @@ def api_suggester_suggest():
             timeline_rows=rows,
             api_key=api_key,
             default_thoi_ky=default_thoi_ky,
+            context_rows=data.get('context_rows'),
+            previous_rows=data.get('previous_rows'),
+            rules_text=data.get('rules'),
         )
         return jsonify({
             "success": True,

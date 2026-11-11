@@ -1104,6 +1104,10 @@ def generate_xml(
             continue
 
         loai_str = sp.get("loai_source", "")
+        if not loai_str.strip():
+            markers_list.append((f_in, f_out, f"[CAN LAM THU CONG] D{doan}C{cau}Y{y} — {text[:80]}"))
+            missing.append(f"D{doan}C{cau}Y{y}: source de trong, can lam thu cong")
+            continue
         cau_thu_str = sp.get("cau_thu", "") or sp.get("_cau_thu_hint", "")
         doi_bong_str = (
             sp.get("doi_bong", "")
