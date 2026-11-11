@@ -1262,6 +1262,7 @@ class SourceSuggester:
                         "anim": str(r.get("anim", "")).strip(),
                         "bgm": str(r.get("bgm", "")).strip(),
                         "sfx": str(r.get("sfx", "")).strip(),
+                        "si": str(r.get("si", "")).strip(),
                     }
                 )
         return rows
