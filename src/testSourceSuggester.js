@@ -122,6 +122,20 @@ test('OpenAI alone works when enabled; unchecked keys and unsaved drafts are ski
   assert.doesNotMatch(h.storage.get('sg_analysis'), /saved-openai-key|unsaved-openai-draft/);
 });
 
+test('only OpenAI checked with an empty or unsaved key never calls unchecked Gemini keys', async () => {
+  const h = harness();
+  Object.assign(h.context.state.settings, { geminiApiKeyBackup: 'saved-backup-key', geminiKey1Enabled: false,
+    geminiKey2Enabled: false, openaiKey3Enabled: true, openaiApiKey: '' });
+  await h.sgDom.btnBrowseCsv.click();
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai.length, 0);
+  h.context.dom.settingOpenaiApiKey = { value: 'unsaved-openai-draft' };
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai.length, 0);
+  assert.ok(h.calls.log.some(([message]) => /API Key.*đã lưu/.test(message)));
+  assert.ok(h.sgState.rows.every(row => row.analysis_status === 'pending'));
+});
+
 test('all provider failures pause without automatic requests; Continue reads changed keys', async () => {
   const h = harness({ count: 3, suggest: (params, n) => n === 1 ? {
     all_providers_failed: true, error: 'Tất cả key đều lỗi', key_status: { paused: true },

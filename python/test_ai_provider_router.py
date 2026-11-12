@@ -2,6 +2,7 @@
 
 import json
 import importlib
+from itertools import product
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -52,6 +53,50 @@ class RouterTests(unittest.TestCase):
     def exhaust_gemini(self):
         for model in self.models.values():
             model.generate_content.side_effect = api_error()
+
+    def test_all_eight_key_selections_use_only_enabled_credentials_in_priority_order(self):
+        with patch('source_suggester.SourceSuggester.__init__', return_value=None):
+            backend = importlib.import_module('main')
+        for enabled in product([False, True], repeat=3):
+            for scenario in ['working', 'gemini_exhausted', 'all_exhausted']:
+                with self.subTest(enabled=enabled, scenario=scenario):
+                    for table in [pool._PREFERRED, pool._COOLDOWNS, pool._UNAVAILABLE, pool._SERVER_COOLDOWNS,
+                                  pool._ROUTES, router._OPENAI_RUNS, router._LAST_ROUTES]:
+                        table.clear()
+                    calls = []
+                    for slot, key in enumerate(self.keys, 1):
+                        def generate(_slot=slot, **payload):
+                            calls.append(('gemini', _slot, payload['model']))
+                            if scenario != 'working':
+                                raise api_error()
+                            return SimpleNamespace(text='{"layers":[]}', candidates=[])
+                        self.models[key].generate_content.side_effect = generate
+                    def post(*args, **kwargs):
+                        calls.append(('openai', 3, kwargs['json']['model']))
+                        return Mock(status_code=429) if scenario == 'all_exhausted' else openai_reply()
+                    self.post.side_effect = post
+                    keys, config = backend._request_ai_config({'api_keys': self.keys,
+                        'openai_api_key': self.config['openai_api_key'], 'key_enabled': list(enabled)})
+                    settings = dict(geminiApiKey=self.keys[0], geminiApiKeyBackup=self.keys[1],
+                        openaiApiKey=self.config['openai_api_key'], geminiKey1Enabled=enabled[0],
+                        geminiKey2Enabled=enabled[1], openaiKey3Enabled=enabled[2])
+                    self.assertEqual(keys, backend._gemini_api_keys(settings))
+                    self.assertEqual(config['openai_api_key'], backend._ai_config(settings)['openai_api_key'])
+                    gemini_slots = [slot for slot in [1, 2] if enabled[slot - 1]]
+                    expected = [('gemini', slot, model) for slot in gemini_slots for model in ['model-a', 'model-b']]
+                    if enabled[2]:
+                        expected.append(('openai', 3, router.DEFAULT_OPENAI_MODEL))
+                    if scenario == 'working':
+                        expected = expected[:1]
+                    succeeds = bool(any(enabled)) if scenario == 'working' else enabled[2] and scenario != 'all_exhausted'
+                    if succeeds:
+                        client = self.client(keys=keys, config=config)
+                        client.generate_content(model='ignored', contents='same prompt')
+                        self.assertEqual(client.active_provider, expected[-1][0])
+                    else:
+                        with self.assertRaises(router.AllProvidersUnavailable):
+                            self.client(keys=keys, config=config).generate_content(model='ignored', contents='same prompt')
+                    self.assertEqual(calls, expected)
 
     def test_all_models_key_one_then_all_models_key_two_before_openai(self):
         calls = []

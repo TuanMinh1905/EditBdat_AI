@@ -1,5 +1,13 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-13)
 
+## Xác minh mọi tổ hợp chọn key (2026-11-13)
+
+- User hỏi đã xử lý chỉ một key và cặp Key 1+3/Key 2+3 chưa. Rà soát xác nhận bản `da0f46d` đã hỗ trợ mọi tổ hợp; không cần sửa logic chạy. Chỉ Key 3 dùng OpenAI từ đầu, chỉ Key 1/2 dùng Gemini của key đó; hai key chọn theo ưu tiên 1 → 2 → 3, bỏ qua ô tắt. Hết mọi key đang chọn thì Source tạm dừng/giữ kết quả, không tự dùng key đã bỏ tích.
+- Ảnh user chỉ bật Key3 nhưng ô OpenAI trống; cần nhập/Lưu Key3. Key1/2 đã lưu nhưng bỏ tích không được dùng thay thế. Không đọc hay thay cấu hình/key thật trong lần kiểm tra này.
+- Thêm kiểm thử đủ **8 tổ hợp × 3 tình huống** (provider hoạt động, Gemini hết quota, tất cả hết quota), kiểm tra bộ lọc cấu hình Source và timeline, thứ tự gọi thực tế và không gọi credential đã tắt. Thêm test UI đúng ảnh: chỉ Key3 bật nhưng trống/chưa lưu thì không gọi AI, kể cả Gemini còn key đã lưu.
+- Kết quả: **22 test router Python đạt**, gồm 24 trường hợp của ma trận; **36 test Source JavaScript đạt**. Không gọi API thật, không mở Electron; các bộ khác không chạy lại vì không sửa runtime. Cú pháp/diff kiểm tra trước commit.
+- Cập nhật bảng tổ hợp trong `doc/Gemini_API_Keys.md` và mục tương ứng ở `doc/workflows/settings.html`. Tab khác không đổi luồng. File sửa chỉ gồm hai bộ test và ba tài liệu; không sửa runtime/AGENTS vì không thêm cấu trúc hay quy tắc mới. Commit/push theo quy tắc bàn giao; `doc/aaa/` vẫn ngoài task.
+
 ## Lưu từng key, bật/tắt và dự phòng OpenAI Key 3 (2026-11-13, hiện hành)
 
 - User đã chốt: thử **hết model Gemini Key 1 → hết model Key 2 → OpenAI Key 3**, thay thứ tự model trước key. Áp dụng mọi chức năng sinh/phân tích nội dung AI. OpenAI thành công làm tiếp đến hết lượt; tắt Key 3 hoặc Key 3 lỗi thì thử Gemini còn bật. Mọi key được bật đều lỗi thì **tạm dừng và thông báo**, không tự gửi lại định kỳ. Lỗi mạng/server Gemini thử lại một lần rồi sang key kế, tránh thử lặp mọi model trên server lỗi.

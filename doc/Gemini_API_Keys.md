@@ -8,6 +8,19 @@ Trong **Cài đặt → API AI**, mỗi key có **Chỉnh sửa**, **Lưu**, hi�
 
 **Thử hết model Gemini Key 1 → hết model Key 2 → OpenAI Key 3.** Ví dụ: A/Key 1 → B/Key 1 → A/Key 2 → B/Key 2 → OpenAI/Key 3. Bỏ qua key tắt, trống và key Gemini trùng. Đây là quyết định mới thay thứ tự model trước key ngày 12/11.
 
+| Tích Sử dụng | Luồng chạy khi cần dự phòng |
+|---|---|
+| Chỉ Key 1 | Các model Gemini Key 1 |
+| Chỉ Key 2 | Các model Gemini Key 2 |
+| Chỉ Key 3 | OpenAI ngay từ đầu |
+| Key 1 + Key 2 | Key 1 → Key 2 |
+| Key 1 + Key 3 | Key 1 → OpenAI; không gọi Key 2 |
+| Key 2 + Key 3 | Key 2 → OpenAI; không gọi Key 1 |
+| Cả ba | Key 1 → Key 2 → OpenAI |
+| Không chọn | Báo cần bật key; không gọi API |
+
+Chỉ chọn một key thì khi key đó không thể phục vụ, app tạm dừng và thông báo; không tự dùng key đã bỏ tích. Key được chọn nhưng trống hoặc mới nhập chưa Lưu không dùng được. Nếu chỉ bật Key 3, phải nhập và Lưu Key 3 trước khi phân tích.
+
 - Quota 429: bỏ qua cặp key/model ít nhất 60 giây, hoặc lâu hơn theo RetryInfo/Retry-After; thử model kế trên cùng key trước khi chuyển key.
 - Model/key không dùng được (HTTP 400/401/403/404): bỏ qua cặp đó tạm thời và thử lựa chọn kế. Có thể sửa key/model rồi lưu.
 - Mạng/timeout/server Gemini 408/500/502/503/504: thử lại **một lần** với cùng payload; vẫn lỗi thì sang key kế, không lặp mọi model trên server lỗi. Gemini chờ phản hồi tối đa 60 giây/lần, kết nối tối đa 20 giây.
