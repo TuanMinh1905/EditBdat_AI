@@ -985,16 +985,23 @@ def api_suggester_export_csv():
         data = request.get_json() or {}
         rows = data.get('rows', [])
         output_path = data.get('output_path', '')
+        draft = data.get('draft', False)
+        if type(draft) is not bool:
+            return jsonify({"error": "Chế độ xuất bản nháp không hợp lệ."}), 400
         if not rows:
             return jsonify({"error": "Khong co du lieu dong de xuat CSV."}), 400
         if not output_path:
             return jsonify({"error": "Chua chon duong dan luu file CSV."}), 400
 
-        out = source_suggester.export_source_plan_csv(rows, output_path)
+        out = source_suggester.export_source_plan_csv(rows, output_path, draft=draft)
+        completed = sum(row.get('analysis_status') in ('complete', 'edited', 'manual') for row in rows) if draft else len(rows)
         return jsonify({
             "success": True,
             "output_path": out,
             "total": len(rows),
+            "draft": draft,
+            "completed": completed,
+            "remaining": len(rows) - completed,
         })
     except Exception as e:
         log(f"Loi suggester-export-csv: {str(e)}")

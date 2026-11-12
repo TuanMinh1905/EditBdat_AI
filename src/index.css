@@ -2277,6 +2277,7 @@ a:hover { color: #c4b5fd; }
 .sg-toolbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
 }
 

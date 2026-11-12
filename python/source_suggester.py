@@ -13,6 +13,7 @@ import math
 import time
 import base64
 import shutil
+import tempfile
 import urllib.parse
 from datetime import datetime
 import httpx
@@ -1221,6 +1222,12 @@ class SourceSuggester:
             for idx, r in enumerate(reader):
                 if not any(str(v or "").strip() for v in r.values()):
                     continue
+                try:
+                    confidence = float(r['confidence']) if r.get('confidence') else None
+                except (ValueError, TypeError):
+                    confidence = None
+                if confidence is not None and (not math.isfinite(confidence) or not 0 <= confidence <= 1):
+                    confidence = None
                 rows.append(
                     {
                         **{k: r.get(k, "") for k in (*PLAN_META_FIELDS, "analysis_status", "reason") if k in r},
@@ -1238,21 +1245,32 @@ class SourceSuggester:
                         "bgm": str(r.get("bgm", "")).strip(),
                         "sfx": str(r.get("sfx", "")).strip(),
                         "si": str(r.get("si", "")).strip(),
+                        "confidence": confidence,
+                        "note": str(r.get("note", "")),
                     }
                 )
         return [normalize_plan_row(r) for r in rows]
 
-    def export_source_plan_csv(self, rows, output_path):
+    def export_source_plan_csv(self, rows, output_path, draft=False):
         """
-        Xuat danh sach dong ra file 2_CSV_PhanLoaiSource.csv (UTF-8 BOM).
-        Cot: doan, cau, y, loai_source, thoi_ky, element, anim, bgm, sfx.
-        Neu element == 'auto' -> de trong '' trong CSV de Premiere XML Generator dung auto_map mac dinh.
+        Xuất CSV UTF-8 BOM; bản nháp giữ mọi dòng và để trống AI chưa xong.
+        Giữ trạng thái, ngữ cảnh, confidence và ghi chú để nạp lại chạy tiếp.
+        Bản hoàn chỉnh vẫn chặn pending/analyzing/error. Ghi file nguyên tử.
         """
-        if any(r.get("analysis_status") in ("pending", "analyzing", "error") for r in rows):
+        if type(draft) is not bool:
+            raise ValueError('Chế độ xuất bản nháp không hợp lệ.')
+        if not draft and any(r.get("analysis_status") in ("pending", "analyzing", "error") for r in rows):
             raise ValueError("Còn dòng chưa được phân tích. Hãy chạy tiếp AI trước khi xuất CSV.")
-        fieldnames = ["doan", "cau", "y", "loai_source", "thoi_ky", "element", "anim", "bgm", "sfx", "si", *PLAN_META_FIELDS, "analysis_status", "reason", "start", "text"]
+        fieldnames = ["doan", "cau", "y", "loai_source", "thoi_ky", "element", "anim", "bgm", "sfx", "si", *PLAN_META_FIELDS, "analysis_status", "reason", "start", "text", "confidence", "note"]
         output_rows = []
-        for r in rows:
+        for original in rows:
+            r = dict(original)
+            if draft and r.get('analysis_status') not in ('complete', 'edited', 'manual'):
+                # Keep text, identity and user context; never export stale AI
+                # choices on rows that have not finished this analysis.
+                r.update({key: '' for key in ('loai_source', 'element', 'anim', 'bgm', 'sfx', 'si', 'confidence')})
+                if r.get('analysis_status') not in ('pending', 'error'):
+                    r['analysis_status'] = 'pending'
             el_val = self.sanitize_element(r.get("element", ""))
             anim_val = self.sanitize_anim(r.get("anim", ""))
             bgm_val = self.sanitize_bgm(r.get("bgm", ""))
@@ -1279,16 +1297,26 @@ class SourceSuggester:
                 "bgm": bgm_val,
                 "sfx": sfx_val,
                 "si": "yes" if si_val in ("yes", "true", "1") else "",
+                "confidence": r.get('confidence', ''),
+                "note": str(r.get('note', '')),
             })
         os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
         if os.path.isfile(output_path) and not os.path.exists(output_path + '.v1.bak'):
             with open(output_path, 'r', encoding='utf-8-sig', newline='') as old:
                 if any(r.get('schema_version') != SCHEMA_VERSION for r in csv.DictReader(old)):
                     shutil.copy2(output_path, output_path + '.v1.bak')
-        with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(output_rows)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='',
+                    dir=os.path.dirname(os.path.abspath(output_path)), prefix='.source-plan-', suffix='.tmp', delete=False) as f:
+                temporary = f.name
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(output_rows)
+            os.replace(temporary, output_path)
+        finally:
+            if temporary and os.path.exists(temporary):
+                os.unlink(temporary)
 
         self._log(
             f"[Suggester] Da xuat {len(rows)} dong (kem element + anim + bgm + sfx) -> {output_path}"

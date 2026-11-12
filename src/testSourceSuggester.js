@@ -19,6 +19,7 @@ const script = new vm.Script([
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
   section('  // Chọn file Timeline CSV', '  // Lưu default thoi_ky'),
   section('  // Analyze bounded groups', '  // Bấm nút Lưu vào Kho ví dụ'),
+  section('  // Xuất file 2_CSV_PhanLoaiSource.csv', '  // Live provider routing notifications'),
   section('  // Live provider routing notifications', '  // Restore backend state'),
 ].join('\n'));
 
@@ -27,6 +28,7 @@ class Element {
   setAttribute(key, value) { this.attributes[key] = value; }
   addEventListener(name, fn) { this.listeners[name] = fn; }
   querySelectorAll() { return []; }
+  dispatchEvent(event) { this.listeners[event.type]?.(event); }
   async click() { if (!this.disabled) return this.listeners.click?.(); }
 }
 
@@ -52,16 +54,17 @@ function complete(input, localIndex) {
 }
 function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
   const data = rows(count);
-  const calls = { ai: [], log: [], confirm: 0 };
+  const calls = { ai: [], log: [], confirm: 0, saveCsv: [], exports: [] };
   const storage = new Map(savedStorage);
   const sgDom = Object.fromEntries(['btnBrowseCsv', 'btnSuggest', 'btnSuggestText', 'btnLearn', 'btnExport', 'btnFillThoiKy',
-    'btnImportPlan', 'btnPause', 'btnReset', 'tbody', 'statTotal', 'statLow', 'timelineCsv', 'defaultThoiKy', 'rulesInput'].map(key => [key, new Element()]));
+    'btnImportPlan', 'btnPause', 'btnReset', 'btnExportDraft', 'tbody', 'statTotal', 'statLow', 'timelineCsv', 'defaultThoiKy', 'rulesInput'].map(key => [key, new Element()]));
   sgDom.rulesInput.value = 'Ưu tiên tv_retro + texture_2; video static.';
   const sgState = { rows: [], examples: [], csvPath: '', backendLoaded: true, isSuggesting: false, isLoadingCsv: false, generation: 0, phase: 'idle', paused: false };
   const progress = new Element();
-  const extras = Object.fromEntries(['sg-progress-bar', 'sg-progress-track', 'sg-progress-percent', 'sg-progress-status', 'sg-routing-notice'].map(id => [id, new Element()]));
+  const extras = Object.fromEntries(['sg-progress-bar', 'sg-progress-track', 'sg-progress-percent', 'sg-progress-status', 'sg-routing-notice', 'pg-source-csv'].map(id => [id, new Element()]));
   const context = vm.createContext({
     sgState, sgDom, dom: { settingApiKey: { value: key } }, state: { settings: { geminiApiKey: key } },
+    Event,
     $: id => extras[id.slice(1)] || progress,
     localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     sgLog: (...args) => calls.log.push(args),
@@ -76,6 +79,8 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
       onPythonLog: callback => { calls.pythonLog = callback; },
       selectCsvFile: async () => 'C:\\Project\\1_CSV_Timeline.csv',
       suggesterLoadCsv: async () => ({ rows: structuredClone(data) }),
+      saveCsvFile: async suggested => { calls.saveCsv.push(suggested); return suggested; },
+      suggesterExportCsv: async params => { calls.exports.push(structuredClone(params)); return { success: true, output_path: params.output_path }; },
       suggesterSuggest: async params => {
         calls.ai.push(structuredClone(params));
         return suggest ? suggest(params, calls.ai.length, { sgState, sgDom }) : { rows: params.rows.map(complete) };
@@ -654,4 +659,118 @@ test('loading an exported source plan preserves manual blanks without running AI
   assert.equal(h.sgState.rows[0].thoi_diem, 'Euro2008');
   assert.equal(h.sgState.rows[0].reason, 'Cần cảnh cụ thể');
   assert.equal(h.sgDom.btnExport.disabled, false);
+});
+
+test('draft export at 296 of 406 includes every row without changing paused data or Tool A', async () => {
+  const h = harness({ count: 406 });
+  h.sgState.rows = h.data.map((row, i) => i < 296 ? complete(row, i) : { ...row, analysis_status: 'pending' });
+  Object.assign(h.sgState, { csvPath: 'C:\\Project\\1_CSV_Timeline.csv', isSuggesting: true, paused: true, phase: 'paused' });
+  h.context.renderTable();
+  const before = structuredClone(h.sgState.rows);
+  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExportDraft.disabled, false);
+  await h.sgDom.btnExportDraft.click();
+  assert.equal(h.calls.exports.length, 1);
+  assert.equal(h.calls.exports[0].draft, true);
+  assert.equal(h.calls.exports[0].rows.length, 406);
+  assert.equal(h.calls.exports[0].rows.filter(row => row.analysis_status === 'complete').length, 296);
+  assert.match(h.calls.saveCsv[0], /2_CSV_PhanLoaiSource_Nhap\.csv$/);
+  assert.deepEqual(h.sgState.rows, before);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgState.isSuggesting, true);
+  assert.equal(h.calls.ai.length, 0);
+  assert.equal(h.extras['pg-source-csv'].value, '');
+  assert.ok(h.calls.log.some(([text]) => /296 dòng đã xử lý, 110 dòng chưa xong/.test(text)));
+});
+
+test('live draft snapshot stays at 288 while the in-flight group completes and Continue reaches 406', async () => {
+  let finishGroup, finishSave;
+  const h = harness({ count: 406, suggest: (params, n) => n === 37 ? new Promise(resolve => {
+    finishGroup = () => resolve({ rows: params.rows.map(complete) });
+  }) : { rows: params.rows.map(complete) } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.rows.filter(row => row.analysis_status === 'complete').length, 288);
+  await h.sgDom.btnPause.click();
+  h.context.window.api.saveCsvFile = () => new Promise(resolve => { finishSave = resolve; });
+  const exporting = h.sgDom.btnExportDraft.click();
+  await h.sgDom.btnExportDraft.click(); // A second click cannot open another save dialog.
+  finishGroup();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.rows.filter(row => row.analysis_status === 'complete').length, 296);
+  assert.equal(h.sgState.phase, 'paused');
+  finishSave('snapshot-draft.csv');
+  await exporting;
+  assert.equal(h.calls.exports[0].rows.length, 406);
+  assert.equal(h.calls.exports[0].rows.filter(row => row.analysis_status === 'complete').length, 288);
+  assert.equal(h.calls.exports[0].rows.filter(row => row.analysis_status === 'analyzing').length, 8);
+  assert.equal(h.calls.ai.length, 37);
+  await h.sgDom.btnPause.click();
+  await run;
+  assert.equal(h.sgState.phase, 'complete');
+  assert.equal(h.sgState.rows.filter(row => row.analysis_status === 'complete').length, 406);
+});
+
+test('canceling or failing draft export keeps rows and allows another attempt', async () => {
+  const h = harness();
+  await h.context.loadCsvFile('timeline.csv', { fresh: true });
+  const before = structuredClone(h.sgState.rows);
+  h.context.window.api.saveCsvFile = async () => null;
+  await h.sgDom.btnExportDraft.click();
+  assert.equal(h.calls.exports.length, 0);
+  assert.equal(h.sgDom.btnExportDraft.disabled, false);
+  h.context.window.api.saveCsvFile = async () => 'draft.csv';
+  h.context.window.api.suggesterExportCsv = async () => ({ error: 'fake disk failure' });
+  await h.sgDom.btnExportDraft.click();
+  assert.deepEqual(structuredClone(h.sgState.rows), before);
+  assert.equal(h.sgDom.btnExportDraft.disabled, false);
+  assert.ok(h.calls.log.some(([text]) => /fake disk failure/.test(text)));
+});
+
+test('reset while choosing a draft path prevents an old export from writing the prior session', async () => {
+  const h = harness();
+  let choose;
+  await h.context.loadCsvFile('timeline.csv', { fresh: true });
+  h.context.window.api.saveCsvFile = () => new Promise(resolve => { choose = resolve; });
+  const exporting = h.sgDom.btnExportDraft.click();
+  await h.sgDom.btnReset.click();
+  choose('old-draft.csv');
+  await exporting;
+  assert.equal(h.calls.exports.length, 0);
+  assert.equal(h.sgState.rows.length, 0);
+  assert.equal(h.sgState.isExportingCsv, false);
+});
+
+test('final export still blocks unfinished rows and attaches only a complete CSV to Tool A', async () => {
+  const h = harness();
+  await h.context.loadCsvFile('timeline.csv', { fresh: true });
+  await h.context.exportCsv(false);
+  assert.equal(h.calls.exports.length, 0);
+  h.sgState.rows = h.sgState.rows.map(complete);
+  h.context.renderTable();
+  await h.sgDom.btnExport.click();
+  assert.equal(h.calls.exports[0].draft, false);
+  assert.match(h.calls.exports[0].output_path, /2_CSV_PhanLoaiSource\.csv$/);
+  assert.equal(h.extras['pg-source-csv'].value, h.calls.exports[0].output_path);
+});
+
+test('importing a draft preserves completed metadata and Continue analyzes only its pending rows', async () => {
+  const h = harness({ count: 3 });
+  Object.assign(h.data[0], complete(h.data[0], 0), { is_source_plan: true, note: 'Giữ khung TV' });
+  Object.assign(h.data[1], { is_source_plan: true, analysis_status: 'manual', reason: 'Chọn cảnh thủ công' });
+  Object.assign(h.data[2], { is_source_plan: true, analysis_status: 'pending' });
+  await h.sgDom.btnImportPlan.click();
+  assert.equal(h.calls.ai.length, 0);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgState.rows[0].confidence, .9);
+  assert.equal(h.sgState.rows[0].note, 'Giữ khung TV');
+  assert.equal(h.sgState.rows[2].needs_review, false);
+  assert.match(h.sgDom.btnSuggestText.textContent, /Continue/);
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai[0].rows.length, 1);
+  assert.equal(h.calls.ai[0].rows[0].text, h.data[2].text);
+  assert.equal(h.sgState.rows[1].analysis_status, 'manual');
+  assert.equal(h.sgState.rows[0].note, 'Giữ khung TV');
+  assert.equal(h.sgState.phase, 'complete');
 });

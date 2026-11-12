@@ -1,4 +1,4 @@
-# Source và Thời điểm — 12/11/2026
+# Source và Thời điểm — 13/11/2026
 
 ## Cách dùng
 
@@ -7,6 +7,12 @@ Chọn `1_CSV_Timeline.csv` ở Gợi ý Source chỉ hiện tên file. Bấm **
 Cài đặt hỗ trợ Gemini Key 1/2 và OpenAI Key 3, có Lưu/Chỉnh sửa và Sử dụng riêng. Thử hết model Key 1 → hết model Key 2 → OpenAI. Khi mọi key được bật đều lỗi, app giữ kết quả, tạm dừng và chờ Continue. Hướng dẫn: [Gemini_API_Keys.md](Gemini_API_Keys.md).
 
 Thanh tiến độ xanh → tím → hồng hiển thị phần trăm và số dòng đã xử lý. **Pause** giữ kết quả nhóm đang chạy (tối đa 8 dòng), rồi dừng gửi nhóm mới. **Continue** tiếp tục phần còn lại. Nếu nhóm cuối hoàn tất trong lúc yêu cầu Pause, phiên chuyển Hoàn tất.
+
+Bảng được cập nhật khi từng nhóm trả kết quả. Ví dụ “Đã phân tích 288/406” cùng nút “289–296” nghĩa là 288 dòng đã nhận kết quả, 8 dòng tiếp theo đang chờ; chỉ khi nhóm trả về thì bộ đếm mới tăng.
+
+**Xuất bản nháp CSV** dùng được khi đang phân tích hoặc tạm dừng. File mặc định `2_CSV_PhanLoaiSource_Nhap.csv` giữ đủ mọi dòng tại thời điểm bấm nút: nếu đã xử lý 296/406 thì giữ 296 kết quả và để trống các lựa chọn AI của 110 dòng chưa xong. Giữ lời thoại, Đoạn/Câu/Ý, start, bối cảnh sửa tay và ghi chú; dòng đang xử lý ghi pending, dòng lỗi giữ error. Dòng manual vẫn giữ trống và lý do. Xuất nháp không dừng AI hoặc tự điền file sang Gen XML. Nạp lại bằng Nạp 2_CSV_PhanLoaiSource rồi Continue để chỉ chạy phần chưa xong. Kết quả đến trong lúc chọn nơi lưu vẫn cập nhật app; file nháp phản ánh thời điểm bấm nút.
+
+Nút **Xuất 2_CSV_PhanLoaiSource.csv** là bản hoàn chỉnh, chỉ dùng khi không còn dòng chờ/lỗi và không đang chạy AI; xuất xong tự gắn sang Gen XML như trước. Nháp và hoàn chỉnh đều lưu UTF-8 BOM, ghi qua file tạm rồi thay thế để giữ bản cũ nếu lỗi ghi.
 
 **Làm mới** có xác nhận: hủy phiên, bỏ file đã chọn, xóa bảng và cache phiên để chọn file mới ngay. Phản hồi cũ đến muộn bị bỏ qua. File trên ổ đĩa, API key, quy tắc và kho ví dụ được giữ. Yêu cầu AI đã gửi có thể vẫn hoàn tất ở dịch vụ, nhưng kết quả không được áp vào phiên mới.
 
@@ -88,7 +94,7 @@ Catalog cũ được chuyển cách đọc trong bộ nhớ, giữ đường d�
 
 Bản phân loại và quy tắc trước refactor được giữ tại `templates/backups/source_v1_before_20261112/`. Những quy tắc riêng về lớp phủ, Animation và cảnh làm thủ công được giữ lại. Cache phân tích v1 không tự áp vào bảng v2; được lưu ở `sg_analysis_v1_backup` khi khôi phục phiên cũ.
 
-CSV v2 giữ 10 cột cũ và bổ sung `cau_thu,doi_bong,thoi_diem,su_kien,context_locked,context_scope,allow_rai_2,schema_version,analysis_status,reason,start,text`. `thoi_ky` còn giữ để tương thích; bốn cột bối cảnh riêng là dữ liệu dùng để chọn clip. Nạp CSV phân loại đã xuất sẽ mở để chỉnh, không tự chạy lại AI.
+CSV v2 giữ 10 cột cũ và bổ sung `cau_thu,doi_bong,thoi_diem,su_kien,context_locked,context_scope,allow_rai_2,schema_version,analysis_status,reason,start,text,confidence,note`. `thoi_ky` còn giữ để tương thích; bốn cột bối cảnh riêng là dữ liệu dùng để chọn clip. Hai cột confidence/note là tùy chọn cho file cũ. Nạp CSV phân loại đã xuất sẽ mở để chỉnh, không tự chạy lại AI; bản nháp còn dòng chưa xong chờ bấm Continue.
 
 ## Kiểm thử
 

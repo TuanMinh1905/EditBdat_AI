@@ -2338,6 +2338,7 @@ function initSourceSuggester() {
     backendLoaded: false,
     isLoadingCsv: false,
     isSuggesting: false,
+    isExportingCsv: false,
     generation: 0,
     paused: false,
     quotaWaitUntil: 0,
@@ -2434,6 +2435,7 @@ function initSourceSuggester() {
     statLow: $('#sg-stat-low'),
     btnLearn: $('#sg-btn-learn'),
     btnExport: $('#sg-btn-export'),
+    btnExportDraft: $('#sg-btn-export-draft'),
     btnFillThoiKy: $('#sg-btn-fill-thoiky'),
     tbody: $('#sg-tbody')
   };
@@ -3717,7 +3719,7 @@ function initSourceSuggester() {
   }
 
   function updateRunControls() {
-    const busy = sgState.isSuggesting || sgState.isLoadingCsv;
+    const busy = Boolean(sgState.isSuggesting || sgState.isLoadingCsv || sgState.isExportingCsv);
     if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = busy;
     if (sgDom.btnImportPlan) sgDom.btnImportPlan.disabled = busy;
     if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = busy || !sgState.csvPath;
@@ -3770,7 +3772,8 @@ function initSourceSuggester() {
     const progress = $('#sg-analysis-progress');
     if (progress) progress.textContent = `Đã phân tích: ${total - unresolved}/${total}`;
     if (sgDom.btnLearn) sgDom.btnLearn.disabled = sgState.isSuggesting || !sgState.rows.some(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
-    if (sgDom.btnExport) sgDom.btnExport.disabled = sgState.isSuggesting || total === 0 || unresolved > 0;
+    if (sgDom.btnExport) sgDom.btnExport.disabled = sgState.isSuggesting || sgState.isLoadingCsv || sgState.isExportingCsv || total === 0 || unresolved > 0;
+    if (sgDom.btnExportDraft) sgDom.btnExportDraft.disabled = sgState.isLoadingCsv || sgState.isExportingCsv || total === 0;
   }
 
   function renderTable() {
@@ -4088,23 +4091,26 @@ function initSourceSuggester() {
       if (sgDom.timelineCsv) sgDom.timelineCsv.value = csvPath;
 
       const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
-      sgState.rows = (res.rows || []).map(r => ({
-        ...r,
-        loai_source: r.loai_source || '',
-        element: r.element || '',
-        anim: r.anim || '',
-        bgm: r.bgm || '',
-        sfx: r.sfx || '',
-        si: r.si || '',
-        thoi_ky: r.thoi_ky || '',
-        schema_version: '2',
-        allow_rai_2: r.allow_rai_2 || 'yes',
-        confidence: r.confidence ?? null,
-        analysis_status: r.is_source_plan ? (r.analysis_status || (r.loai_source ? 'edited' : 'manual')) : 'pending',
-        needs_review: r.is_source_plan ? (!r.loai_source || r.analysis_status === 'manual') : false,
-        reason: r.reason || '',
-        note: r.note || ''
-      }));
+      sgState.rows = (res.rows || []).map(r => {
+        const status = r.is_source_plan ? (r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status || (r.loai_source ? 'edited' : 'manual')) : 'pending';
+        return {
+          ...r,
+          loai_source: r.loai_source || '',
+          element: r.element || '',
+          anim: r.anim || '',
+          bgm: r.bgm || '',
+          sfx: r.sfx || '',
+          si: r.si || '',
+          thoi_ky: r.thoi_ky || '',
+          schema_version: '2',
+          allow_rai_2: r.allow_rai_2 || 'yes',
+          confidence: r.confidence ?? null,
+          analysis_status: status,
+          needs_review: r.is_source_plan ? (['manual', 'error'].includes(status) || (['complete', 'edited'].includes(status) && !r.loai_source)) : false,
+          reason: r.reason || '',
+          note: r.note || ''
+        };
+      });
       if (!autoAnalyze && !fresh) {
         try {
           const saved = JSON.parse(localStorage.getItem('sg_analysis') || 'null');
@@ -4117,6 +4123,8 @@ function initSourceSuggester() {
         } catch (err) { /* A stale cache never replaces the selected CSV. */ }
       }
       sgState.phase = sgState.rows.every(r => r.is_source_plan) ? 'imported' : 'idle';
+      if (sgState.phase === 'imported' && sgState.rows.some(isUnanalyzed)) sgState.phase = 'paused';
+      sgState.paused = sgState.phase === 'paused';
       renderTable();
       saveAnalysis();
       sgLog(`Đã tải ${sgState.rows.length} câu thoại từ ${csvPath.split(/[\\/]/).pop()}`, 'success');
@@ -4130,7 +4138,7 @@ function initSourceSuggester() {
       sgState.isLoadingCsv = false;
       if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = false;
       if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = false;
-      updateRunControls();
+      updateStats();
     }
   }
 
@@ -4688,7 +4696,7 @@ function initSourceSuggester() {
     sgState.generation = (sgState.generation || 0) + 1;
     if (sgState.resumeWaiter) sgState.resumeWaiter();
     if (sgState.quotaWake) sgState.quotaWake();
-    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, resumeWaiter: null, defaultThoiKy: '', preferredProvider: '' });
+    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, isExportingCsv: false, resumeWaiter: null, defaultThoiKy: '', preferredProvider: '' });
     sgState.quotaWaitUntil = 0;
     sgState.runId = '';
     const notice = $('#sg-routing-notice');
@@ -4947,38 +4955,56 @@ function initSourceSuggester() {
   }
 
   // Xuất file 2_CSV_PhanLoaiSource.csv
-  if (sgDom.btnExport) {
-    sgDom.btnExport.addEventListener('click', async () => {
-      if (!sgState.rows.length || sgState.isSuggesting || sgState.rows.some(isUnanalyzed)) return;
-      let defaultOut = '2_CSV_PhanLoaiSource.csv';
+  async function exportCsv(draft = false) {
+    if (!sgState.rows.length || sgState.isLoadingCsv || sgState.isExportingCsv ||
+        (!draft && (sgState.isSuggesting || sgState.rows.some(isUnanalyzed)))) return;
+    const generation = sgState.generation;
+    const snapshot = sgState.rows.map(row => ({ ...row }));
+    const completed = snapshot.filter(row => !isUnanalyzed(row)).length;
+    sgState.isExportingCsv = true;
+    updateStats();
+    try {
+      let defaultOut = draft ? '2_CSV_PhanLoaiSource_Nhap.csv' : '2_CSV_PhanLoaiSource.csv';
       if (sgState.csvPath) {
         const dir = sgState.csvPath.replace(/[\\/][^\\/]+$/, '');
         const sep = sgState.csvPath.includes('\\') ? '\\' : '/';
-        defaultOut = `${dir}${sep}2_CSV_PhanLoaiSource.csv`;
+        defaultOut = `${dir}${sep}${defaultOut}`;
       }
       const savePath = await window.api.saveCsvFile(defaultOut);
-      if (!savePath) return;
+      if (!savePath || generation !== sgState.generation) return;
 
-      try {
-        const res = await window.api.suggesterExportCsv({
-          rows: sgState.rows,
-          output_path: savePath
-        });
-        if (res.error) throw new Error(res.error);
-        sgLog(`Đã xuất file thành công: ${res.output_path}`, 'success');
-
-        // Tự động điền đường dẫn sang ô CSV #2 của Tab Gen XML (Tool A)
-        const pgSourceCsvInput = $('#pg-source-csv');
-        if (pgSourceCsvInput) {
-          pgSourceCsvInput.value = res.output_path;
-          pgSourceCsvInput.dispatchEvent(new Event('input'));
-          sgLog('Đã tự động gắn file vừa xuất vào mục "2. CSV Phân loại Source" bên tab Gen XML!', 'info');
-        }
-      } catch (err) {
-        sgLog(`Lỗi xuất CSV: ${err.message}`, 'error');
+      const res = await window.api.suggesterExportCsv({
+        rows: snapshot,
+        output_path: savePath,
+        draft
+      });
+      if (generation !== sgState.generation) return;
+      if (res.error) throw new Error(res.error);
+      if (draft) {
+        sgLog(`Đã xuất bản nháp đủ ${snapshot.length} dòng: ${completed} dòng đã xử lý, ${snapshot.length - completed} dòng chưa xong để trống. File: ${res.output_path}`, 'success');
+        return;
       }
-    });
+      sgLog(`Đã xuất file thành công: ${res.output_path}`, 'success');
+
+      // Tự động điền đường dẫn sang ô CSV #2 của Tab Gen XML (Tool A)
+      const pgSourceCsvInput = $('#pg-source-csv');
+      if (pgSourceCsvInput) {
+        pgSourceCsvInput.value = res.output_path;
+        pgSourceCsvInput.dispatchEvent(new Event('input'));
+        sgLog('Đã tự động gắn file vừa xuất vào mục "2. CSV Phân loại Source" bên tab Gen XML!', 'info');
+      }
+    } catch (err) {
+      if (generation !== sgState.generation) return;
+      sgLog(`Lỗi xuất CSV: ${err.message}`, 'error');
+    } finally {
+      if (generation === sgState.generation) {
+        sgState.isExportingCsv = false;
+        updateStats();
+      }
+    }
   }
+  if (sgDom.btnExport) sgDom.btnExport.addEventListener('click', () => exportCsv(false));
+  if (sgDom.btnExportDraft) sgDom.btnExportDraft.addEventListener('click', () => exportCsv(true));
 
   // Live provider routing notifications scoped to the active run.
   window.api.onPythonLog?.(message => {

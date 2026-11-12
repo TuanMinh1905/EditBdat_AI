@@ -424,6 +424,92 @@ class SuggesterTests(unittest.TestCase):
             self.s.export_source_plan_csv([self.choice(0), dict(loai_source='unknown')], str(path))
         self.assertEqual(path.read_text(encoding='utf-8'), 'keep original')
 
+    def test_draft_296_of_406_preserves_results_and_all_rows_then_can_reload(self):
+        rows = self.rows(406)
+        for i, row in enumerate(rows):
+            if i < 296:
+                row.update(self.choice(i), analysis_status='complete', note='Giữ khung TV, tiếng Việt có dấu')
+            else:
+                row.update(analysis_status='pending', loai_source='stale-invalid-code', element='old-overlay',
+                           anim='old-anim', bgm='old-bgm', sfx='old-sfx', si='yes', confidence=.99)
+        rows[296].update(analysis_status='analyzing', context_locked='yes', context_scope='row',
+                         cau_thu='Xavi', doi_bong='Spain', thoi_diem='Euro2008', su_kien='Euro', schema_version='2')
+        rows[297].update(analysis_status='error', reason='Lỗi request; cần chạy tiếp')
+        original = json.loads(json.dumps(rows))
+        path = self.root / 'draft.csv'
+        self.s.export_source_plan_csv(rows, str(path), draft=True)
+        self.assertEqual(rows, original)
+        self.assertTrue(path.read_bytes().startswith(b'\xef\xbb\xbf'))
+        with path.open(encoding='utf-8-sig', newline='') as stream:
+            result = list(csv.DictReader(stream))
+        self.assertEqual(len(result), 406)
+        self.assertEqual([r['text'] for r in result], [r['text'] for r in rows])
+        self.assertEqual([(r['doan'], r['cau'], r['y'], r['start']) for r in result],
+                         [(r['doan'], r['cau'], r['y'], r['start']) for r in rows])
+        for saved in result[:296]:
+            self.assertEqual(saved['loai_source'], 'rai_1_3')
+            self.assertEqual(saved['element'], 'tv_retro + texture_2')
+            self.assertEqual(saved['confidence'], '0.9')
+            self.assertEqual(saved['note'], 'Giữ khung TV, tiếng Việt có dấu')
+        for saved in result[296:]:
+            self.assertTrue(all(saved[field] == '' for field in ['loai_source', 'element', 'anim', 'bgm', 'sfx', 'si', 'confidence']))
+        self.assertEqual(result[296]['analysis_status'], 'pending')
+        self.assertEqual(result[297]['analysis_status'], 'error')
+        self.assertEqual(result[296]['context_locked'], 'yes')
+        self.assertEqual(result[296]['thoi_diem'], 'Euro2008')
+        reloaded = self.s.load_timeline_csv(str(path))
+        self.assertEqual(len(reloaded), 406)
+        self.assertEqual(reloaded[295]['confidence'], .9)
+        self.assertEqual(reloaded[295]['note'], rows[295]['note'])
+        self.assertEqual(reloaded[296]['confidence'], None)
+        self.assertEqual(reloaded[297]['analysis_status'], 'error')
+
+    def test_draft_keeps_manual_and_edited_rows_but_final_still_blocks_pending(self):
+        edited = {**self.rows(1)[0], **self.choice(0), 'analysis_status': 'edited'}
+        manual = {**self.rows(1)[0], **self.choice(1), 'analysis_status': 'manual', 'reason': 'Cần cảnh cụ thể'}
+        manual.update({key: '' for key in ['loai_source', 'element', 'anim', 'bgm', 'sfx', 'si']})
+        pending = {**self.rows(1)[0], 'analysis_status': 'pending'}
+        path = self.root / 'draft.csv'
+        self.s.export_source_plan_csv([edited, manual, pending], str(path), draft=True)
+        before = path.read_bytes()
+        saved = self.s.load_timeline_csv(str(path))
+        self.assertEqual([r['analysis_status'] for r in saved], ['edited', 'manual', 'pending'])
+        self.assertEqual(saved[1]['loai_source'], '')
+        self.assertEqual(saved[1]['reason'], 'Cần cảnh cụ thể')
+        with self.assertRaisesRegex(ValueError, 'Còn dòng chưa được phân tích'):
+            self.s.export_source_plan_csv([edited, manual, pending], str(path))
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_csv_replacement_failure_preserves_previous_file_and_cleans_temporary(self):
+        path = self.root / 'draft.csv'
+        self.s.export_source_plan_csv([{**self.rows(1)[0], **self.choice(0), 'analysis_status': 'complete'}], str(path))
+        before = path.read_bytes()
+        with patch.object(module.os, 'replace', side_effect=OSError('fake write failure')):
+            with self.assertRaises(OSError):
+                self.s.export_source_plan_csv([{**self.rows(1)[0], 'analysis_status': 'pending'}], str(path), draft=True)
+        self.assertEqual(path.read_bytes(), before)
+        self.assertEqual(list(self.root.glob('.source-plan-*.tmp')), [])
+
+    def test_draft_export_api_writes_all_rows_and_reports_snapshot_counts(self):
+        with patch.object(SourceSuggester, '__init__', return_value=None):
+            backend = importlib.import_module('main')
+        rows = [{**self.rows(1)[0], **self.choice(0), 'analysis_status': 'complete'},
+                {**self.rows(2)[1], 'analysis_status': 'analyzing'}]
+        path = self.root / 'draft-api.csv'
+        with patch.object(backend, 'source_suggester', self.s):
+            response = backend.app.test_client().post('/api/source-suggester/export-csv', json={
+                'rows': rows, 'output_path': str(path), 'draft': True})
+            invalid = backend.app.test_client().post('/api/source-suggester/export-csv', json={
+                'rows': rows, 'output_path': str(self.root / 'invalid.csv'), 'draft': 'false'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['draft'])
+        self.assertEqual((response.json['total'], response.json['completed'], response.json['remaining']), (2, 1, 1))
+        saved = self.s.load_timeline_csv(str(path))
+        self.assertEqual(saved[1]['analysis_status'], 'pending')
+        self.assertEqual(saved[1]['loai_source'], '')
+        self.assertEqual(invalid.status_code, 400)
+        self.assertFalse((self.root / 'invalid.csv').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

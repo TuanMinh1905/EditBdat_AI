@@ -326,6 +326,8 @@ try {
 
 ## 9. Lịch sử thay đổi Rule
 
+Ngày 13/11/2026: user chọn xuất bản nháp đủ mọi dòng tại tiến độ bất kỳ (ví dụ 296/406), giữ kết quả đã xử lý và để trống phần chưa xong. Thêm ngoại lệ draft cho CSV, giữ chặn CSV hoàn chỉnh; bản nháp không tự gắn vào Gen XML. Lý do đổi rule: user cần lưu và nạp lại tiến độ dở dang ra file riêng.
+
 Ngày 13/11/2026: user báo log tiếng Việt lỗi ở Terminal VS Code và không biết vì sao chưa chuyển OpenAI. Thêm khởi động terminal/stream UTF-8, ghép trọn dòng log, phân biệt Key3 chưa lưu với đang tắt và giữ thông báo cuối khi Source paused; lý do là lỗi bảng mã và thiếu thông tin trạng thái thực tế.
 
 Ngày 12/11/2026: user yêu cầu ưu tiên model trước key, tự chuyển A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2. Thay giới hạn model cố định bằng danh sách Cài đặt, thêm chờ quota tự tiếp tục và thông báo theo lượt chạy. Giữ nguyên tech stack Gemini/Electron/Flask.
@@ -548,7 +550,7 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - Khi request lỗi chỉ nhóm đang analyzing chuyển error; nhóm chưa gửi giữ pending. Với hết provider, nhóm chưa xong chuyển pending và phiên paused. Lượt bổ sung lỗi phải giữ các dòng hợp lệ từ lượt đầu. Log phân biệt lỗi provider với timeout backend; timeout hiện hành nêu ở gateway bên trên.
 - AI chon ma cu the tu 5 bang; element ho tro nhieu ma ghep bang +. needs_review=true danh dau dong lam thu cong: de trong cac lua chon va to vang.
 - Kiem tra tung row_index, trung/thiếu dong, ma phan loai, confidence va reason; yeu cau bo sung mot lan. Loi con lai giu trong, analysis_status=error; khong gia lap ket qua AI.
-- UI luu ket qua theo noi dung CSV, giu nhom da xong khi request sau loi. Chay tiep chi gui dong chua xong. Khong xuat CSV khi con dong pending/analyzing/error; khong hoc tu dong manual/error.
+- UI lưu kết quả theo nội dung CSV, giữ nhóm đã xong khi request sau lỗi. Chạy tiếp chỉ gửi dòng chưa xong. CSV hoàn chỉnh vẫn chặn pending/analyzing/error; ngoại lệ user chốt 13/11 là nút Xuất bản nháp CSV (draft=true) dùng cả lúc chạy/paused, giữ đủ dòng và để trống 5 lựa chọn/si/confidence chưa xong, chuyển analyzing thành pending. Snapshot lấy trước hộp thoại, không đổi phiên/AI đang chạy; hủy hoặc đổi generation bỏ xuất cũ. Bản nháp mặc định 2_CSV_PhanLoaiSource_Nhap.csv, không tự gắn Tool A; ghi tạm/replace để tránh mất file cũ khi lỗi. Nạp lại giữ trạng thái/bối cảnh/note/confidence, Continue chỉ chạy phần chưa xong. Không học dòng manual/error.
 - Source trong o CSV phai giu trong khi xuat XML, them marker CAN LAM THU CONG; khong goi fallback pick_clips cho dong nay.
 - Tests: python/test_source_suggester.py, src/testSourceSuggester.js; test_assets.py bao gom truong hop source trong. Test Gemini bang mock; test API that can quyen su dung khoa va gui noi dung ra dich vu.
 - API key da luu nam o state.settings.geminiApiKey (khong phai apiKey); ca phan tich va luu vi du phai dung dung ten truong nay. Test fallback khi o nhap key trong nam trong src/testSourceSuggester.js.

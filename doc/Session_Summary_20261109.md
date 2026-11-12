@@ -1,5 +1,14 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-13)
 
+## Xuất bản nháp toàn bộ CSV khi phân tích chưa xong (2026-11-13)
+
+- User hỏi bảng cập nhật đến đâu và có xuất được kết quả ở 296/406 không. Xác minh code cũ: bảng cập nhật sau từng nhóm tối đa 8 dòng, CSV hoàn chỉnh chặn khi còn pending/analyzing/error. Trong ảnh 288 đã nhận kết quả, nhóm 289–296 đang chờ. User đã chọn rõ: **xuất bản nháp đủ 406 dòng, giữ kết quả đã xử lý, các dòng chưa xử lý để trống**.
+- Thêm nút **Xuất bản nháp CSV** riêng, mặc định `2_CSV_PhanLoaiSource_Nhap.csv`, dùng được lúc đang chạy/pausing/paused. Snapshot lấy trước khi mở hộp thoại; nhóm AI có thể tiếp tục cập nhật bảng trong lúc lưu, không sửa trạng thái/rows phiên. Giữ thứ tự/tổng dòng/lời thoại/timecode/bối cảnh tay, để trống 5 lựa chọn AI/si/confidence của dòng chưa xong; analyzing ghi pending, error giữ trạng thái/lý do, complete/edited/manual giữ kết quả. Không tự điền file nháp vào Tool A.
+- CSV bổ sung confidence/note tùy chọn, giữ metadata khi nạp lại. Import nháp còn pending/error mở paused, không tự gọi AI, Continue chỉ gửi phần chưa xong; manual không bị coi là pending. CSV hoàn chỉnh vẫn chặn dòng chờ/lỗi và chỉ bản hoàn chỉnh tự gắn Gen XML. File xuất ghi tạm/replace nguyên tử, lỗi giữ file cũ và dọn temp. Hủy hộp thoại/ghi lỗi không đổi bảng; Làm mới khi chọn đường dẫn bỏ snapshot cũ.
+- File sửa: renderer, HTML/CSS toolbar, source_suggester/main API, test Source JS/Python; AGENTS, Source_ThoiDiem_v2 và workflows Gợi ý Source/Gen XML. Main/preload không đổi vì dùng cầu nối export hiện có với cờ draft. Các tab Cài đặt/Tạo mới/Quy tắc/Cắt Clip không đổi luồng.
+- Kiểm thử: toàn bộ **98 test Python đạt**, bộ JS có **78 bài (77 đạt, 1 smoke bỏ qua)**; mô phỏng AI/IPC, không gọi API thật/không mở Electron. File CSV tạm thật kiểm tra 296/406, thứ tự/text/timecode, giữ kết quả/notes/confidence, xóa lựa chọn stale ở 110 dòng chưa xong, nạp lại/Continue, giữ file cũ khi os.replace lỗi; JS kiểm tra nhóm đang chạy 288 → 296 trong lúc lưu snapshot, chạy tiếp đủ 406, hủy/lỗi/reset, chống bấm lặp và CSV hoàn chỉnh. Cú pháp/diff kiểm tra trước commit/push.
+- Bước dùng: chờ Pause hoàn tất nhóm hiện tại rồi đóng/mở lại app để nạp backend và giao diện mới; phiên đã lưu giữ nguyên, không Làm mới. Chọn Xuất bản nháp CSV. Có thể nạp lại nháp bằng Nạp 2_CSV_PhanLoaiSource rồi Continue. doc/aaa vẫn ngoài task; chưa kiểm tra trực tiếp UI Electron/AI thật cho tính năng này.
+
 ## Sửa dấu Terminal và thông báo Key 3 bị bỏ qua (2026-11-13)
 
 - User gửi ảnh phiên đã paused sau khi hai Gemini lỗi mạng/server, hỏi OpenAI có đang chạy không; sau đó bổ sung yêu cầu sửa dấu tiếng Việt ở Terminal VS Code. Giữ cả hai yêu cầu trong task.
