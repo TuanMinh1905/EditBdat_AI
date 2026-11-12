@@ -175,7 +175,7 @@ function stopPython() {
 }
 
 // --- HTTP helper to call Python backend ---
-function callPython(endpoint, data) {
+function callPython(endpoint, data, timeoutMs = 300000) {
   return new Promise((resolve, reject) => {
     if (backendStatus !== true) {
       reject(new Error(backendStatus === false
@@ -193,7 +193,7 @@ function callPython(endpoint, data) {
         'Content-Type': 'application/json',
         'Content-Length': Buffer.byteLength(postData)
       },
-      timeout: 300000 // 5 minute timeout for thinking model AI calls
+      timeout: timeoutMs
     };
 
     const req = http.request(options, (res) => {
@@ -222,7 +222,10 @@ function callPython(endpoint, data) {
     req.on('error', reject);
     req.on('timeout', () => {
       req.destroy();
-      reject(new Error('Request timed out'));
+      const guidance = endpoint === '/api/source-suggester/suggest'
+        ? ' Kết quả đã lưu được giữ; bạn có thể chạy tiếp.'
+        : ' Kiểm tra nhật ký backend để biết chi tiết.';
+      reject(new Error(`Backend chưa trả kết quả sau ${Math.round(timeoutMs / 1000)} giây.${guidance}`));
     });
 
     req.write(postData);
@@ -679,7 +682,7 @@ ipcMain.handle('suggester-load-csv', async (event, params) => {
 
 ipcMain.handle('suggester-suggest', async (event, params) => {
   try {
-    return await callPython('/api/source-suggester/suggest', params);
+    return await callPython('/api/source-suggester/suggest', params, 600000);
   } catch (e) {
     return { error: e.message };
   }

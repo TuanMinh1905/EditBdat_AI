@@ -1,5 +1,12 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Sửa timeout phân tích (2026-11-12)
+
+- User gặp `Request timed out` đúng khoảng 5 phút khi nhóm đầu chưa trả kết quả. Thông báo do HTTP helper trong Electron cắt kết nối ở 300000ms; chưa xác nhận vì sao Gemini không trả kịp.
+- Giảm nhóm từ 32 xuống 8 dòng ở frontend/backend, giữ toàn bài làm ngữ cảnh. Gemini client đặt timeout riêng 120000ms; IPC phân tích dùng timeout 600000ms để chờ nhiều bước, API khác giữ mức cũ.
+- Chỉ nhóm đang xử lý chuyển error; dòng chưa gửi giữ pending. Lượt AI bổ sung lỗi không làm mất kết quả hợp lệ của lượt đầu. Thêm log lượt gọi và thông báo lỗi rõ hơn.
+- Kiểm thử: 44 test JavaScript đạt, 1 smoke bỏ qua; 41 test Python đạt; cú pháp và git diff --check đạt. AI được mock, chưa gọi Gemini thật. Cần đóng hẳn/mở lại app để nạp main process và backend mới; phiên đã lưu tự khôi phục, bấm Phân tích chạy tiếp, không cần Làm mới.
+
 ## Quản lý phiên phân tích mới (2026-11-12)
 
 - Thay luồng tự chạy cũ: chọn Timeline chỉ hiện tên file; Phân tích mới nạp bảng và gọi AI.

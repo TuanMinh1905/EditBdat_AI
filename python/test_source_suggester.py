@@ -79,6 +79,28 @@ class SuggesterTests(unittest.TestCase):
         repair = self.model.generate_content.call_args_list[1].kwargs['contents']
         self.assertIn('giữ nguyên row_index: [1]', repair)
 
+    def test_gemini_requests_have_explicit_timeout(self):
+        self.reply([self.choice(0)])
+        self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(module.genai.Client.call_args.kwargs['http_options'].timeout, 120000)
+
+    def test_failed_repair_keeps_valid_first_pass_rows(self):
+        self.model.generate_content.side_effect = [
+            SimpleNamespace(text=json.dumps([self.choice(0)])),
+            TimeoutError('provider timeout'),
+        ]
+        result = self.s.suggest_from_timeline(self.rows(2), 'test-key')
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(result[1]['analysis_status'], 'error')
+        self.assertEqual(result[1]['loai_source'], '')
+        self.assertIn('provider timeout', result[1]['reason'])
+
+    def test_first_request_timeout_is_reported_without_fake_results(self):
+        self.model.generate_content.side_effect = TimeoutError('provider timeout')
+        with self.assertRaisesRegex(RuntimeError, 'provider timeout'):
+            self.s.suggest_from_timeline(self.rows(2), 'test-key')
+        self.assertEqual(self.model.generate_content.call_count, 1)
+
     def test_missing_invalid_and_duplicate_never_become_confident_defaults(self):
         bad = self.choice(1)
         bad.update(loai_source='invented', element='auto')
@@ -107,16 +129,16 @@ class SuggesterTests(unittest.TestCase):
             prompts.append(prompt)
             target_json = prompt.split('=== 4. DANH SÁCH ĐỐI TƯỢNG TIME (CÂU THOẠI) CẦN GÁN ===\n')[1].split('\n\n=== YÊU CẦU')[0]
             items = json.loads(target_json)
-            self.assertLessEqual(len(items), 32)
+            self.assertLessEqual(len(items), 8)
             self.assertIn('Câu thứ 405 về Xavi.', prompt)
             return SimpleNamespace(text=json.dumps([self.choice(r['row_index']) for r in items]))
         self.model.generate_content.side_effect = generate
         result = self.s.suggest_from_timeline(self.rows(406), 'test-key')
-        self.assertEqual(len(prompts), 13)
+        self.assertEqual(len(prompts), 51)
         self.assertEqual([r['row_index'] for r in result], list(range(406)))
         self.assertTrue(all(r['analysis_status'] == 'complete' for r in result))
         previous = prompts[1].split('=== CÁC LỰA CHỌN NGAY TRƯỚC NHÓM NÀY')[1].split('=== 4.')[0]
-        self.assertIn('Câu thứ 31 về Xavi.', previous)
+        self.assertIn('Câu thứ 7 về Xavi.', previous)
         self.assertIn('bgm_default', previous)
 
     def test_rules_snapshot_and_context_do_not_write_user_files(self):

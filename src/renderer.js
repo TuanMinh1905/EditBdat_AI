@@ -4467,7 +4467,7 @@ function initSourceSuggester() {
       if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
       if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = true;
       if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '⏳ AI đang phân tích theo phong cách của bạn...';
-      sgLog(`Đang gửi ${sgState.rows.length} câu thoại cho Gemini (kèm ${sgState.examples.length} mẫu ví dụ)...`, 'info');
+      sgLog(`Phân tích ${indices.length} dòng còn lại, mỗi nhóm tối đa 8 dòng; giữ toàn bài làm ngữ cảnh (kèm ${sgState.examples.length} mẫu ví dụ).`, 'info');
 
       try {
         if (!sgState.backendLoaded) await loadBackendState();
@@ -4480,7 +4480,7 @@ function initSourceSuggester() {
           Object.assign(sgState.rows[i], { loai_source: '', element: '', anim: '', bgm: '', sfx: '', si: '',
             confidence: null, reason: '', needs_review: false, analysis_status: 'pending' });
         }
-        for (let offset = 0; offset < indices.length; offset += 32) {
+        for (let offset = 0; offset < indices.length; offset += 8) {
           if (generation !== sgState.generation) return;
           if (sgState.paused) {
             sgState.phase = 'paused';
@@ -4488,7 +4488,7 @@ function initSourceSuggester() {
             await new Promise(resolve => { sgState.resumeWaiter = resolve; });
             if (generation !== sgState.generation) return;
           }
-          const batchIndices = indices.slice(offset, offset + 32);
+          const batchIndices = indices.slice(offset, offset + 8);
           for (const i of batchIndices) sgState.rows[i].analysis_status = 'analyzing';
           saveAnalysis();
           renderTable();
@@ -4522,7 +4522,7 @@ function initSourceSuggester() {
         if (generation !== sgState.generation) return;
         sgState.phase = 'error';
         sgState.rows.forEach(r => {
-          if (['pending', 'analyzing'].includes(r.analysis_status)) {
+          if (r.analysis_status === 'analyzing') {
             Object.assign(r, { analysis_status: 'error', needs_review: true, confidence: null,
               reason: `Chưa có kết quả AI: ${err.message}` });
           }

@@ -1314,17 +1314,17 @@ class SourceSuggester:
         if not timeline_rows or any(not str(r.get("text") or "").strip() for r in timeline_rows):
             raise ValueError("Cần nạp 1_CSV_Timeline có lời thoại (text) ở từng dòng để AI phân tích.")
         context_rows = context_rows if context_rows is not None else timeline_rows
-        if len(timeline_rows) > 32:
+        if len(timeline_rows) > 8:
             results = []
-            for start in range(0, len(timeline_rows), 32):
+            for start in range(0, len(timeline_rows), 8):
                 batch = self.suggest_from_timeline(
-                    timeline_rows[start:start + 32], api_key, default_thoi_ky,
+                    timeline_rows[start:start + 8], api_key, default_thoi_ky,
                     context_rows, results[-4:], rules_text)
                 for offset, row in enumerate(batch):
                     row["row_index"] = start + offset
                 results.extend(batch)
             return results
-        client = genai.Client(api_key=api_key.strip())
+        client = genai.Client(api_key=api_key.strip(), http_options=types.HttpOptions(timeout=120000))
         rules_text = (self.get_rules() if rules_text is None else rules_text).strip()
         examples = self._load_examples_raw()
         loai_dict, element_dict, anim_dict, bgm_dict, sfx_dict = self._get_dynamic_dicts()
@@ -1545,8 +1545,21 @@ class SourceSuggester:
                     + json.dumps(sorted(remaining)) + "\nLỗi cần sửa: "
                     + json.dumps(errors, ensure_ascii=False)
                 )
-            response = client.models.generate_content(
-                model="gemini-3.8-flash", contents=request_prompt, config=config)
+            self._log(f"[Suggester] Gửi nhóm {len(timeline_rows)} dòng, lượt {attempt + 1}/2; timeout Gemini 120 giây.")
+            try:
+                response = client.models.generate_content(
+                    model="gemini-3.8-flash", contents=request_prompt, config=config)
+            except Exception as exc:
+                self._log(f"[Suggester] Gemini không hoàn tất lượt {attempt + 1}: {exc}")
+                if not by_idx:
+                    raise RuntimeError(
+                        "Gemini chưa trả được kết quả cho nhóm hiện tại: "
+                        f"{exc}. Các nhóm đã lưu vẫn được giữ; bấm Phân tích để chạy tiếp."
+                    ) from exc
+                # A failed repair request must not discard valid first-pass rows.
+                for idx in remaining:
+                    errors[idx] = f"Gemini không hoàn tất lượt bổ sung: {exc}"
+                break
             record_usage(api_key, response, feature="source_suggester", model="gemini-3.8-flash")
             try:
                 parsed_list = self._parse_json_array(response.text or "")

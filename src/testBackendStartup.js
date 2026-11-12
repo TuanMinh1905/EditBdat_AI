@@ -28,6 +28,38 @@ function fakeChild() {
   return child;
 }
 
+test('source analysis has a separate HTTP timeout and a recoverable timeout message', async () => {
+  const requests = [], handlers = {};
+  const ctx = context({ backendStatus: true, Buffer,
+    ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
+    http: { request: (options, callback) => {
+      const request = new EventEmitter();
+      request.write = () => {};
+      request.end = () => {};
+      request.destroy = () => { request.destroyed = true; };
+      requests.push({ options, request, callback });
+      return request;
+    } } });
+  vm.runInContext(source.slice(source.indexOf('function callPython('), source.indexOf('// --- Window ---')), ctx);
+  const start = source.indexOf("ipcMain.handle('suggester-suggest'");
+  const end = source.indexOf("ipcMain.handle('suggester-save-examples'", start);
+  vm.runInContext(source.slice(start, end), ctx);
+  const analysis = handlers['suggester-suggest'](null, { rows: [] });
+  assert.equal(requests[0].options.timeout, 600000);
+  requests[0].request.emit('timeout');
+  assert.equal(requests[0].request.destroyed, true);
+  assert.match((await analysis).error, /600 giây.*chạy tiếp/);
+
+  const ordinary = ctx.callPython('/api/health', {});
+  assert.equal(requests[1].options.timeout, 300000);
+  const response = new EventEmitter();
+  response.statusCode = 200;
+  requests[1].callback(response);
+  response.emit('data', '{"status":"ok"}');
+  response.emit('end');
+  assert.equal((await ordinary).status, 'ok');
+});
+
 test('selects project venv and waits for HTTP health despite early/split ready output', async () => {
   const child = fakeChild();
   let command, options, checks = 0, ready = false;

@@ -506,7 +506,8 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
 - Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.
 - `sg_analysis` lưu cả file chọn chưa phân tích, bảng/chỉnh sửa/bối cảnh và phase. Khôi phục snapshot trực tiếp; phiên chạy dở chuyển paused, không tự gọi AI; nhóm chưa trả kết quả chuyển pending. Nạp phân loại dùng dữ liệu file, không lấy cache đè lên.
-- Moi request toi da 32 dong, kem context_rows (toan bai) va previous_rows de giu ngu canh doan/cau/y va BGM. rules la snapshot cho request, khong tu ghi de file.
+- Mỗi request tối đa 8 dòng (giảm từ 32 sau lỗi timeout ngày 2026-11-12), kèm context_rows toàn bài và previous_rows để giữ ngữ cảnh đoạn/câu/ý và BGM. rules là snapshot cho request, không tự ghi đè file.
+- Gemini client của phân tích dùng `HttpOptions(timeout=120000)` (milliseconds); IPC phân tích có timeout riêng 600000ms để chờ cả lượt phân tích/bổ sung và truy xuất ví dụ. Khi request lỗi chỉ nhóm đang analyzing chuyển error; nhóm chưa gửi giữ pending. Lượt bổ sung lỗi phải giữ các dòng hợp lệ từ lượt đầu. Log phân biệt lượt gọi Gemini với timeout backend.
 - AI chon ma cu the tu 5 bang; element ho tro nhieu ma ghep bang +. needs_review=true danh dau dong lam thu cong: de trong cac lua chon va to vang.
 - Kiem tra tung row_index, trung/thiếu dong, ma phan loai, confidence va reason; yeu cau bo sung mot lan. Loi con lai giu trong, analysis_status=error; khong gia lap ket qua AI.
 - UI luu ket qua theo noi dung CSV, giu nhom da xong khi request sau loi. Chay tiep chi gui dong chua xong. Khong xuat CSV khi con dong pending/analyzing/error; khong hoc tu dong manual/error.
