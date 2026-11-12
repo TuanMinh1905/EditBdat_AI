@@ -1,5 +1,16 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-13)
 
+## Sửa dấu Terminal và thông báo Key 3 bị bỏ qua (2026-11-13)
+
+- User gửi ảnh phiên đã paused sau khi hai Gemini lỗi mạng/server, hỏi OpenAI có đang chạy không; sau đó bổ sung yêu cầu sửa dấu tiếng Việt ở Terminal VS Code. Giữ cả hai yêu cầu trong task.
+- Đã đọc cấu hình thật theo metadata boolean: cả ba ô Sử dụng bật, Key1/2 có dữ liệu đã lưu, **Key3 chưa có API key đã lưu**. Không xuất/ghi lại giá trị credential. Đây là lý do OpenAI không được gọi trong lượt user gửi; không phải đang chạy ngầm. Không đổi lựa chọn/key thật của user, không gọi API thật.
+- Router/API giữ thêm openai_enabled, key_status.openai_state (disabled/missing_key/ready) để phân biệt tắt với thiếu key. Khi thiếu key đã bật, log báo Bỏ qua OpenAI Key3 ngay lúc tạo nhóm; thông báo hết lựa chọn kèm hướng dẫn nhập/Lưu. Cài đặt cảnh báo vàng bên ô bật nhưng chưa lưu. Log gọi OpenAI ghi model/Key3/chờ phản hồi.
+- Source bỏ live routing log đến muộn khi phase paused để giữ nguyên thông báo cuối; nút phân tích ghi Đã tạm dừng thay chữ AI đang phân tích cũ. Trạng thái paused không hiện đang dùng key từ kết quả cũ.
+- Sửa Terminal: npm start/dev Windows chạy chcp 65001 trước Electron; spawn Python đặt PYTHONUTF8/PYTHONIOENCODING; main stdout/stderr setEncoding utf8 và ghép đủ dòng, flush dòng cuối. HTTP JSON cũng giải mã stream UTF-8 để không cắt giữa dấu tiếng Việt. Không sửa thành chữ ASCII mất dấu.
+- Kiểm tra: **94 test Python đạt**, **71 test JavaScript đạt + 1 smoke bỏ qua** ở lượt thường; smoke backend thật riêng **9/9 đạt**. Có test chia từng byte của stdout/stderr/HTTP JSON, thiếu/tắt Key3, cảnh báo tại ô key và log đến muộn lúc paused. Probe terminal Windows thật với chcp 65001 in đúng câu Đã tạm dừng, giữ kết quả và Các lựa chọn Gemini được bật chưa thể tiếp tục; file probe tạm đã xóa. Không khởi chạy Electron hoặc gọi sinh nội dung thật.
+- File sửa: package.json/main.js, router/API Python, renderer và các test liên quan; AGENTS, hướng dẫn API, workflows Cài đặt/Gợi ý Source. Không đổi luồng các tab khác. Cú pháp/diff kiểm tra trước commit/push. Giữ doc/aaa ngoài task.
+- Bước dùng: đóng hẳn app, khởi động lại bằng npm start trong terminal máy user; phiên đã lưu vẫn giữ. Vào Cài đặt nhập OpenAI Key3 rồi Lưu, giữ tích Sử dụng và Continue. Không cần Làm mới. Các dòng terminal cũ đã hiển thị sai không sửa ngược; cần xem log mới sau khởi động.
+
 ## Xác minh mọi tổ hợp chọn key (2026-11-13)
 
 - User hỏi đã xử lý chỉ một key và cặp Key 1+3/Key 2+3 chưa. Rà soát xác nhận bản `da0f46d` đã hỗ trợ mọi tổ hợp; không cần sửa logic chạy. Chỉ Key 3 dùng OpenAI từ đầu, chỉ Key 1/2 dùng Gemini của key đó; hai key chọn theo ưu tiên 1 → 2 → 3, bỏ qua ô tắt. Hết mọi key đang chọn thì Source tạm dừng/giữ kết quả, không tự dùng key đã bỏ tích.

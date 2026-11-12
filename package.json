@@ -4,8 +4,8 @@
   "description": "AI-powered After Effects project generator",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
-    "dev": "electron . --dev"
+    "start": "chcp 65001 >nul && electron .",
+    "dev": "chcp 65001 >nul && electron . --dev"
   },
   "dependencies": {
     "electron": "^28.0.0"

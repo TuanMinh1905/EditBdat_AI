@@ -154,15 +154,17 @@ function startPython() {
     const child = spawn(pythonCmd, [pythonScript, '--port', String(PYTHON_PORT)], {
       cwd: __dirname,
       windowsHide: true,
-      env: { ...process.env, PYTHONUNBUFFERED: '1' }
+      env: { ...process.env, PYTHONUNBUFFERED: '1', PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' }
     });
     pythonProcess = child;
 
     let started = false;
     let settled = false;
     let readyOutput = '';
+    let stdoutPending = '';
     let stderrTail = '';
     let stderrPending = '';
+    child.stdout.setEncoding?.('utf8');
     child.stderr.setEncoding?.('utf8');
     let pollTimer;
     let healthRequest;
@@ -213,17 +215,21 @@ function startPython() {
       healthRequest.on('timeout', () => { healthRequest.destroy(); retry(); });
     }
 
+    function forwardStdoutLine(line) {
+      if (!line.trim()) return;
+      console.log('[Python]', line);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('python-log', line);
+      }
+    }
+
     child.stdout.on('data', (data) => {
       const msg = data.toString();
-      console.log('[Python]', msg);
       readyOutput = (readyOutput + msg).slice(-512);
-      if (!settled && !healthRequest && readyOutput.includes('Server ready')) {
-        checkHealth();
-      }
-      // Forward to renderer
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.webContents.send('python-log', msg);
-      }
+      if (!settled && !healthRequest && readyOutput.includes('Server ready')) checkHealth();
+      const lines = (stdoutPending + msg).split(/\r?\n/);
+      stdoutPending = lines.pop();
+      lines.forEach(forwardStdoutLine);
     });
 
     function forwardStderrLine(line) {
@@ -251,6 +257,8 @@ function startPython() {
     });
 
     child.on('close', (code) => {
+      forwardStdoutLine(stdoutPending);
+      stdoutPending = '';
       forwardStderrLine(stderrPending);
       stderrPending = '';
       console.log(`[Python] Process exited with code ${code}`);
@@ -298,6 +306,7 @@ function callPython(endpoint, data, timeoutMs = 300000) {
     };
 
     const req = http.request(options, (res) => {
+      res.setEncoding?.('utf8');
       let body = '';
       res.on('data', (chunk) => body += chunk);
       res.on('end', () => {

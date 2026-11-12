@@ -21,6 +21,8 @@ Trong **Cài đặt → API AI**, mỗi key có **Chỉnh sửa**, **Lưu**, hi�
 
 Chỉ chọn một key thì khi key đó không thể phục vụ, app tạm dừng và thông báo; không tự dùng key đã bỏ tích. Key được chọn nhưng trống hoặc mới nhập chưa Lưu không dùng được. Nếu chỉ bật Key 3, phải nhập và Lưu Key 3 trước khi phân tích.
 
+Nếu Gemini đều lỗi nhưng không sang OpenAI, đọc lý do trên tiến độ/log: **“OpenAI Key 3 đã bật nhưng chưa có API key đã lưu”** nghĩa là cần vào Cài đặt nhập Key 3 rồi bấm Lưu; chỉ tích Sử dụng chưa đủ. Ô key sẽ cảnh báo màu vàng khi bật mà chưa lưu. **“OpenAI Key 3 đang tắt Sử dụng”** nghĩa là cần bật ô đó nếu muốn dùng. Khi thực sự gọi OpenAI, log hiện `[OpenAI] Đang gọi [model] · Key 3; chờ phản hồi.` Trạng thái Đã tạm dừng nghĩa là đang chờ Continue, không có lượt phân tích mới đang chạy.
+
 - Quota 429: bỏ qua cặp key/model ít nhất 60 giây, hoặc lâu hơn theo RetryInfo/Retry-After; thử model kế trên cùng key trước khi chuyển key.
 - Model/key không dùng được (HTTP 400/401/403/404): bỏ qua cặp đó tạm thời và thử lựa chọn kế. Có thể sửa key/model rồi lưu.
 - Mạng/timeout/server Gemini 408/500/502/503/504: thử lại **một lần** với cùng payload; vẫn lỗi thì sang key kế, không lặp mọi model trên server lỗi. Gemini chờ phản hồi tối đa 60 giây/lần, kết nối tối đa 20 giây.
@@ -43,3 +45,5 @@ Thống kê có **Key 1 / Key 2 / OpenAI Key 3**, ghi usage cho key/model thực
 Hai key Gemini cùng Cloud project dùng chung quota. Google AI Pro và hạn mức Gemini API quản lý riêng. Nguồn: [Models](https://ai.google.dev/gemini-api/docs/models), [Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), [Google AI plans](https://ai.google.dev/gemini-api/docs/google-ai-plans).
 
 Sau cập nhật, **đóng hẳn rồi mở lại app** để nạp main/preload/backend mới. Phiên gần nhất vẫn giữ, không cần Làm mới. Điều phối/HTTP kiểm thử bằng mô phỏng, chưa gọi sinh nội dung thật bằng Gemini/OpenAI trong lần thay đổi này.
+
+Nếu Terminal VS Code hiện chữ lỗi như `C├íc`, đóng app rồi chạy lại bằng `npm start` hoặc `npm run dev`: lệnh khởi động Windows đã tự đặt code page UTF-8. Backend và cầu nối log cũng dùng UTF-8, ghép đủ từng dòng để giữ dấu và thông báo provider. Các dòng cũ đã hiển thị lỗi không được sửa ngược trong lịch sử terminal.

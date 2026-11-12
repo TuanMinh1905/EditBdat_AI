@@ -30,6 +30,18 @@ def _signature(keys, config):
     return tuple(hashlib.sha256(str(key or '').encode()).hexdigest() if key else '' for key in values)
 
 
+def _openai_state(config):
+    key_present = bool(str((config or {}).get('openai_api_key') or '').strip())
+    if not (config or {}).get('openai_enabled', key_present):
+        return 'disabled'
+    return 'ready' if key_present else 'missing_key'
+
+
+def _openai_skip_reason(state):
+    return {'disabled': 'OpenAI Key 3 đang tắt Sử dụng.',
+            'missing_key': 'OpenAI Key 3 đã bật nhưng chưa có API key đã lưu. Vào Cài đặt, nhập Key 3 rồi bấm Lưu.'}.get(state, '')
+
+
 def get_ai_status(keys, config=None, model_priority=None):
     """Expose model/provider/slot, never credentials."""
     status = get_key_status(keys, model_priority=model_priority)
@@ -40,6 +52,7 @@ def get_ai_status(keys, config=None, model_priority=None):
         if current.get('provider') == 'openai':
             status['all_limited'] = False
     status.setdefault('provider', 'gemini')
+    status['openai_state'] = _openai_state(config)
     return status
 
 
@@ -145,6 +158,9 @@ class AIProviderRouter:
         self.run_id = run_id or uuid.uuid4().hex
         self._log = log or (lambda message: None)
         self._openai_key = str(self.config.get('openai_api_key') or '').strip()
+        self._openai_state = _openai_state(self.config)
+        if self._openai_state != 'ready':
+            self._openai_key = ''
         self._openai_model = self.config.get('openai_model') or DEFAULT_OPENAI_MODEL
         self._gemini = GeminiKeyClient(self.keys, model_priority=model_priority, log=self._log,
                                       timeout_ms=60000, server_failover=True) if any(self.keys) else None
@@ -156,7 +172,9 @@ class AIProviderRouter:
         self.active_key = self.active_model = self.active_provider = ''
         self.models = self
         if not self._gemini and not self._openai:
-            raise AllProvidersUnavailable('Chưa có key đã lưu được bật Sử dụng. Vào Cài đặt để chọn key.')
+            raise AllProvidersUnavailable('Chưa có key đã lưu được bật Sử dụng. ' + _openai_skip_reason(self._openai_state))
+        if self._openai_state == 'missing_key':
+            self._log('[AI] Bỏ qua ' + _openai_skip_reason(self._openai_state))
 
     def _accepted(self, response, provider, key, model):
         self.active_provider, self.active_key, self.active_model = provider, key, model
@@ -170,7 +188,7 @@ class AIProviderRouter:
         return response
 
     def _use_openai(self, contents, config):
-        self._log(f'[OpenAI] Đang dùng {self._openai_model} · Key 3 để tiếp tục lượt phân tích.')
+        self._log(f'[OpenAI] Đang gọi {self._openai_model} · Key 3; chờ phản hồi.')
         response = self._openai.generate_content(contents, config)
         return self._accepted(response, 'openai', self._openai_key, self._openai_model)
 
@@ -207,6 +225,9 @@ class AIProviderRouter:
                 raise
             except Exception as exc:
                 errors.append(str(exc))
+        reason = _openai_skip_reason(self._openai_state)
+        if reason:
+            errors.append(reason)
         raise AllProvidersUnavailable('Mọi key được bật đều chưa thể xử lý. Đã tạm dừng, giữ kết quả. ' + ' '.join(errors)) from None
 
     def embed_content(self, **kwargs):

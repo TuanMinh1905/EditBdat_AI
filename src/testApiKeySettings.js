@@ -147,6 +147,17 @@ test('OpenAI stays disabled until checked; saving its key does not enable it', a
   assert.equal(h.context.getOpenaiConfig().api_key, 'new-openai');
 });
 
+test('enabled OpenAI with no saved key shows an actionable warning beside the input', async () => {
+  const h = editorHarness();
+  h.context.state.settings.openaiApiKey = '';
+  h.context.initApiKeyEditors();
+  h.dom.key3Enabled.checked = true;
+  await h.dom.key3Enabled.listeners.change();
+  assert.match(h.dom.openaiKeySaveStatus.textContent, /Đã bật Sử dụng nhưng chưa lưu key/);
+  assert.equal(h.dom.openaiKeySaveStatus['data-state'], 'pending');
+  assert.equal(h.context.getOpenaiConfig().api_key, '');
+});
+
 test('usage toggle saves immediately without saving drafts and failed toggle reverts', async () => {
   const h = editorHarness();
   await h.dom.btnEditApiKey.click();

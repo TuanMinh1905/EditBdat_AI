@@ -194,6 +194,28 @@ class RouterTests(unittest.TestCase):
         with self.assertRaises(router.AllProvidersUnavailable):
             self.client(keys=['', ''], config={})
 
+    def test_enabled_but_missing_openai_key_explains_why_it_is_skipped(self):
+        with patch('source_suggester.SourceSuggester.__init__', return_value=None):
+            backend = importlib.import_module('main')
+        keys, config = backend._request_ai_config({'api_keys': self.keys, 'key_enabled': [True, True, True]})
+        self.exhaust_gemini()
+        with self.assertRaises(router.AllProvidersUnavailable) as caught:
+            self.client(keys=keys, config=config).generate_content(model='ignored', contents='prompt')
+        self.assertIn('OpenAI Key 3 đã bật nhưng chưa có API key đã lưu', str(caught.exception))
+        self.assertIn('bấm Lưu', str(caught.exception))
+        self.assertTrue(any('[AI] Bỏ qua OpenAI Key 3' in line for line in self.logs))
+        self.assertEqual(router.get_ai_status(keys, config)['openai_state'], 'missing_key')
+        self.post.assert_not_called()
+
+    def test_disabled_openai_key_explains_skip_and_never_calls_openai(self):
+        self.exhaust_gemini()
+        config = {**self.config, 'openai_enabled': False}
+        with self.assertRaises(router.AllProvidersUnavailable) as caught:
+            self.client(config=config).generate_content(model='ignored', contents='prompt')
+        self.assertIn('OpenAI Key 3 đang tắt Sử dụng', str(caught.exception))
+        self.assertEqual(router.get_ai_status(self.keys, config)['openai_state'], 'disabled')
+        self.post.assert_not_called()
+
     def test_openai_status_is_not_reported_as_all_gemini_quota_exhausted(self):
         self.exhaust_gemini()
         self.client().generate_content(model='ignored', contents='prompt')

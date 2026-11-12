@@ -133,6 +133,7 @@ def _gemini_api_keys(settings):
 def _ai_config(settings):
     """Only send credentials explicitly enabled in settings."""
     return {'openai_api_key': settings.get('openaiApiKey', '') if settings.get('openaiKey3Enabled', False) else '',
+            'openai_enabled': bool(settings.get('openaiKey3Enabled', False)),
             'openai_model': settings.get('openaiModel') or DEFAULT_OPENAI_MODEL}
 
 
@@ -143,6 +144,7 @@ def _request_ai_config(data):
         raise ValueError('Danh sách key/lựa chọn Sử dụng không hợp lệ.')
     keys = [(keys[i] if i < len(keys) and i < len(enabled) and enabled[i] else '') for i in range(2)]
     config = {'openai_api_key': data.get('openai_api_key', '') if len(enabled) > 2 and enabled[2] else '',
+              'openai_enabled': bool(len(enabled) > 2 and enabled[2]),
               'openai_model': data.get('openai_model') or DEFAULT_OPENAI_MODEL,
               'prefer_openai': data.get('preferred_provider') == 'openai'}
     return keys, config

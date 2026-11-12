@@ -704,6 +704,7 @@ function renderApiKeyEditor(slot) {
   const editor = state.apiKeyEditors && state.apiKeyEditors[slot];
   if (!row.input || !editor) return;
   const saved = getSavedApiKeys()[slot - 1];
+  const enabledWithoutKey = isApiKeyEnabled(slot) && !saved;
   const changed = row.input.value.trim() !== saved;
   row.input.readOnly = editor.saving || !editor.editing;
   if (row.enabled) row.enabled.disabled = editor.saving;
@@ -713,12 +714,13 @@ function renderApiKeyEditor(slot) {
     row.save.textContent = editor.saving ? 'Đang lưu…' : '💾 Lưu';
   }
   if (row.status) {
-    const type = editor.error ? 'error' : editor.saving || (editor.editing && changed) ? 'pending' : saved ? 'saved' : 'empty';
+    const type = editor.error ? 'error' : editor.saving || (editor.editing && changed) || enabledWithoutKey ? 'pending' : saved ? 'saved' : 'empty';
     row.status.setAttribute('data-state', type);
     row.status.textContent = editor.error || (editor.saving ? 'Đang lưu vào máy…' :
       editor.editing && changed ? (row.input.value.trim() ? 'Chưa lưu — bấm Lưu ở cạnh ô này.' : 'Chưa lưu — lưu ô trống sẽ gỡ key này.') :
       editor.editing && saved ? 'Đang chỉnh sửa. App vẫn dùng key đã lưu cho đến khi bạn bấm Lưu.' :
-      saved ? (isApiKeyEnabled(slot) ? '🔒 Đã lưu · tự nạp lại khi mở app.' : '🔒 Đã lưu · đang tắt sử dụng key này.') : 'Chưa có key — nhập key rồi bấm Lưu.');
+      saved ? (isApiKeyEnabled(slot) ? '🔒 Đã lưu · tự nạp lại khi mở app.' : '🔒 Đã lưu · đang tắt sử dụng key này.') :
+      enabledWithoutKey ? '⚠ Đã bật Sử dụng nhưng chưa lưu key. Nhập key rồi bấm Lưu.' : 'Chưa có key — nhập key rồi bấm Lưu.');
   }
   if (dom.btnSaveSettings) dom.btnSaveSettings.disabled = Object.values(state.apiKeyEditors).some(item => item.saving);
 }
@@ -834,9 +836,11 @@ function renderGeminiKeyStatus(status, logger) {
       allLimited ? 'Các model Gemini đang chạm hạn mức. OpenAI chỉ được dùng khi bật Sử dụng Key 3.' :
       'Thử hết model Key 1 → hết model Key 2 → OpenAI Key 3; bỏ qua key đang tắt.';
     const waiting = keys.filter(key => key.retry_after_seconds > 0).map(key => `Key ${key.slot}: chờ ít nhất ${key.retry_after_seconds}s`);
-    dom.geminiKeyStatus.textContent = [summary, ...waiting].join(' ');
+    const openai = status.openai_state === 'missing_key' ? 'Key 3 đã bật nhưng chưa lưu OpenAI key; vào Cài đặt nhập và bấm Lưu.' :
+      status.openai_state === 'disabled' ? 'OpenAI Key 3 đang tắt Sử dụng.' : '';
+    dom.geminiKeyStatus.textContent = [summary, ...waiting, openai].filter(Boolean).join(' ');
   }
-  if (logger && status.active_slot && (!previous || previous.active_slot !== status.active_slot || previous.model !== status.model)) {
+  if (logger && !status.paused && status.active_slot && (!previous || previous.active_slot !== status.active_slot || previous.model !== status.model)) {
     logger(`Đang dùng API Key ${status.active_slot} cho ${status.model}.`, 'info');
     const notice = $('#sg-routing-notice');
     if (notice) {
@@ -3723,6 +3727,9 @@ function initSourceSuggester() {
     }
     if (sgDom.btnSuggestText && !busy) sgDom.btnSuggestText.textContent =
       sgState.phase === 'paused' ? '▶ Continue phân tích' : '🤖 Phân tích';
+    if (sgDom.btnSuggestText && sgState.isSuggesting && sgState.phase === 'paused') {
+      sgDom.btnSuggestText.textContent = '⏸ Đã tạm dừng — bấm Continue';
+    }
     const total = sgState.rows.length;
     const done = total - sgState.rows.filter(isUnanalyzed).length;
     const percent = total ? 100 * done / total : 0;
@@ -4749,7 +4756,8 @@ function initSourceSuggester() {
 
       const initialAuth = getAiRequestConfig();
       if (!initialAuth.api_key && !initialAuth.openai_api_key) {
-        sgLog('Chưa có API Key đã lưu được bật Sử dụng. Vào Cài đặt để nhập, lưu và chọn key.', 'error');
+        sgLog('Chưa có API Key đã lưu được bật Sử dụng. Vào Cài đặt để nhập, lưu và chọn key.' +
+          (isApiKeyEnabled(3) ? ' OpenAI Key 3 đã bật nhưng chưa lưu key; nhập Key 3 rồi bấm Lưu.' : ''), 'error');
         return;
       }
 
@@ -4974,7 +4982,7 @@ function initSourceSuggester() {
 
   // Live provider routing notifications scoped to the active run.
   window.api.onPythonLog?.(message => {
-    if (!sgState.isSuggesting) return;
+    if (!sgState.isSuggesting || sgState.phase === 'paused') return;
     for (const line of String(message).split('\n').filter(line => /\[(Gemini|OpenAI|AI)\]/.test(line))) {
       const tag = line.match(/\[GeminiRun:([A-Za-z0-9-]+)\]/);
       if (!tag || tag[1] !== sgState.runId) continue;

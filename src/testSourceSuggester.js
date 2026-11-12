@@ -145,6 +145,12 @@ test('all provider failures pause without automatic requests; Continue reads cha
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.sgState.phase, 'paused');
   assert.equal(h.calls.ai.length, 1);
+  assert.match(h.sgDom.btnSuggestText.textContent, /Đã tạm dừng/);
+  const pausedNotice = h.extras['sg-routing-notice'].textContent;
+  const pausedLogs = h.calls.log.length;
+  h.calls.pythonLog(`[GeminiRun:${h.sgState.runId}] [AI] Các lựa chọn Gemini được bật chưa thể tiếp tục.`);
+  assert.equal(h.extras['sg-routing-notice'].textContent, pausedNotice);
+  assert.equal(h.calls.log.length, pausedLogs);
   assert.ok(h.sgState.rows.every(row => row.analysis_status === 'pending'));
   assert.match(h.extras['sg-routing-notice'].textContent, /Tất cả key/);
   await new Promise(resolve => setImmediate(resolve));
@@ -257,6 +263,16 @@ test('live switch notices ignore canceled runs and show current model/key', () =
   assert.match(h.extras['sg-routing-notice'].textContent, /OpenAI.*Key 3/);
   h.calls.pythonLog('[GeminiRun:old-run] [OpenAI] stale model');
   assert.doesNotMatch(h.extras['sg-routing-notice'].textContent, /stale/);
+});
+
+test('paused routing status reports a missing OpenAI key without claiming another key is running', () => {
+  const h = harness();
+  h.context.dom.geminiKeyStatus = new Element();
+  h.context.renderGeminiKeyStatus({ paused: true, active_slot: 2, model: 'test-model',
+    provider: 'gemini', openai_state: 'missing_key', keys: [] }, h.context.sgLog);
+  assert.match(h.context.dom.geminiKeyStatus.textContent, /Key 3 đã bật nhưng chưa lưu OpenAI key/);
+  assert.equal(h.calls.log.length, 0);
+  assert.equal(h.extras['sg-routing-notice'].textContent, '');
 });
 
 test('all model/key quota exhaustion waits automatically and retries the same group', async () => {

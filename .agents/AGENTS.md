@@ -326,6 +326,8 @@ try {
 
 ## 9. Lịch sử thay đổi Rule
 
+Ngày 13/11/2026: user báo log tiếng Việt lỗi ở Terminal VS Code và không biết vì sao chưa chuyển OpenAI. Thêm khởi động terminal/stream UTF-8, ghép trọn dòng log, phân biệt Key3 chưa lưu với đang tắt và giữ thông báo cuối khi Source paused; lý do là lỗi bảng mã và thiếu thông tin trạng thái thực tế.
+
 Ngày 12/11/2026: user yêu cầu ưu tiên model trước key, tự chuyển A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2. Thay giới hạn model cố định bằng danh sách Cài đặt, thêm chờ quota tự tiếp tục và thông báo theo lượt chạy. Giữ nguyên tech stack Gemini/Electron/Flask.
 
 Ngày 13/11/2026: user đổi yêu cầu sang thử hết model Key 1 → hết model Key 2 → OpenAI Key 3, bật/tắt riêng từng key, lưu/chỉnh sửa tại mỗi ô. Cho phép thêm OpenAI Responses qua httpx sẵn có để dự phòng mọi tác vụ sinh/phân tích AI. OpenAI thành công thì dùng hết lượt; mọi key lỗi thì tạm dừng và thông báo, thay tự chờ quota. Lỗi server/mạng Gemini thử lại một lần rồi chuyển key. Quyết định này thay chính sách ngày 12/11 bên trên.
@@ -513,6 +515,7 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - Luôn xử lý sự kiện `error` của child process, lưu đoạn stderr cuối để báo lỗi import và cập nhật trạng thái nếu backend thoát sau khi khởi động.
 - File test bổ sung: `src/testBackendStartup.js`; chạy mô phỏng bằng `node --test src/testBackendStartup.js`, chạy Python thật trên cổng riêng bằng `node src/testBackendStartup.js --smoke`. Không khởi chạy Electron từ terminal agent.
 - Thay đổi main/preload/backend yêu cầu khởi động lại toàn bộ app, không chỉ reload renderer.
+- Cập nhật 13/11/2026: npm start/dev trên Windows đặt `chcp 65001` trước Electron; backend có `PYTHONUTF8=1`/`PYTHONIOENCODING=utf-8` ngay khi spawn. Stdout/stderr phải dùng decoder UTF-8 của stream và ghép đủ dòng trước log/IPC, flush dòng cuối khi child đóng; không decode từng Buffer độc lập vì có thể cắt giữa chữ tiếng Việt hoặc tag run_id. HTTP response JSON cũng setEncoding utf8. Test bằng PassThrough chia từng byte và terminal thật, không mở Electron.
 
 
 ## 14. Preview media và mức log Waitress (2026-11-11)
@@ -528,6 +531,7 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 - Hiện hành 13/11/2026: `AIProviderRouter` dùng hết model Gemini Key 1 → hết model Key 2 → OpenAI Key 3; chỉ key đã lưu và bật Sử dụng. OpenAI mặc định `gpt-6.1-sol`, chỉnh riêng trong Cài đặt; mọi tác vụ sinh/phân tích nội dung (Source/tạo/preview/sửa timeline) dùng cùng router. Đổi provider không đổi bộ kiểm tra mã/JSON hay tự điền kết quả. Không trộn OpenAI embedding vào kho Gemini; thiếu embedding dùng ví dụ theo từ khóa.
 - Mọi key được bật đều lỗi: HTTP/IPC phải giữ `all_providers_failed`, trạng thái paused và kết quả hợp lệ. Source tạm dừng, báo trên tiến độ/log, chờ Continue hoặc Làm mới; không tự thử lại. Các tác vụ timeline dừng/báo lỗi, giữ đầu vào. Continue đọc lại key/lựa chọn đã lưu; bản nhập chưa lưu không được dùng. Backend nhận cấu hình mới nhất từ main process trên từng request. Gemini cũ bật Key 1/2 mặc định, Key 3 mặc định tắt.
+- Giữ `openai_enabled` trong cấu hình router để phân biệt Key3 đang tắt với đã bật nhưng chưa lưu key; `key_status.openai_state` là disabled/missing_key/ready, không chứa credential. Nếu bỏ qua OpenAI phải có lý do rõ trong thông báo hết lựa chọn; đã bật mà thiếu key cảnh báo ngay khi khởi tạo nhóm và tại ô Cài đặt. Khi Source đã paused, bỏ live routing log đến muộn để không ghi đè thông báo cuối; nút phân tích phải hiện Đã tạm dừng thay chữ Đang phân tích cũ.
 - Lưu riêng key/ô Sử dụng qua IPC `save-api-key`, không gọi provider: merge đúng trường, ghi file tạm rồi rename và đọc kiểm tra. Chỉ báo Đã lưu sau thành công; giữ bản nhập khi lỗi. Ô Sử dụng lưu ngay; tác dụng từ request kế tiếp, không hủy request đã gửi. Key không nằm trong CSV/snapshot/log/tài liệu; `src/testApiKeySettings.js` dùng file tạm/credential giả.
 - OpenAI thành công phải giữ cho phần còn lại của lượt, cả Pause/Continue và khôi phục snapshot. Nếu tắt Key 3 hoặc Key 3 lỗi thì thử các Gemini còn bật. Thông báo `[Gemini]`/`[OpenAI]`/`[AI]` giữ tag `[GeminiRun:<run_id>]` và lọc đúng lượt để bỏ thông báo sau Làm mới. Usage ghi đúng key/model thực tế; reasoning OpenAI không cộng hai lần.
 - Quota theo cặp key/model, tôn trọng RetryInfo/Retry-After; model không khả dụng thử model kế trong cùng key. Gateway thử lỗi mạng/timeout/408/500/502/503/504 đúng một lần rồi chuyển key, không lặp toàn bộ model trên server lỗi. Gemini response timeout 60s, connect tối đa 20s; OpenAI response timeout 120s. Gemini embedding tùy chọn timeout 10s, không làm cooldown dịch vụ sinh nội dung. IPC tác vụ AI 900000ms để chứa bước dự phòng/bổ sung.

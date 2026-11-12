@@ -9,6 +9,7 @@ const vm = require('node:vm');
 const http = require('node:http');
 const net = require('node:net');
 const { spawn } = require('node:child_process');
+const { PassThrough } = require('node:stream');
 const root = path.resolve(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'main.js'), 'utf8');
 const startup = source.slice(source.indexOf('function startPython()'), source.indexOf('// --- HTTP helper'));
@@ -111,6 +112,8 @@ test('selects project venv and waits for HTTP health despite early/split ready o
   assert.equal(checks, 2);
   assert.ok(command.includes('.venv'));
   assert.equal(options.windowsHide, true);
+  assert.equal(options.env.PYTHONIOENCODING, 'utf-8');
+  assert.equal(options.env.PYTHONUTF8, '1');
   child.emit('close', 1);
   assert.equal(ctx.backendStatus, false);
 });
@@ -159,6 +162,48 @@ test('stderr splits mixed chunks into warnings, info and real errors without dro
   await assert.rejects(promise, /ModuleNotFoundError/);
   assert.equal(messages.at(-1).channel, 'python-error');
   assert.match(messages.at(-1).message, /ModuleNotFoundError/);
+});
+
+test('UTF-8 log characters and routing tags survive byte splits on both streams', async () => {
+  const child = fakeChild();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  const messages = [], terminal = [];
+  const ctx = context({ spawn: () => child,
+    console: { log: (...args) => terminal.push(args.join(' ')), error: (...args) => terminal.push(args.join(' ')), warn() {} },
+    mainWindow: { isDestroyed: () => false, webContents: { send: (channel, message) => messages.push({ channel, message }) } } });
+  vm.runInContext(startup, ctx);
+  const failed = assert.rejects(ctx.startPython(), /Python thoát/);
+  const line = '[GeminiRun:active-run] [AI] Các lựa chọn Gemini được bật chưa thể tiếp tục.';
+  for (const byte of Buffer.from(line + '\r\n', 'utf8')) child.stdout.write(Buffer.from([byte]));
+  const error = 'ERROR: Máy chủ không phản hồi; đã tạm dừng, giữ kết quả.';
+  for (const byte of Buffer.from(error, 'utf8')) child.stderr.write(Buffer.from([byte]));
+  child.stdout.end(); child.stderr.end();
+  child.emit('close', 1);
+  await failed;
+  assert.equal(messages.find(item => item.channel === 'python-log').message, line);
+  assert.equal(messages.find(item => item.channel === 'python-error').message, error);
+  assert.ok(terminal.includes('[Python] ' + line));
+  assert.ok(terminal.every(text => !text.includes('\ufffd')));
+});
+
+test('backend JSON keeps Vietnamese characters when an HTTP chunk splits UTF-8 bytes', async () => {
+  let receive;
+  const request = new EventEmitter();
+  request.write = request.end = () => {};
+  const ctx = context({ backendStatus: true, Buffer,
+    http: { request: (options, callback) => { receive = callback; return request; } } });
+  vm.runInContext(source.slice(source.indexOf('function callPython('), source.indexOf('// --- Window ---')), ctx);
+  const pending = ctx.callPython('/api/source-suggester/suggest', {});
+  const response = new PassThrough();
+  response.statusCode = 503;
+  receive(response);
+  const error = 'Key 3 chưa được lưu; đã tạm dừng, giữ kết quả.';
+  for (const byte of Buffer.from(JSON.stringify({ error, all_providers_failed: true }))) response.write(Buffer.from([byte]));
+  response.end();
+  const result = await pending;
+  assert.equal(result.error, error);
+  assert.equal(result.all_providers_failed, true);
 });
 
 test('real project Python starts and serves preview after health readiness', {
