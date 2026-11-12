@@ -1555,24 +1555,24 @@ class SourceSuggester:
             try:
                 # Bound transport retries separately from JSON repair. Two calls
                 # per pass keep both passes below the 600-second IPC timeout.
-                for connection_attempt in range(2):
+                for connection_attempt in range(3):
                     try:
                         response = client.models.generate_content(
                             model="gemini-3.8-flash", contents=request_prompt, config=config)
                         break
                     except httpx.ConnectTimeout as connection_error:
-                        if connection_attempt:
+                        if connection_attempt >= 2:
                             raise RuntimeError(
-                                "Không thể thiết lập kết nối HTTPS tới Gemini sau 2 lần thử "
+                                "Không thể thiết lập kết nối HTTPS tới Gemini sau 3 lần thử "
                                 "(timeout kết nối/bắt tay TLS). Kiểm tra mạng, VPN/proxy "
                                 "hoặc tường lửa rồi thử lại."
                             ) from connection_error
-                        self._log("[Suggester] Kết nối HTTPS tới Gemini bị timeout; thử lại sau 1 giây (1/1).")
-                        time.sleep(1)
+                        self._log(f"[Suggester] Kết nối HTTPS tới Gemini bị timeout; thử lại sau {2 * (connection_attempt + 1)} giây ({connection_attempt + 1}/2).")
+                        time.sleep(2 * (connection_attempt + 1))
                     except Exception as provider_error:
                         if getattr(provider_error, 'code', None) != 503:
                             raise
-                        if connection_attempt:
+                        if connection_attempt >= 1:
                             raise RuntimeError(
                                 "Gemini vẫn đang quá tải (503 UNAVAILABLE) sau 2 lần thử. "
                                 "Hãy chờ một lúc rồi bấm Phân tích để tiếp tục."

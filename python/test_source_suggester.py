@@ -134,14 +134,14 @@ class SuggesterTests(unittest.TestCase):
         self.assertEqual(result[0]['analysis_status'], 'complete')
         self.assertEqual(self.model.generate_content.call_args_list[0],
                          self.model.generate_content.call_args_list[1])
-        sleep.assert_called_once_with(1)
+        sleep.assert_called_once_with(2)
 
     @patch.object(module.time, 'sleep')
-    def test_persistent_connect_timeout_stops_after_two_calls(self, sleep):
+    def test_persistent_connect_timeout_stops_after_three_calls(self, sleep):
         self.model.generate_content.side_effect = httpx.ConnectTimeout('TLS handshake timed out')
-        with self.assertRaisesRegex(RuntimeError, 'HTTPS.*2 lần thử'):
+        with self.assertRaisesRegex(RuntimeError, 'HTTPS.*3 lần thử'):
             self.s.suggest_from_timeline(self.rows(1), 'test-key')
-        self.assertEqual(self.model.generate_content.call_count, 2)
+        self.assertEqual(self.model.generate_content.call_count, 3)
 
     def test_read_timeout_is_not_retried(self):
         self.model.generate_content.side_effect = httpx.ReadTimeout('read timed out')

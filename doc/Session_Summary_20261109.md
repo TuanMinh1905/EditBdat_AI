@@ -1,5 +1,10 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Sửa lỗi ConnectTimeout TLS tới Gemini (2026-11-12)
+
+- Lỗi httpx.ConnectTimeout: handshake timed out do mạng/VPN/proxy/tường lửa chặn bắt tay HTTPS tới Gemini; trước đây mỗi lần chờ tới 120 giây. python/gemini_key_pool.py thêm transport giới hạn riêng timeout kết nối 20 giây (read timeout vẫn 120 giây). source_suggester.py thử tối đa 3 lần với nghỉ 2s/4s; các nhóm đã lưu vẫn được giữ, bấm Phân tích để chạy tiếp. 503 vẫn thử 2 lần.
+- Phát hiện source_suggester.py trong working tree từng là bản cũ thiếu code key pool/source_metadata; đã khôi phục từ HEAD, bản cũ lưu ở scratch. Test Python 44 đạt; chưa gọi Gemini thật. Cần đóng/mở lại app. Nếu vẫn lỗi: kiểm tra mạng/VPN/proxy/antivirus.
+
 ## Tài liệu luồng hoạt động từng tab (2026-11-12)
 
 - Thêm nút “Luồng hoạt động” cho cả 6 tab; chỉ mở cửa sổ đọc khi bấm, có nút đóng, Escape, cuộn và kéo kích thước. Nội dung lưu trong `doc/workflows/{tab}.html`, dùng chung `doc/workflows.css`; không cần gọi AI/backend để đọc.

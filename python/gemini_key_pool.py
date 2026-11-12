@@ -6,6 +6,7 @@ import re
 import threading
 import time
 
+import httpx
 from google import genai
 from google.genai import types
 
@@ -141,6 +142,20 @@ class GeminiQuotaError(RuntimeError):
         self.retry_after_seconds = max(1, retry_after_seconds)
 
 
+CONNECT_TIMEOUT_SECONDS = 20
+
+
+class _FastConnectTransport(httpx.HTTPTransport):
+    """Giới hạn riêng thời gian kết nối/bắt tay TLS; read timeout giữ nguyên."""
+
+    def handle_request(self, request):
+        timeout = request.extensions.get("timeout")
+        if isinstance(timeout, dict):
+            current = timeout.get("connect")
+            timeout["connect"] = CONNECT_TIMEOUT_SECONDS if current is None else min(current, CONNECT_TIMEOUT_SECONDS)
+        return super().handle_request(request)
+
+
 class GeminiKeyClient:
     """Try models in priority order; each model tries both distinct keys."""
 
@@ -179,7 +194,9 @@ class GeminiKeyClient:
                 try:
                     if key_id not in self._clients:
                         self._clients[key_id] = genai.Client(
-                            api_key=key, http_options=types.HttpOptions(timeout=self._timeout_ms))
+                            api_key=key, http_options=types.HttpOptions(
+                                timeout=self._timeout_ms,
+                                client_args={"transport": _FastConnectTransport()}))
                     response = getattr(self._clients[key_id].models, method)(**payload)
                 except Exception as exc:
                     if len(chain) > 1 and getattr(exc, "code", None) in (403, 404):
