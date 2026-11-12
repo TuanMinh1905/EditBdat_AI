@@ -26,6 +26,7 @@ function loadSettings() {
   } catch (e) { /* ignore */ }
   return {
     geminiApiKey: '',
+    geminiApiKeyBackup: '',
     afterEffectsPath: 'C:\\Program Files\\Adobe\\Adobe After Effects 2021\\Support Files\\AfterFX.exe',
     outputDir: 'C:\\\\Users\\\\GP\\\\Desktop\\\\Edit Bdat\\\\Video Demo\\\\Demo1\\\\Official',
     compWidth: 1920,

@@ -772,7 +772,7 @@
         <div class="settings-group">
           <h3>🔑 Google Gemini API</h3>
           <div class="setting-item">
-            <label for="setting-api-key">API Key</label>
+            <label for="setting-api-key">API Key 1 — ưu tiên</label>
             <div class="input-with-action">
               <input type="password" id="setting-api-key" placeholder="Nhập Gemini API Key..." />
               <button class="btn-icon" id="btn-toggle-key" title="Hiện/ẩn">
@@ -785,11 +785,25 @@
             <p class="setting-hint">Lấy API key tại <a href="#" id="link-gemini-api">Google AI Studio</a></p>
           </div>
 
+          <div class="setting-item">
+            <label for="setting-api-key-backup">API Key 2 — dự phòng (tùy chọn)</label>
+            <div class="input-with-action">
+              <input type="password" id="setting-api-key-backup" placeholder="Nhập API key của project thứ hai..." autocomplete="off" />
+              <button type="button" class="btn-icon" id="btn-toggle-key-backup" title="Hiện/ẩn key dự phòng" aria-label="Hiện/ẩn key dự phòng">👁</button>
+            </div>
+            <p class="setting-hint">Tự chuyển key khi API báo chạm hạn mức (429), giữ nguyên model. Hai key cùng project dùng chung quota. Gói Google AI Pro được quản lý riêng với API.</p>
+            <p class="setting-hint" id="gemini-key-status" role="status" aria-live="polite">Chưa gọi API trong phiên này.</p>
+          </div>
+
           <!-- Token Usage Tracker -->
           <div class="token-usage-box" id="token-usage-box">
             <div class="token-usage-header">
               <div class="token-usage-title">
-                <span>📊 Thống kê Token của Key đang dùng (trong App)</span>
+                <span>📊 Thống kê Token theo key (trong App)</span>
+                <select id="token-key-select" aria-label="Chọn key để xem thống kê">
+                  <option value="0">Key 1</option>
+                  <option value="1">Key 2</option>
+                </select>
                 <span class="token-key-badge" id="token-key-badge">Chưa có key</span>
               </div>
               <div class="token-usage-actions">
@@ -821,6 +835,7 @@
             <div class="token-last-call" id="token-last-call">
               Chưa có lượt gọi Gemini API nào được ghi nhận cho key này.
             </div>
+            <p class="setting-hint">Bộ đếm ghi nhận token từ phản hồi API trong app; không phải quota còn lại trên Google. Reset bộ đếm không khôi phục quota.</p>
           </div>
         </div>
 

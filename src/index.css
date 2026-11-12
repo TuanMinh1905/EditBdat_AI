@@ -3809,4 +3809,5 @@ body.is-resizing-v * {
 .sg-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #06c9e7, #a955ee 58%, #ff697b); transition: width 350ms ease; }
 .sg-progress-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--text-secondary); font-size: 12px; }
 #sg-progress-percent { margin-left: auto; font-weight: 600; }
+#token-key-select { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px; }
 @media (prefers-reduced-motion: reduce) { .sg-progress-bar { transition: none; } }

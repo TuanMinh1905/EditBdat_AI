@@ -1,5 +1,15 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Hai API key Gemini dự phòng (2026-11-12)
+
+- User muốn dùng thêm key từ Gmail Google AI Pro thứ hai: key đang dùng chạm quota thì chuyển key còn lại. Đã giải thích Google AI Pro không tự cấp quota API cho ứng dụng ngoài; hạn mức API tính theo Cloud project, hai key cùng project dùng chung quota. Không tự đổi model phân tích.
+- Cài đặt có Key 1 ưu tiên, Key 2 dự phòng, hiện/ẩn và lưu lại khi mở app. Request chuyển hai slot qua IPC/backend; cấu hình cũ một key vẫn tương thích. Có thể chỉ nhập Key 2.
+- `python/gemini_key_pool.py` thử key dự phòng khi HTTP 429, giữ nguyên model/payload, bỏ qua key trùng; nhớ key thành công và cooldown riêng từng model trong phiên backend. RetryInfo/Retry-After được tôn trọng với thời gian nghỉ tối thiểu 60 giây. Cả hai key giới hạn thì dừng và giữ kết quả. Không đổi key do timeout/503/MAX_TOKENS.
+- Dùng chung cho phân tích Source, embedding và tạo/preview/sửa timeline. Thống kê token có chọn Key 1/2; ghi usage đúng key thực sự trả phản hồi, không coi bộ đếm cục bộ là quota còn lại.
+- File mới: `python/gemini_key_pool.py`, `python/test_gemini_key_pool.py`, `doc/Gemini_API_Keys.md`. Sửa settings/main/backend/gemini_client/source_suggester, giao diện và test JS/Python, `.agents/AGENTS.md`, `doc/Source_ThoiDiem_v2.md`.
+- Kiểm thử đúng nội dung chuẩn bị commit trong bản sao tách biệt: 50 test Python và 48 test JavaScript đạt, 1 smoke bỏ qua; cú pháp và diff check đạt. Working tree có thêm các sửa lỗi TLS/503 của task khác cũng đã chạy qua kiểm thử, được giữ nguyên ngoài commit này. Chưa gọi Gemini thật hoặc kiểm tra trực tiếp Electron; chưa xác nhận quota thực tế của hai tài khoản user.
+- Bước dùng: đóng hẳn/mở lại app, vào Cài đặt nhập hai key rồi Lưu; không cần xóa phiên đang phân tích. Key ưu tiên/cooldown được nhớ trong phiên backend; thống kê token và hai key cấu hình được lưu giữa các lần mở app.
+
 ## Quy tắc bàn giao sau mỗi task (2026-11-12)
 
 - User yêu cầu bổ sung quy tắc để conversation sau tiếp tục được bối cảnh.

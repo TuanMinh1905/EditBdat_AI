@@ -13,6 +13,7 @@ function section(start, end) {
   return renderer.slice(a, b);
 }
 const script = new vm.Script([
+  section('function getGeminiApiKeys(', 'async function loadSettings('),
   section('  function splitLoaiSource(', '  function updateRulesMeta('),
   section('  function contextLabel(', '  async function loadBackendState('),
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
@@ -80,6 +81,63 @@ test('selecting Timeline only saves its name; reopening does not load rows or ca
   assert.equal(reopened.sgState.phase, 'selected');
   assert.equal(reopened.sgState.rows.length, 0);
   assert.equal(reopened.calls.ai.length, 0);
+});
+
+test('both saved API keys reach analysis but are never stored in the analysis snapshot', async () => {
+  const h = harness();
+  h.context.state.settings.geminiApiKeyBackup = 'backup-test-key';
+  await h.sgDom.btnBrowseCsv.click();
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai[0].api_keys[0], 'test-key');
+  assert.equal(h.calls.ai[0].api_keys[1], 'backup-test-key');
+  assert.doesNotMatch(h.storage.get('sg_analysis'), /backup-test-key|api_keys/);
+});
+
+test('settings load old single-key data and persist the new backup across reloads', async () => {
+  const h = harness();
+  new vm.Script([
+    section('async function loadSettings(', 'function formatTokenNum('),
+    section('async function saveSettings(', '// --- Tab Navigation ---')
+  ].join('\n')).runInContext(h.context);
+  for (const name of ['settingApiKeyBackup', 'settingAePath', 'settingOutputDir', 'settingCompWidth',
+    'settingCompHeight', 'settingCompFps', 'btnSaveSettings']) h.context.dom[name] = new Element();
+  let saved = { geminiApiKey: 'primary-test-key' };
+  h.context.window.api.getSettings = async () => saved;
+  h.context.window.api.saveSettings = async value => { saved = structuredClone(value); };
+  h.context.addLog = () => {};
+  h.context.loadTokenUsage = () => {};
+  h.context.setTimeout = () => {};
+  await h.context.loadSettings();
+  assert.equal(h.context.dom.settingApiKeyBackup.value, '');
+  h.context.dom.settingApiKeyBackup.value = 'backup-test-key';
+  await h.context.saveSettings();
+  h.context.state.settings = {};
+  h.context.dom.settingApiKeyBackup.value = '';
+  await h.context.loadSettings();
+  assert.equal(h.context.getGeminiApiKeys()[0], 'primary-test-key');
+  assert.equal(h.context.getGeminiApiKeys()[1], 'backup-test-key');
+});
+
+test('backup key alone can analyze and has its own token selector slot', async () => {
+  const h = harness({ key: '' });
+  h.context.state.settings.geminiApiKeyBackup = 'backup-test-key';
+  await h.sgDom.btnBrowseCsv.click();
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai.length, 1);
+  assert.equal(h.calls.ai[0].api_keys[0], '');
+  assert.equal(h.calls.ai[0].api_keys[1], 'backup-test-key');
+  h.context.dom.tokenKeySelect = { value: '0', options: [{}, {}] };
+  assert.equal(h.context.getTokenApiKey(), 'backup-test-key');
+  assert.equal(h.context.dom.tokenKeySelect.value, '1');
+});
+
+test('quota status identifies the active key without exposing either key', () => {
+  const h = harness();
+  h.context.dom.geminiKeyStatus = new Element();
+  h.context.renderGeminiKeyStatus({ active_slot: 2, model: 'same-model',
+    keys: [{ slot: 1, state: 'cooldown', retry_after_seconds: 60 }, { slot: 2, state: 'ready', retry_after_seconds: 0 }] });
+  assert.match(h.context.dom.geminiKeyStatus.textContent, /Key 2/);
+  assert.match(h.context.dom.geminiKeyStatus.textContent, /60s/);
 });
 
 test('Pause retains the in-flight group, waits, and Continue processes remaining rows', async () => {

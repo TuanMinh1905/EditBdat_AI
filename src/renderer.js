@@ -62,6 +62,10 @@ const dom = {
 
   // Settings
   settingApiKey: $('#setting-api-key'),
+  settingApiKeyBackup: $('#setting-api-key-backup'),
+  btnToggleKeyBackup: $('#btn-toggle-key-backup'),
+  tokenKeySelect: $('#token-key-select'),
+  geminiKeyStatus: $('#gemini-key-status'),
   settingAePath: $('#setting-ae-path'),
   settingOutputDir: $('#setting-output-dir'),
   settingCompWidth: $('#setting-comp-width'),
@@ -460,6 +464,7 @@ async function generateProject() {
       prompt: prompt,
       settings: {
         geminiApiKey: settings.geminiApiKey,
+        geminiApiKeyBackup: settings.geminiApiKeyBackup,
         afterEffectsPath: settings.afterEffectsPath,
         outputDir: BASE_OUTPUT_DIR,
         projectName: projectName,
@@ -560,6 +565,7 @@ async function exportJsxOnly() {
       prompt,
       settings: {
         geminiApiKey: settings.geminiApiKey,
+        geminiApiKeyBackup: settings.geminiApiKeyBackup,
         outputDir: BASE_OUTPUT_DIR,
         projectName: projectName,
         compWidth: settings.compWidth || 1920,
@@ -603,6 +609,7 @@ async function previewTimeline() {
       prompt,
       settings: {
         geminiApiKey: settings.geminiApiKey,
+        geminiApiKeyBackup: settings.geminiApiKeyBackup,
         compWidth: settings.compWidth || 1920,
         compHeight: settings.compHeight || 1080,
         compFps: settings.compFps || 30
@@ -637,9 +644,48 @@ async function previewTimeline() {
 
 // --- Settings ---
 
+function getGeminiApiKeys() {
+  const settings = state.settings || {};
+  return [
+    (dom.settingApiKey && dom.settingApiKey.value.trim()) || settings.geminiApiKey || '',
+    (dom.settingApiKeyBackup && dom.settingApiKeyBackup.value.trim()) || settings.geminiApiKeyBackup || ''
+  ];
+}
+
+function getTokenApiKey() {
+  const keys = getGeminiApiKeys();
+  const select = dom.tokenKeySelect;
+  let index = Number(select ? select.value : 0);
+  if (!keys[index]) index = keys.findIndex(Boolean);
+  if (select) {
+    select.value = String(Math.max(0, index));
+    Array.from(select.options).forEach((option, i) => { option.disabled = !keys[i]; });
+  }
+  return keys[index] || '';
+}
+
+function renderGeminiKeyStatus(status, logger) {
+  if (!status) return;
+  const previous = state.geminiKeyStatus;
+  state.geminiKeyStatus = status;
+  const keys = status.keys || [];
+  if (dom.geminiKeyStatus) {
+    const allLimited = keys.length && keys.every(key => key.state === 'cooldown');
+    const summary = allLimited ? 'Các key đều đang chạm hạn mức; phần đã lưu được giữ.' :
+      status.active_slot ? `Đang dùng Key ${status.active_slot} · ${status.model}.` :
+      keys.length ? `Ưu tiên Key ${keys[0].slot}; tự chuyển khi API báo 429.` : 'Chưa nhập API key.';
+    const waiting = keys.filter(key => key.retry_after_seconds > 0).map(key => `Key ${key.slot}: chờ ít nhất ${key.retry_after_seconds}s`);
+    dom.geminiKeyStatus.textContent = [summary, ...waiting].join(' ');
+  }
+  if (logger && status.active_slot && (!previous || previous.active_slot !== status.active_slot)) {
+    logger(`Đang dùng API Key ${status.active_slot} cho ${status.model}.`, 'info');
+  }
+}
+
 async function loadSettings() {
   state.settings = await window.api.getSettings();
   dom.settingApiKey.value = state.settings.geminiApiKey || '';
+  if (dom.settingApiKeyBackup) dom.settingApiKeyBackup.value = state.settings.geminiApiKeyBackup || '';
   dom.settingAePath.value = state.settings.afterEffectsPath || '';
   dom.settingOutputDir.value = state.settings.outputDir || '';
   dom.settingCompWidth.value = state.settings.compWidth || 1920;
@@ -699,11 +745,11 @@ function renderTokenUsage(usage) {
 async function loadTokenUsage() {
   if (!window.api || !window.api.getTokenUsage) return;
   try {
-    const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) ||
-                   (state.settings && state.settings.geminiApiKey) || '';
-    const res = await window.api.getTokenUsage({ api_key: apiKey });
+    const apiKey = getTokenApiKey();
+    const res = await window.api.getTokenUsage({ api_key: apiKey, api_keys: getGeminiApiKeys() });
     if (res && res.success) {
       renderTokenUsage(res.usage);
+      renderGeminiKeyStatus(res.key_status);
     }
   } catch (err) {
     console.warn('loadTokenUsage error:', err);
@@ -720,8 +766,8 @@ async function resetTokenUsage() {
   if (!ok) return;
 
   try {
-    const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) ||
-                   (state.settings && state.settings.geminiApiKey) || '';
+    const apiKey = getTokenApiKey();
+    if (!apiKey) return;
     const res = await window.api.resetTokenUsage({ api_key: apiKey });
     if (res && res.success) {
       renderTokenUsage(res.usage);
@@ -741,6 +787,7 @@ async function saveSettings() {
 
   const settings = {
     geminiApiKey: dom.settingApiKey.value.trim(),
+    geminiApiKeyBackup: dom.settingApiKeyBackup ? dom.settingApiKeyBackup.value.trim() : '',
     afterEffectsPath: dom.settingAePath.value.trim(),
     outputDir: dom.settingOutputDir.value.trim(),
     compWidth: parseInt(dom.settingCompWidth.value) || 1920,
@@ -904,6 +951,10 @@ function initEvents() {
     const input = dom.settingApiKey;
     input.type = input.type === 'password' ? 'text' : 'password';
   });
+  if (dom.btnToggleKeyBackup) dom.btnToggleKeyBackup.addEventListener('click', () => {
+    const input = dom.settingApiKeyBackup;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
 
   // Browse AE exe (file picker for .exe)
   dom.btnBrowseAe.addEventListener('click', async () => {
@@ -923,9 +974,11 @@ function initEvents() {
   if (dom.btnResetToken) {
     dom.btnResetToken.addEventListener('click', resetTokenUsage);
   }
-  if (dom.settingApiKey) {
+  if (dom.tokenKeySelect) dom.tokenKeySelect.addEventListener('change', loadTokenUsage);
+  for (const keyInput of [dom.settingApiKey, dom.settingApiKeyBackup]) {
+    if (!keyInput) continue;
     let tokenDebounce = null;
-    dom.settingApiKey.addEventListener('input', () => {
+    keyInput.addEventListener('input', () => {
       clearTimeout(tokenDebounce);
       tokenDebounce = setTimeout(loadTokenUsage, 400);
     });
@@ -4442,7 +4495,8 @@ function initSourceSuggester() {
         return;
       }
 
-      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.geminiApiKey) || '';
+      const apiKeys = getGeminiApiKeys();
+      const apiKey = apiKeys.find(Boolean) || '';
       if (!apiKey) {
         sgLog('Chưa có Gemini API Key! Vui lòng vào tab Cài đặt để nhập API Key.', 'error');
         return;
@@ -4497,9 +4551,10 @@ function initSourceSuggester() {
             rows: batchIndices.map(i => sgState.rows[i]),
             context_rows: contextRows,
             previous_rows: sgState.rows.slice(Math.max(0, batchIndices[0] - 4), batchIndices[0]),
-            csv_path: sgState.csvPath, api_key: apiKey, default_thoi_ky: defTk, rules: rulesText
+            csv_path: sgState.csvPath, api_key: apiKey, api_keys: apiKeys, default_thoi_ky: defTk, rules: rulesText
           });
           if (generation !== sgState.generation) return;
+          renderGeminiKeyStatus(res.key_status, sgLog);
           if (res.error) throw new Error(res.error);
           if (!Array.isArray(res.rows) || res.rows.length !== batchIndices.length ||
               res.rows.some((r, i) => r.row_index !== i || r.text !== sgState.rows[batchIndices[i]].text)) {
@@ -4558,13 +4613,14 @@ function initSourceSuggester() {
       });
       if (!ok) return;
 
-      const apiKey = (dom.settingApiKey && dom.settingApiKey.value.trim()) || (state.settings && state.settings.geminiApiKey) || '';
+      const apiKeys = getGeminiApiKeys();
+      const apiKey = apiKeys.find(Boolean) || '';
       sgDom.btnLearn.disabled = true;
       sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
       try {
         const res = await window.api.suggesterSaveExamples({
           items: learnRows,
-          api_key: apiKey
+          api_key: apiKey, api_keys: apiKeys
         });
         if (res.error) throw new Error(res.error);
         sgState.examples = res.examples || [];

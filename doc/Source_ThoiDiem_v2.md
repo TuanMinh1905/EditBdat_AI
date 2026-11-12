@@ -4,6 +4,8 @@
 
 Chọn `1_CSV_Timeline.csv` ở Gợi ý Source chỉ hiện tên file. Bấm **Phân tích** để nạp lời thoại lên bảng và chạy AI.
 
+Có thể cấu hình hai API key trong Cài đặt để tự chuyển key khi HTTP 429; giữ nguyên model và kết quả đã có. Hướng dẫn: [Gemini_API_Keys.md](Gemini_API_Keys.md).
+
 Thanh tiến độ xanh → tím → hồng hiển thị phần trăm và số dòng đã xử lý. **Pause** giữ kết quả nhóm đang chạy (tối đa 8 dòng), rồi dừng gửi nhóm mới. **Continue** tiếp tục phần còn lại. Nếu nhóm cuối hoàn tất trong lúc yêu cầu Pause, phiên chuyển Hoàn tất.
 
 **Làm mới** có xác nhận: hủy phiên, bỏ file đã chọn, xóa bảng và cache phiên để chọn file mới ngay. Phản hồi cũ đến muộn bị bỏ qua. File trên ổ đĩa, API key, quy tắc và kho ví dụ được giữ. Yêu cầu AI đã gửi có thể vẫn hoàn tất ở dịch vụ, nhưng kết quả không được áp vào phiên mới.

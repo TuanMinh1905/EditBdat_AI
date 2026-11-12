@@ -9,6 +9,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import source_suggester as module
+import gemini_key_pool
 from source_suggester import SourceSuggester
 
 
@@ -34,7 +35,9 @@ class SuggesterTests(unittest.TestCase):
         self.s._save_examples_raw = Mock()
         self.model = Mock()
         self.addCleanup(patch.stopall)
-        patch.object(module.genai, 'Client', return_value=SimpleNamespace(models=self.model)).start()
+        gemini_key_pool._PREFERRED.clear()
+        gemini_key_pool._COOLDOWNS.clear()
+        patch.object(gemini_key_pool.genai, 'Client', return_value=SimpleNamespace(models=self.model)).start()
         patch.object(module, 'record_usage').start()
 
     def rows(self, count=3):
@@ -82,7 +85,21 @@ class SuggesterTests(unittest.TestCase):
     def test_gemini_requests_have_explicit_timeout(self):
         self.reply([self.choice(0)])
         self.s.suggest_from_timeline(self.rows(1), 'test-key')
-        self.assertEqual(module.genai.Client.call_args.kwargs['http_options'].timeout, 120000)
+        self.assertEqual(gemini_key_pool.genai.Client.call_args.kwargs['http_options'].timeout, 120000)
+
+    def test_quota_failover_records_backup_usage_and_keeps_full_context(self):
+        from google.genai.errors import ClientError
+        backup_model = Mock()
+        self.model.generate_content.side_effect = ClientError(429, {'error': {'status': 'RESOURCE_EXHAUSTED'}})
+        backup_model.generate_content.return_value = SimpleNamespace(text=json.dumps([self.choice(0)]))
+        gemini_key_pool.genai.Client.side_effect = lambda api_key, **kw: SimpleNamespace(
+            models=self.model if api_key == 'primary-test-key' else backup_model)
+        result = self.s.suggest_from_timeline(self.rows(1), 'primary-test-key', context_rows=self.rows(5),
+                                            api_keys=['primary-test-key', 'backup-test-key'])
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(self.model.generate_content.call_args, backup_model.generate_content.call_args)
+        self.assertIn('Câu thứ 4 về Xavi.', backup_model.generate_content.call_args.kwargs['contents'])
+        self.assertEqual(module.record_usage.call_args.args[0], 'backup-test-key')
 
     def test_failed_repair_keeps_valid_first_pass_rows(self):
         self.model.generate_content.side_effect = [

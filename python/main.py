@@ -41,6 +41,7 @@ from source_metadata import parse_source_filename
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
 from token_tracker import get_usage, reset_usage
+from gemini_key_pool import get_key_status
 from asset_service import verify_assets, list_assets, MEDIA_EXTENSIONS
 
 app = Flask(__name__)
@@ -122,6 +123,10 @@ def _resolve_output_dir(settings):
     return final_dir
 
 
+def _gemini_api_keys(settings):
+    """Keep key slots stable, including settings saved before backup-key support."""
+    return [settings.get('geminiApiKey', ''), settings.get('geminiApiKeyBackup', '')]
+
 
 @app.route('/api/generate', methods=['POST'])
 def generate_project():
@@ -137,7 +142,7 @@ def generate_project():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '')
+        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
         if not api_key:
             return jsonify({"error": "Chưa cài đặt Gemini API Key. Vào Settings để nhập API key."}), 400
 
@@ -184,7 +189,7 @@ def generate_project():
         log("[PROGRESS] 30")
         log("Đang gọi Gemini AI sinh timeline...")
 
-        gemini = GeminiClient(api_key)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -317,7 +322,7 @@ def preview_timeline():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '')
+        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
         if not api_key:
             return jsonify({"error": "Chưa cài đặt Gemini API Key"}), 400
 
@@ -341,7 +346,7 @@ def preview_timeline():
                 "fps": info.get('fps'),
             })
 
-        gemini = GeminiClient(api_key)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -373,7 +378,7 @@ def export_jsx_only():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '')
+        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
         if not api_key:
             return jsonify({"error": "Chưa cài đặt Gemini API Key"}), 400
 
@@ -408,7 +413,7 @@ def export_jsx_only():
         # Call Gemini
         log("[STEP] ai : active")
         log("[PROGRESS] 30")
-        gemini = GeminiClient(api_key)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -848,9 +853,11 @@ def api_suggester_suggest():
         "csv_path": "...",
         "api_key": "...",
         "default_thoi_ky": "...",
-        "rules": "..."             // quy tac cho lan phan tich nay, khong tu ghi file
+        "rules": "...",            // quy tac cho lan phan tich nay, khong tu ghi file
+        "api_keys": ["...", "..."] // key uu tien va du phong, tuy chon
     }
     """
+    data = {}
     try:
         data = request.get_json() or {}
         api_key = data.get('api_key', '')
@@ -870,16 +877,19 @@ def api_suggester_suggest():
             context_rows=data.get('context_rows'),
             previous_rows=data.get('previous_rows'),
             rules_text=data.get('rules'),
+            api_keys=data.get('api_keys'),
         )
         return jsonify({
             "success": True,
             "rows": results,
             "total": len(results),
+            "key_status": get_key_status(data.get('api_keys') or [api_key]),
         })
     except Exception as e:
         log(f"Loi suggester-suggest: {str(e)}")
         traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        keys = (data.get('api_keys') or [data.get('api_key', '')]) if isinstance(data, dict) else []
+        return jsonify({"error": str(e), "key_status": get_key_status(keys)}), 500
 
 
 @app.route('/api/source-suggester/save-examples', methods=['POST'])
@@ -889,7 +899,7 @@ def api_suggester_save_examples():
         data = request.get_json() or {}
         items = data.get('items', [])
         api_key = data.get('api_key', '')
-        stats = source_suggester.add_examples(items, api_key=api_key)
+        stats = source_suggester.add_examples(items, api_key=api_key, api_keys=data.get('api_keys'))
         examples = source_suggester.get_examples()
         return jsonify({
             "success": True,
@@ -958,7 +968,8 @@ def api_token_usage_get():
         data = request.get_json() or {}
         api_key = data.get('api_key', '')
         usage = get_usage(api_key)
-        return jsonify({"success": True, "usage": usage})
+        return jsonify({"success": True, "usage": usage,
+                        "key_status": get_key_status(data.get('api_keys') or [api_key])})
     except Exception as e:
         log(f"Loi token-usage-get: {str(e)}")
         return jsonify({"error": str(e)}), 500

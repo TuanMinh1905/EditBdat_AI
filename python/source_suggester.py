@@ -15,9 +15,9 @@ import base64
 import shutil
 import urllib.parse
 from datetime import datetime
-from google import genai
 from google.genai import types
 from token_tracker import record_usage
+from gemini_key_pool import GeminiKeyClient
 from source_metadata import (SOURCE_TYPES, SCHEMA_VERSION, CONTEXT_FIELDS, PLAN_META_FIELDS,
     migrate_classifications, normalize_plan_row, context_of, context_label, year_bounds)
 
@@ -1013,7 +1013,7 @@ class SourceSuggester:
                 continue
         return [None] * len(texts)
 
-    def add_examples(self, items, api_key=None):
+    def add_examples(self, items, api_key=None, api_keys=None):
         """
         Luu hoac cap nhat cac dong da sua vao kho vi du (bao gom loai_source, element, anim, bgm, sfx).
         Neu trung `text` thi cap nhat, neu moi thi them vao.
@@ -1022,9 +1022,10 @@ class SourceSuggester:
         by_text = {str(ex.get("text", "")).strip().lower(): ex for ex in raw}
 
         client = None
-        if api_key and api_key.strip():
+        keys = api_keys or [api_key]
+        if any(str(key or "").strip() for key in keys):
             try:
-                client = genai.Client(api_key=api_key.strip())
+                client = GeminiKeyClient(keys, log=self._log)
             except Exception:
                 client = None
 
@@ -1297,7 +1298,7 @@ class SourceSuggester:
     # ------------------------------------------------------------------
 
     def suggest_from_timeline(self, timeline_rows, api_key, default_thoi_ky="",
-                              context_rows=None, previous_rows=None, rules_text=None):
+                              context_rows=None, previous_rows=None, rules_text=None, api_keys=None):
         """
         Phan tich danh sach dong timeline (doi tuong Time) va goi y:
         `loai_source`, `element`, `anim`, `bgm`, `sfx`, `thoi_ky`, `confidence`, `reason`.
@@ -1306,7 +1307,8 @@ class SourceSuggester:
           2. Kho vi du da luu (source_examples.json) + Gemini Embedding RAG
           3. 5 bang Phan loai dong (classifications.json)
         """
-        if not api_key or not api_key.strip():
+        keys = api_keys or [api_key]
+        if not any(str(key or "").strip() for key in keys):
             raise ValueError(
                 "Chua co Gemini API Key. Vui long nhap API Key trong tab Cai dat."
             )
@@ -1319,12 +1321,12 @@ class SourceSuggester:
             for start in range(0, len(timeline_rows), 8):
                 batch = self.suggest_from_timeline(
                     timeline_rows[start:start + 8], api_key, default_thoi_ky,
-                    context_rows, results[-4:], rules_text)
+                    context_rows, results[-4:], rules_text, api_keys=keys)
                 for offset, row in enumerate(batch):
                     row["row_index"] = start + offset
                 results.extend(batch)
             return results
-        client = genai.Client(api_key=api_key.strip(), http_options=types.HttpOptions(timeout=120000))
+        client = GeminiKeyClient(keys, log=self._log)
         rules_text = (self.get_rules() if rules_text is None else rules_text).strip()
         examples = self._load_examples_raw()
         loai_dict, element_dict, anim_dict, bgm_dict, sfx_dict = self._get_dynamic_dicts()
@@ -1560,7 +1562,7 @@ class SourceSuggester:
                 for idx in remaining:
                     errors[idx] = f"Gemini không hoàn tất lượt bổ sung: {exc}"
                 break
-            record_usage(api_key, response, feature="source_suggester", model="gemini-3.8-flash")
+            record_usage(client.active_key, response, feature="source_suggester", model="gemini-3.8-flash")
             try:
                 parsed_list = self._parse_json_array(response.text or "")
             except ValueError:

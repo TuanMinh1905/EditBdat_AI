@@ -41,6 +41,8 @@ Code_AI/
 │   ├── main.py                      # Flask API server (entry point, port 5599)
 │   ├── media_analyzer.py            # Phân tích media bằng FFprobe
 │   ├── gemini_client.py             # Gọi Gemini API
+│   ├── gemini_key_pool.py           # Chuyển hai key khi HTTP 429, giữ nguyên model
+│   ├── test_gemini_key_pool.py      # Kiểm thử quota/key dự phòng, không gọi API thật
 │   ├── timeline_validator.py        # Validate timeline JSON
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
@@ -511,6 +513,8 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 
 ## 15. Phan loai Timeline bang AI (2026-11-11)
+
+- Hai key Gemini (2026-11-12): `geminiApiKey` + `geminiApiKeyBackup` trong settings, chuyển qua IPC bằng settings hoặc `api_keys` hai slot. `gemini_key_pool.py` chỉ đổi key khi HTTP 429, mỗi key khác nhau tối đa một lần/yêu cầu, nhớ key thành công và cooldown theo model trong bộ nhớ backend. Không tự đổi model, không đổi key do timeout/503/MAX_TOKENS. Chỉ log slot/key hint; usage ghi đúng key trả kết quả. Chi tiết: `doc/Gemini_API_Keys.md`; test mới `test_gemini_key_pool`.
 
 - Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
 - Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.
