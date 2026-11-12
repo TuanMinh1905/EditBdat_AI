@@ -14,7 +14,7 @@
 | Frontend | HTML + Vanilla CSS + Vanilla JS | — | KHÔNG dùng framework (React, Vue...) |
 | Backend | Python | 3.13 | Chạy như child process của Electron |
 | Web server | Flask + waitress | Flask 3.1, waitress 3.0 | Chạy local tại `127.0.0.1:5599` |
-| AI API | Google Gemini | Danh sách ưu tiên trong Cài đặt | Qua `google-genai`; mặc định Carbon → Argon → Flash/Flash-Lite |
+| AI API | Google Gemini | Danh sách ưu tiên trong Cài đặt | Qua `google-genai`; mặc định 7 model Flash/Flash-Lite có quota trong ảnh user |
 | Media analysis | FFprobe | 8.x | Đã cài sẵn trên máy |
 | After Effects | ExtendScript (.jsx) | AE 2021 | Path: `C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe` |
 | OS | Windows | 10/11 | Encoding mặc định là `cp1252`, cần xử lý UTF-8 |

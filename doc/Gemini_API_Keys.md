@@ -4,7 +4,9 @@ Trong **Cài đặt → Google Gemini API**, nhập **API Key 1 — ưu tiên** 
 
 Trong **Model ưu tiên**, đặt mã model theo thứ tự cao xuống thấp, cách nhau bằng dấu phẩy (tối đa 8 model). App chạy **A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2…**: chỉ sang model sau khi các key của model trước bị giới hạn hoặc không khả dụng. Key trùng bị bỏ qua. Mỗi cặp chạm quota nghỉ ít nhất 60 giây, hoặc lâu hơn theo RetryInfo/Retry-After. Khi quota lựa chọn ưu tiên phục hồi, app lại ưu tiên lựa chọn đó.
 
-Mặc định đề xuất **Gemini 4 Carbon → Gemini 4 Argon → Gemini 3.8 Flash → Gemini 3.6 Flash → Gemini 3.5 Flash-Lite**, dựa trên tài liệu công khai; chưa kiểm chứng chất lượng trên bài user hay quyền dùng từng key. Có thể sửa danh sách trong Cài đặt rồi lưu. Thông báo đổi model/key hiện trên thanh tiến độ và nhật ký, được lọc theo lượt đang chạy để bỏ thông báo cũ sau khi Làm mới.
+Theo ảnh quota user cung cấp ngày 12/11/2026, mặc định ưu tiên **Gemini 3.8 Flash → Gemini 3.6 Flash → Gemini 3 Flash → Gemini 2.5 Flash → Gemini 3.5 Flash-Lite → Gemini 3.1 Flash-Lite → Gemini 2.5 Flash-Lite**. Chọn các model có hạn mức lớn hơn 0, ưu tiên nhóm Flash rồi mới Flash-Lite; đây là thứ tự đề xuất, chưa kiểm chứng chất lượng trên bài user. Bỏ Gemini 2 Flash/Flash-Lite, 2.5 Pro, 3.1 Pro đang có hạn mức 0/0; không thêm Carbon/Argon ngoài ảnh.
+
+Mã API tương ứng: `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-2.5-flash-lite`. Có thể chỉnh trong Cài đặt rồi lưu trước lượt phân tích. Thông báo đổi model/key hiện trên thanh tiến độ và nhật ký, lọc theo lượt đang chạy để bỏ thông báo cũ sau Làm mới.
 
 Nếu mọi model/key chạm quota, **phân tích Source tự chờ rồi thử lại các dòng còn thiếu**, có đếm ngược. Pause/Continue/Làm mới vẫn hoạt động. Phần đã xong được giữ, kể cả quota hết trong lượt AI bổ sung. Đóng/mở lại app khôi phục tạm dừng, giữ thời điểm chờ; bấm Continue khi muốn tiếp tục.
 

@@ -17,7 +17,7 @@ _PREFERRED = {}
 _COOLDOWNS = {}
 _ROUTES = {}
 _UNAVAILABLE = {}
-DEFAULT_MODEL_PRIORITY = ["gemini-4-carbon", "gemini-4-argon", "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite"]
+DEFAULT_MODEL_PRIORITY = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
 
 
 def normalize_model_priority(models, default_model="gemini-3.8-flash"):

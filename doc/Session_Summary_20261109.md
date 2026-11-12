@@ -1,5 +1,13 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Model ưu tiên theo quota của user (2026-11-12)
+
+- User chốt A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2, muốn phân tích liên tục và hiện thông báo khi chuyển. Đã tích hợp điều phối theo model trước key, thông báo live trên tiến độ có run_id để bỏ thông báo cũ sau Làm mới, usage theo model/key thực tế. Khi mọi lựa chọn quota 429, Source giữ phần đã xong, tự đếm ngược/thử lại dòng thiếu; Pause/Continue/Làm mới dùng được trong lúc chờ, mở lại app vẫn chờ user bấm Continue.
+- Ảnh quota user cung cấp chọn 7 model có hạn mức >0 theo đề xuất: 3.8 Flash → 3.6 Flash → 3 Flash (`gemini-3-flash-preview`) → 2.5 Flash → 3.5 Flash-Lite → 3.1 Flash-Lite → 2.5 Flash-Lite. Bỏ 2 Flash/Flash-Lite, 2.5 Pro và 3.1 Pro có quota 0/0; không dùng Carbon/Argon ngoài ảnh. Có thể chỉnh danh sách trong Cài đặt. Đây là thứ tự ưu tiên đề xuất, không phải benchmark chất lượng thực tế.
+- Đã cập nhật mặc định trong `main.js`, `python/gemini_key_pool.py`, `src/renderer.js` và riêng trường model ưu tiên trong settings app trên máy, giữ nguyên key/cấu hình khác. Mã model đối chiếu tài liệu Google. Đã thử ListModels bằng key lưu nhưng ConnectTimeout, không gọi sinh nội dung thật; Key 2 chưa lưu lúc kiểm tra. Quota ảnh 3.8 Flash 16/20 là ảnh chụp thời điểm đó, không dùng làm bộ đếm cứng trong app.
+- Hướng dẫn đã cập nhật: `doc/Gemini_API_Keys.md`, workflows Cài đặt/Tạo mới/Gợi ý Source và quy tắc. Bộ điều phối/đếm ngược/thông báo nằm trong commit tích hợp `57199e6`; bản hiện tại chốt danh sách theo ảnh, giữ bản sửa TLS `2d0d359`.
+- Kiểm tra sau khi chốt danh sách: 67 test Python đạt, 54 test JavaScript đạt, 1 smoke bỏ qua; cú pháp và diff check đạt. Có kiểm thử Flash 2.5 giữ thinking config khi fallback từ Flash 3.8. Chưa kiểm tra trực tiếp Electron, quota hai tài khoản hoặc chất lượng Gemini thật. Bước dùng: đóng hẳn/mở lại app, kiểm tra Model ưu tiên và nhập Key 2 trong Cài đặt, rồi Phân tích/Continue; không cần xóa phiên hiện tại.
+
 ## Sửa lỗi ConnectTimeout TLS tới Gemini (2026-11-12)
 
 - Lỗi httpx.ConnectTimeout: handshake timed out do mạng/VPN/proxy/tường lửa chặn bắt tay HTTPS tới Gemini; trước đây mỗi lần chờ tới 120 giây. python/gemini_key_pool.py thêm transport giới hạn riêng timeout kết nối 20 giây (read timeout vẫn 120 giây). source_suggester.py thử tối đa 3 lần với nghỉ 2s/4s; các nhóm đã lưu vẫn được giữ, bấm Phân tích để chạy tiếp. 503 vẫn thử 2 lần.

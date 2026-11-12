@@ -176,6 +176,21 @@ class KeyPoolTests(unittest.TestCase):
         self.assertEqual(config.response_mime_type, 'application/json')
         self.assertEqual(original.thinking_config.thinking_budget, 4096)
 
+    def test_legacy_flash_fallback_retains_its_supported_thinking_config(self):
+        original = module.types.GenerateContentConfig(max_output_tokens=16384,
+                    thinking_config=module.types.ThinkingConfig(thinking_budget=4096), response_mime_type='application/json')
+        def generate(**payload):
+            if payload['model'] != 'gemini-2.5-flash':
+                raise api_error()
+            return SimpleNamespace(text='done')
+        for model in self.models.values():
+            model.generate_content.side_effect = generate
+        client = module.GeminiKeyClient(self.keys, model_priority=['gemini-3.8-flash', 'gemini-2.5-flash'])
+        client.models.generate_content(model='old', config=original, contents='prompt')
+        self.assertEqual(client.active_model, 'gemini-2.5-flash')
+        config = self.models[self.keys[0]].generate_content.call_args.kwargs['config']
+        self.assertEqual(config.thinking_config.thinking_budget, 4096)
+
     def test_usage_reports_actual_fallback_model(self):
         def generate(**payload):
             if payload['model'] == 'model-a':
