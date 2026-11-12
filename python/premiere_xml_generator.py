@@ -11,6 +11,7 @@ Output: file .xml -> import File > Import trong Premiere (bat ky phien ban)
 Timeline: 1920x1080, 30fps
 """
 
+from source_metadata import normalize_catalog_row, normalize_plan_row, context_of, matches_context, year_bounds
 import os
 import re
 import csv
@@ -146,8 +147,7 @@ def read_srt(path):
 
 def read_catalog(catalog_path):
     """Doc catalog.csv tu clip_splitter, tra ve list dict va index nhanh."""
-    rows = read_csv(catalog_path)
-    return rows
+    return [normalize_catalog_row(r) for r in read_csv(catalog_path)]
 
 
 def build_catalog_index(catalog_rows):
@@ -160,6 +160,7 @@ def build_catalog_index(catalog_rows):
     idx_full = {}
     idx_ct = {}  # (loai, cau_thu, ky_nang)
     idx_lo = {}  # (loai, cau_thu)
+    catalog_rows = [normalize_catalog_row(r) for r in catalog_rows]
     for r in catalog_rows:
         nl = norm(r.get("loai"))
         nc = norm(r.get("cau_thu"))
@@ -170,7 +171,7 @@ def build_catalog_index(catalog_rows):
         idx_ct.setdefault((nl, nc, nk), []).append(r)
         idx_lo.setdefault((nl, nc), []).append(r)
 
-    return {"full": idx_full, "ct": idx_ct, "lo": idx_lo}
+    return {"full": idx_full, "ct": idx_ct, "lo": idx_lo, "rows": catalog_rows}
 
 
 # ---------------------------------------------------------------------------
@@ -209,115 +210,49 @@ def _extract_cau_thu_from_thoi_ky(thoi_ky):
 
 
 def pick_clips(
-    loai_str,
-    cau_thu_str,
-    doi_bong_str,
-    ky_goi_y,
-    thoi_ky_str,
-    duration_frames,
-    catalog_idx,
-    used_set,
-    source_root,
+    loai_str, cau_thu_str, doi_bong_str, ky_goi_y, thoi_ky_str,
+    duration_frames, catalog_idx, used_set, source_root, context=None,
 ):
-    """Chon clip tu catalog. 4 cap do fallback: (loai+ct+ky_nang) -> (loai+ct) -> (loai) -> (bat ky)."""
-    results = []
-    remaining = duration_frames
-    loai_list = [l.strip() for l in re.split(r"[+,;]", loai_str or "")]
-
-    # Trich xuat ten cau thu tu thoi_ky - day la nguon dang tin cay nhat
-    ct = _extract_cau_thu_from_thoi_ky(thoi_ky_str)
-    ct_list = [ct] if ct else [""]
-
-    # Ky nang hint tu loi thoai
-    ky_map = {
-        "kientao": "Assist",
-        "assist": "Assist",
-        "banthang": "Goal",
-        "goal": "Goal",
-        "skill": "Skill",
-        "pass": "Pass",
-        "anmung": "Celebrate",
-        "celebrate": "Celebrate",
-    }
-    ky_hint = next((v for k, v in ky_map.items() if k in norm(ky_goi_y)), None)
-
-    idx_lo = catalog_idx["lo"]  # (loai, ct) -> rows
-    idx_ct = catalog_idx["ct"]  # (loai, ct, ky) -> rows
-
-    def _get_candidates(loai, ct_val):
-        """Tra ve list clip chua dung, theo thu tu uu tien."""
-        rows = []
-        # Cap 1: khop chinh xac loai + ct + ky nang hint
-        if ky_hint:
-            rows = [
-                r
-                for r in idx_ct.get((norm(loai), norm(ct_val), norm(ky_hint)), [])
-                if r["ten_file"] not in used_set
-            ]
-        # Cap 2: loai + ct, bat ky ky nang
-        if not rows:
-            rows = [
-                r
-                for r in idx_lo.get((norm(loai), norm(ct_val)), [])
-                if r["ten_file"] not in used_set
-            ]
-        # Cap 3: chi can dung loai, bo ct (last resort)
-        if not rows:
-            for key, rlist in idx_lo.items():
-                if key[0] == norm(loai):
-                    rows += [r for r in rlist if r["ten_file"] not in used_set]
-        # Cap 4: bat ky clip nao con trong catalog (ultimate fallback)
-        if not rows:
-            for key, rlist in idx_lo.items():
-                rows += [r for r in rlist if r["ten_file"] not in used_set]
-        return rows
-
-    for loai in loai_list:
-        if remaining <= 0:
-            break
-        for ct_val in ct_list:
+    """Only use declared matching footage. Missing context/assets stay empty."""
+    request = context_of(context if context is not None else {
+        "thoi_ky": thoi_ky_str, "cau_thu": cau_thu_str, "doi_bong": doi_bong_str})
+    if not year_bounds(request.get("thoi_diem")):
+        return [], 0
+    sources = list(dict.fromkeys(x.strip() for x in re.split(r"[+,;]", loai_str or "") if x.strip()))
+    rows = catalog_idx.get("rows", [])
+    queues = [[r for r in rows if r.get("loai") == code and matches_context(r, request)] for code in sources]
+    root = os.path.abspath(source_root)
+    results, remaining = [], duration_frames
+    # Alternate declared sources when a row explicitly combines two types.
+    while remaining > 0 and any(queues):
+        for queue in queues:
             if remaining <= 0:
                 break
-            for clip in _get_candidates(loai, ct_val):
-                if remaining <= 0:
-                    break
-                dur_clip = int(round(float(clip.get("duration_s", 3)) * FPS))
-                if dur_clip <= 0:
+            while queue:
+                clip = queue.pop(0)
+                if clip["ten_file"] in used_set:
                     continue
-                abs_path = os.path.join(
-                    source_root, clip.get("loai", ""), clip["ten_file"]
-                )
-                if not os.path.exists(abs_path):
-                    abs_path = os.path.join(source_root, clip["ten_file"])
-                if not os.path.exists(abs_path):
-                    # Scan toan bo source_root de tim file (ho tro thu muc con bat ky ten)
-                    found_scan = None
-                    for root_dir, dirs, files in os.walk(source_root):
-                        if clip["ten_file"] in files:
-                            found_scan = os.path.join(root_dir, clip["ten_file"])
-                            break
-                    if found_scan:
-                        abs_path = found_scan
-                    else:
-                        # Giu nguyen abs_path du khong ton tai (XML van hop le, Premiere bao offline)
-                        pass
-                take = min(dur_clip, remaining)
-                is_img = (
-                    clip["ten_file"].lower().endswith((".jpg", ".jpeg", ".png", ".bmp"))
-                )
-                results.append(
-                    {
-                        "path": abs_path,
-                        "clip_in": 0,
-                        "clip_out": take,
-                        "duration": take,
-                        "is_image": is_img,
-                        "loai": clip.get("loai"),
-                        "cau_thu": clip.get("cau_thu"),
-                    }
-                )
+                try:
+                    frames = int(round(float(clip.get("duration_s", 0)) * FPS))
+                except (ValueError, TypeError):
+                    continue
+                if frames <= 0:
+                    continue
+                relpath = clip.get("source_relpath") or os.path.join(clip.get("loai", ""), clip["ten_file"])
+                abs_path = os.path.abspath(os.path.join(root, relpath))
+                if os.path.commonpath([root, abs_path]) != root:
+                    continue
+                if not os.path.isfile(abs_path):
+                    abs_path = os.path.join(root, os.path.basename(clip["ten_file"]))
+                if not os.path.isfile(abs_path):
+                    continue
+                take = min(frames, remaining)
+                results.append({"path": abs_path, "clip_in": 0, "clip_out": take, "duration": take,
+                    "is_image": clip["ten_file"].lower().endswith((".jpg", ".jpeg", ".png", ".bmp")),
+                    "loai": clip.get("loai"), "cau_thu": clip.get("cau_thu")})
                 used_set.add(clip["ten_file"])
                 remaining -= take
+                break
     return results, duration_frames - remaining
 
 
@@ -493,6 +428,9 @@ def _load_sound_map(sound_map_path=None):
     bgm_map = data.get("bgm", {})
     sfx_map = data.get("sfx", {})
     auto_sfx = data.get("auto_sfx_by_loai", {})
+    if "rai_4" in auto_sfx:
+        auto_sfx = {**auto_sfx, "rai_2": auto_sfx["rai_4"]}
+        auto_sfx.pop("rai_4", None)
     return bgm_map, sfx_map, auto_sfx
 
 
@@ -890,6 +828,7 @@ def generate_xml(
 
     sp_idx = {}
     for r in sp_rows:
+        r = normalize_plan_row(r)
         doan_k = str(r.get("doan", "")).strip().lstrip("0") or "0"
         cau_k = str(r.get("cau", "")).strip()
         y_k = norm_y(r.get("y", ""))
@@ -1136,11 +1075,15 @@ def generate_xml(
             cat_idx,
             used_set,
             source_root,
+            context=sp,
         )
 
+        if clips and filled < dur:
+            markers_list.append((f_in + filled, f_out, f"[THIEU SOURCE DUNG THOI DIEM] D{doan}C{cau}Y{y}"))
+            missing.append(f"D{doan}C{cau}Y{y}: thieu {dur - filled} frames source dung boi canh")
         if not clips:
             markers_list.append(
-                (f_in, f_out, f"[THIEU SOURCE] D{doan}C{cau} — {text[:40]}")
+                (f_in, f_out, f"[THIEU SOURCE DUNG THOI DIEM] D{doan}C{cau} — {text[:40]}")
             )
             missing.append(f"D{doan}C{cau}Y{y}: khong co clip phu hop ({loai_str})")
             # Van dat element overlay du thieu source clips

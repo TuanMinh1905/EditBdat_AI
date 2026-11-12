@@ -1,4 +1,23 @@
-A
+Về vấn đề Source
+- Những đoạn văn bình thường, không có gì đáng chú ý thì sẽ sử dụng rai_1_3; xen rai_2 vào câu dẫn chuyện / chuyển ý phù hợp để phong phú hơn
+- Những đoạn có nói đến bàn thắng, kiến tạo sẽ sử dụng rai_1_1 (bàn thắng) hoặc rai_1_2 (kiến tạo), đúng nội dung lời thoại
+- Chỉ khi đoạn văn đó thật sự nặng về chiến thuật, thật sự đang phân tích chiến thuật thì mới sử dụng đến : sa_ban
+- Chỉ khi những đoạn văn đó thật sự nói về thông số của một cầu thủ nào đó, hay so sánh cầu thủ A với cầu thủ B về mặt thông số. Mới thật sự lấy anh_thong_so
+- Chỉ những đoạn miêu tả chính xác về thời gian, địa điểm, hoặc nó quá cụ thể và chi tiết. Không thể sử dụng những Video / Ảnh chung chung như Source đang có. Ví dụ như miêu tả về "Pha kiến tạo của Xavi ngay tại chung kết Euro 2008". Cái này nó quá chi tiết và phải làm thủ công. Những đoạn như vậy hãy đánh dấu highlight lên cho tôi biết và hãy bỏ trống. Đừng điền bậy bạ vào gây rối
 
+Về lớp phủ
+- Bình thường, hãy ưu tiên sử dụng khung tv_retro và lớp phủ texture_2 và giảm Opacity xuống còn khoảng 50%
+- Những video nói về thời quá xa xưa, những giai đoạn cầu thủ mới bắt đầu sự nghiệp, thì sử dụng film_grain
 
-Ok con dê
+Về Animation
+- Những Video Clip hầu như không cần Animation gì
+- Chỉ có ảnh thì bạn phải cắt Người ra khỏi background, và chèn texture_2 vào giữa người và background nền với mục đích Highlight cầu thủ lên. Sau đó làm chút hiệu ứng gì cũng được ở trong kho phân loại hiệu ứng
+
+- Những đoạn liên quan đến sa bàn và chiến thuật quá phức tạp. Hãy đánh dấu và để trống, ko cần làm
+
+Về Thời điểm
+- Xác định cầu thủ, đội bóng, thời điểm từ toàn bài -> đoạn -> câu -> ý. Kế thừa khi cùng bối cảnh; đổi khi lời thoại chuyển mốc.
+- Tên file quyết định phân loại video và thời điểm trong kho. Không yêu cầu kiểm chứng nội dung video.
+- Chỉ ghép Source đúng cầu thủ, đội và thời điểm; không lấy năm khác hoặc clip bất kỳ để lấp chỗ trống.
+- rai_1 chỉ là nhóm highlight. Chọn rai_1_1 / rai_1_2 / rai_1_3; rai_2 chỉ là video bối cảnh ngoài pha bóng.
+- Không xác định được thời điểm hoặc mô tả quá chi tiết: bỏ trống, tô vàng để xử lý thủ công.

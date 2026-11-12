@@ -42,9 +42,10 @@ class SuggesterTests(unittest.TestCase):
                      text=f'Câu thứ {i} về Xavi.') for i in range(count)]
 
     def choice(self, i, **changes):
-        return dict(row_index=i, loai_source='rai_1', element='tv_retro + texture_2',
+        return dict(row_index=i, loai_source='rai_1_3', element='tv_retro + texture_2',
                     anim='static', bgm='bgm_default', sfx='none', si='',
-                    thoi_ky='Euro 2008 · Xavi', confidence=.9, needs_review=False,
+                    thoi_ky='Euro2008 · Spain / Xavi', cau_thu='Xavi', doi_bong='Spain',
+                    thoi_diem='Euro2008', su_kien='Euro', confidence=.9, needs_review=False,
                     reason='Pha bóng dùng clip, khung TV và texture theo quy tắc.', **changes)
 
     def reply(self, *arrays):
@@ -143,6 +144,64 @@ class SuggesterTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'text'):
             self.s.suggest_from_timeline([dict(text='')], 'test-key')
         self.model.generate_content.assert_not_called()
+
+    def test_locked_context_survives_ai_response_and_csv(self):
+        row = {**self.rows(1)[0], 'schema_version': '2', 'cau_thu': 'Xavi', 'doi_bong': 'Barcelona',
+               'thoi_diem': '2010', 'su_kien': '', 'context_locked': 'yes', 'context_scope': 'row'}
+        self.reply([self.choice(0)])  # Model incorrectly replies with Euro2008.
+        result = self.s.suggest_from_timeline([row], 'test-key')
+        self.assertEqual(result[0]['thoi_diem'], '2010')
+        self.assertEqual(result[0]['doi_bong'], 'Barcelona')
+        self.assertEqual(result[0]['su_kien'], '')
+        path = self.root / 'context.csv'
+        self.s.export_source_plan_csv(result, str(path))
+        restored = self.s.load_timeline_csv(str(path))[0]
+        self.assertEqual(restored['context_scope'], 'row')
+        self.assertEqual(restored['thoi_diem'], '2010')
+        self.assertEqual(restored['schema_version'], '2')
+
+    def test_unknown_period_is_manual_and_never_gets_default_year(self):
+        unknown = self.choice(0)
+        unknown.update(thoi_diem='', su_kien='')
+        self.reply([unknown])
+        result = self.s.suggest_from_timeline(self.rows(1), 'test-key', default_thoi_ky='Euro 2008')
+        self.assertEqual(result[0]['analysis_status'], 'manual')
+        self.assertEqual(result[0]['loai_source'], '')
+        self.assertEqual(result[0]['thoi_diem'], '')
+
+    def test_disabled_broll_requires_model_to_repair_choice(self):
+        bad = self.choice(0)
+        bad['loai_source'] = 'rai_2'
+        self.reply([bad], [self.choice(0)])
+        result = self.s.suggest_from_timeline([{**self.rows(1)[0], 'allow_rai_2': 'no'}], 'test-key')
+        self.assertEqual(result[0]['loai_source'], 'rai_1_3')
+        self.assertEqual(self.model.generate_content.call_count, 2)
+
+    def test_parent_group_is_not_a_valid_selection(self):
+        self.assertEqual(self.s.sanitize_loai_source('rai_1'), '')
+        self.assertEqual(self.s.sanitize_loai_source('rai_1_2'), 'rai_1_2')
+
+    def test_export_backs_up_legacy_plan_and_preserves_blank_row_status(self):
+        path = self.root / 'old_plan.csv'
+        original = 'doan,cau,y,loai_source,thoi_ky\n1,1,1,rai_2,2008\n'
+        path.write_text(original, encoding='utf-8')
+        row = dict(doan='1', cau='1', y='1', loai_source='', analysis_status='manual',
+                   reason='Cảnh quá cụ thể', thoi_diem='Euro2008', schema_version='2', text='Test')
+        self.s.export_source_plan_csv([row], str(path))
+        self.assertEqual(Path(str(path) + '.v1.bak').read_text(encoding='utf-8'), original)
+        restored = self.s.load_timeline_csv(str(path))[0]
+        self.assertEqual(restored['analysis_status'], 'manual')
+        self.assertEqual(restored['loai_source'], '')
+        self.assertEqual(restored['text'], 'Test')
+
+    def test_filename_api_uses_same_metadata_parser_as_splitter(self):
+        with patch.object(SourceSuggester, '__init__', return_value=None):
+            backend = importlib.import_module('main')
+        response = backend.app.test_client().post('/api/clip-splitter/parse-filename',
+            json={'filename': 'rai_1_2_Xavi_Spain_Euro2008_Assist_001.mp4'})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json['loai'], 'rai_1_2')
+        self.assertEqual(response.json['thoi_diem'], 'Euro2008')
 
     def test_api_forwards_full_context_and_rules_without_saving_them(self):
         with patch.object(SourceSuggester, '__init__', return_value=None):

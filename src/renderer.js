@@ -1035,6 +1035,7 @@ function initClipSplitter() {
     cauThu: $('#sp-cau-thu'),
     doiBong: $('#sp-doi-bong'),
     kyNang: $('#sp-ky-nang'),
+    thoiDiem: $('#sp-thoi-diem'),
     outputDir: $('#sp-output-dir'),
     btnBrowseOut: $('#sp-btn-browse-output'),
     threshold: $('#sp-threshold'),
@@ -1095,30 +1096,22 @@ function initClipSplitter() {
       try {
         const p = await window.api.selectVideoFile();
         if (!p) return;
-        spState.videoPath = p;
+        spState.videoPath = null;
+        spDom.btnSplit.disabled = true;
         spDom.videoPath.value = p;
-        // Auto parse filename: loai_CauThu_DoiBong_KyNang.mp4
-        const base = p.replace(/\\/g, '/').split('/').pop().replace(/\.[^.]+$/, '');
-        const parts = base.split('_');
-        if (parts.length >= 4) {
-          // Tìm loai từ danh sách hợp lệ
-          const VALID_LOAI = ['rai_1', 'rai_2_1', 'rai_2_2', 'rai_3', 'rai_4', 'phong_van', 'training',
-            'binh_luan_chay', 'khan_dai', 'anh_thong_so', 'anh_thoi_diem', 'anh_chung_bao', 'sa_ban'];
-          // Thử ghép 1, 2, 3 phần đầu làm loai
-          let loaiFound = '';
-          for (let n = 3; n >= 1; n--) {
-            const candidate = parts.slice(0, n).join('_');
-            if (VALID_LOAI.includes(candidate)) { loaiFound = candidate; break; }
-          }
-          if (loaiFound) {
-            spDom.loai.value = loaiFound;
-            const rest = parts.slice(loaiFound.split('_').length);
-            if (rest[0]) spDom.cauThu.value = rest[0];
-            if (rest[1]) spDom.doiBong.value = rest[1];
-            if (rest[2]) spDom.kyNang.value = rest[2];
-            spLog(`Auto-detect: loai=${loaiFound}, cau_thu=${rest[0] || ''}, doi_bong=${rest[1] || ''}`, 'info');
-          }
-        }
+        const base = p.replace(/\\/g, '/').split('/').pop();
+        const meta = await window.api.clipSplitterParseFilename({ filename: p });
+        if (meta.error) throw new Error(meta.error);
+        spState.videoPath = p;
+        spDom.loai.value = meta.loai || 'chua_phan_loai';
+        spDom.cauThu.value = meta.cau_thu || '';
+        spDom.doiBong.value = meta.doi_bong || '';
+        if (spDom.thoiDiem) spDom.thoiDiem.value = meta.thoi_diem || '';
+        const action = meta.ky_nang || 'Mixed';
+        if (![...spDom.kyNang.options].some(o => o.value === action)) spDom.kyNang.add(new Option(action, action));
+        spDom.kyNang.value = action;
+        spLog(`Từ tên file: ${meta.loai} · ${meta.cau_thu} · ${meta.doi_bong} · ${meta.thoi_diem || 'chưa rõ thời điểm'}`, 'info');
+        if (meta.legacy_loai) spLog(`Mã cũ ${meta.legacy_loai} được đọc thành ${meta.loai}; tên video gốc được giữ nguyên.`, 'warn');
         // Hiện thông tin nhanh
         spDom.videoInfo.style.display = 'block';
         spDom.videoMeta.textContent = `📂 ${base}`;
@@ -1220,6 +1213,7 @@ function initClipSplitter() {
           cau_thu: spDom.cauThu.value.trim(),
           doi_bong: spDom.doiBong.value.trim(),
           ky_nang: spDom.kyNang.value.trim(),
+          thoi_diem: spDom.thoiDiem ? spDom.thoiDiem.value.trim() : '',
           threshold: parseFloat(spDom.threshold.value)
         };
         spLog(`Bắt đầu cắt: loai=${params.loai}, threshold=${params.threshold}`, 'info');
@@ -1300,7 +1294,7 @@ function initClipSplitter() {
       (r.ten_file || '').toLowerCase().includes(query) ||
       (r.loai || '').toLowerCase().includes(query) ||
       (r.cau_thu || '').toLowerCase().includes(query) ||
-      (r.ky_nang || '').toLowerCase().includes(query)
+      [r.ky_nang, r.thoi_diem, r.su_kien, r.doi_bong].join(' ').toLowerCase().includes(query)
     );
     renderCatalogTable(filtered);
   }
@@ -1314,6 +1308,7 @@ function initClipSplitter() {
         <td><span class="sp-loai-badge">${r.loai || ''}</span></td>
         <td>${r.cau_thu || ''}</td>
         <td>${r.ky_nang || ''}</td>
+        <td>${r.thoi_diem || 'Chưa rõ'}</td>
         <td class="sp-dur">${dur}</td>
       </tr>`;
     }).join('');
@@ -1897,11 +1892,10 @@ function initRules() {
 // ============================================================
 
 const DEFAULT_SOURCE_TYPES = [
-  { code: 'rai_1', label: 'Rải đơn', description: 'Video rải đơn (1 clip full màn hình) — cảnh thi đấu, pha bóng, dẫn chuyện chung' },
-  { code: 'rai_2_1', label: 'Rải đôi 1', description: 'Video rải đôi kiểu 1 (2 clip chia đôi màn hình)' },
-  { code: 'rai_2_2', label: 'Rải đôi 2', description: 'Video rải đôi kiểu 2 (2 clip bố cục phụ)' },
-  { code: 'rai_3', label: 'Rải 3', description: 'Video rải 3 clip cùng lúc' },
-  { code: 'rai_4', label: 'Rải 4 / Danh hiệu', description: 'Video rải 4 clip / tổng hợp danh hiệu, kết quả, cao trào nhiều góc' },
+  {"code": "rai_1_1", "label": "Highlight · Bàn thắng", "description": "Highlight bàn thắng, khớp lời thoại về ghi bàn."},
+  {"code": "rai_1_2", "label": "Highlight · Kiến tạo", "description": "Highlight kiến tạo, khớp lời thoại về tạo bàn thắng."},
+  {"code": "rai_1_3", "label": "Highlight · Chung", "description": "Highlight chung: kỹ thuật, xử lý bóng, sút phạt, penalty; dùng theo ý câu thoại."},
+  {"code": "rai_2", "label": "Rải bối cảnh", "description": "Đường hầm, bước ra sân, ăn mừng hoặc tri ân CĐV, ăn mừng cùng đồng đội. Xen vào đoạn dẫn chuyện/chuyển ý khi phù hợp."},
   { code: 'phong_van', label: 'Phỏng vấn', description: 'Cảnh phỏng vấn cầu thủ / HLV nói chuyện' },
   { code: 'training', label: 'Tập luyện', description: 'Cảnh tập luyện trên sân tập' },
   { code: 'binh_luan_chay', label: 'BLV nói', description: 'Cảnh bình luận viên / chuyên gia đang nói' },
@@ -1992,7 +1986,7 @@ function initSourceSuggester() {
     let el = null;
     let anim = null;
     try {
-      const rawSrc = localStorage.getItem('sg_custom_source_types');
+      const rawSrc = localStorage.getItem('sg_custom_source_types_v2');
       if (rawSrc) {
         const parsed = JSON.parse(rawSrc);
         if (Array.isArray(parsed) && parsed.length > 0) src = parsed;
@@ -2045,7 +2039,7 @@ function initSourceSuggester() {
         }
         return it;
       });
-      localStorage.setItem('sg_custom_source_types', JSON.stringify(stripHeavyVideo(sourceTypes)));
+      localStorage.setItem('sg_custom_source_types_v2', JSON.stringify(stripHeavyVideo(sourceTypes)));
       localStorage.setItem('sg_custom_element_types', JSON.stringify(stripHeavyVideo(elementTypes)));
       localStorage.setItem('sg_custom_anim_types_v2', JSON.stringify(stripHeavyVideo(animationTypes)));
       if (bgmTypes) localStorage.setItem('sg_custom_bgm_types', JSON.stringify(bgmTypes));
@@ -2193,7 +2187,7 @@ function initSourceSuggester() {
   }
 
   function getValidLoaiList() {
-    return sgState.sourceTypes.map(s => ({
+    return sgState.sourceTypes.filter(s => s.code !== 'rai_1').map(s => ({
       code: s.code,
       label: `${s.code} (${s.label || s.code})`,
       title: s.description || ''
@@ -2244,11 +2238,11 @@ function initSourceSuggester() {
       const curVal = spLoaiSel.value || 'chua_phan_loai';
       const opts = [`<option value="chua_phan_loai">chua_phan_loai (mặc định)</option>`];
       sgState.sourceTypes.forEach(s => {
-        if (s.code && s.code !== 'chua_phan_loai') {
+        if (s.code && s.code !== 'chua_phan_loai' && s.code !== 'rai_1') {
           opts.push(`<option value="${s.code}">${s.code} — ${s.label || ''}</option>`);
         }
       });
-      spLoaiSel.innerHTML = opts.join('');
+      spLoaiSel.innerHTML = opts[0] + sourceOptions(getValidLoaiList(), curVal);
       spLoaiSel.value = curVal;
     }
 
@@ -2799,7 +2793,7 @@ function initSourceSuggester() {
       }
       return `
         <tr data-src-idx="${idx}">
-          <td><input type="text" class="sg-cls-input code-font sg-src-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: rai_1"></td>
+          <td><input type="text" class="sg-cls-input code-font sg-src-code" data-idx="${idx}" value="${safeCode}" placeholder="vd: rai_1_3"></td>
           <td><input type="text" class="sg-cls-input sg-src-label" data-idx="${idx}" value="${safeLabel}" placeholder="Tên ngắn..."></td>
           <td><input type="text" class="sg-cls-input sg-src-desc" data-idx="${idx}" value="${safeDesc}" placeholder="Mô tả khi nào dùng để AI hiểu..."></td>
           ${imgCell}
@@ -3379,6 +3373,49 @@ function initSourceSuggester() {
     });
   }
 
+  function contextLabel(row) {
+    return [row.cau_thu, row.doi_bong, row.thoi_diem, row.su_kien && !(row.thoi_diem || '').includes(row.su_kien) ? row.su_kien : ''].filter(Boolean).join(' · ') || 'Chưa rõ thời điểm';
+  }
+
+  function applyContext(index, scope) {
+    const source = sgState.rows[index];
+    let count = 0;
+    sgState.rows.forEach((row, i) => {
+      if (i === index || row.doan !== source.doan || (scope === 'cau' && row.cau !== source.cau)) return;
+      if (row.context_scope === 'row' || (scope === 'doan' && row.context_scope === 'cau')) return;
+      for (const key of ['cau_thu', 'doi_bong', 'thoi_diem', 'su_kien']) row[key] = source[key] || '';
+      row.context_locked = 'yes';
+      row.context_scope = scope;
+      row.schema_version = '2';
+      row.thoi_ky = contextLabel(row);
+      count++;
+    });
+    saveAnalysis();
+    renderTable();
+    sgLog(`Đã áp dụng bối cảnh cho ${count} ý trong ${scope === 'cau' ? 'câu' : 'đoạn'}; giữ các bối cảnh đã sửa riêng.`, 'info');
+  }
+
+  function setParagraphBroll(index, allowed) {
+    const doan = sgState.rows[index].doan;
+    sgState.rows.forEach(row => {
+      if (row.doan !== doan) return;
+      row.allow_rai_2 = allowed ? 'yes' : 'no';
+      if (!allowed && (row.loai_source || '').split(' + ').includes('rai_2')) {
+        row.loai_source = row.loai_source.split(' + ').filter(code => code !== 'rai_2').join(' + ');
+        if (!row.loai_source) {
+          row.analysis_status = 'pending'; row.needs_review = true;
+          row.reason = 'Đã tắt rải bối cảnh cho đoạn; bấm AI để chọn lại Source.';
+        }
+      }
+    });
+    saveAnalysis(); renderTable();
+  }
+
+  function sourceOptions(valid, selected, prefix = '') {
+    const option = o => `<option value="${escapeSuggesterHtml(o.code)}" title="${escapeSuggesterHtml(o.title)}" ${o.code === selected ? 'selected' : ''}>${prefix}${escapeSuggesterHtml(o.label)}</option>`;
+    return `<optgroup label="rai_1 · Highlight">${valid.filter(o => o.code.startsWith('rai_1_')).map(option).join('')}</optgroup>` + valid.filter(o => !o.code.startsWith('rai_1_') && o.code !== 'rai_1').map(option).join('');
+  }
+
   function isUnanalyzed(row) {
     return !['complete', 'edited', 'manual'].includes(row.analysis_status);
   }
@@ -3389,7 +3426,7 @@ function initSourceSuggester() {
 
   function saveAnalysis() {
     try {
-      localStorage.setItem('sg_analysis', JSON.stringify({ csvPath: sgState.csvPath, rows: sgState.rows }));
+      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows }));
     } catch (err) { sgLog(`Không lưu được phiên phân tích: ${err.message}`, 'warn'); }
   }
 
@@ -3451,13 +3488,9 @@ function initSourceSuggester() {
       const validAnims = getValidAnimsList();
 
       const emptyOption = `<option value="">${r.analysis_status === 'manual' ? '— Làm thủ công —' : '— Chưa phân loại —'}</option>`;
-      const opts1 = emptyOption + validLoai.map(o =>
-        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p1 ? 'selected' : ''}>${o.label}</option>`
-      ).join('');
-
-      const opts2 = `<option value="">-- Không ghép --</option>` + validLoai.map(o =>
-        `<option value="${o.code}" title="${String(o.title || '').replace(/"/g, '&quot;')}" ${o.code === p2 ? 'selected' : ''}>+ ${o.label}</option>`
-      ).join('');
+      const allowedLoai = r.allow_rai_2 === 'no' ? validLoai.filter(o => o.code !== 'rai_2') : validLoai;
+      const opts1 = emptyOption + sourceOptions(allowedLoai, p1);
+      const opts2 = '<option value="">-- Không ghép --</option>' + sourceOptions(allowedLoai, p2, '+ ');
 
       const comboOption = curEl.includes(' + ') ? `<option value="${escapeSuggesterHtml(curEl)}" selected>${escapeSuggesterHtml(curEl)}</option>` : '';
       const optsEl = emptyOption + comboOption + validElements.map(o =>
@@ -3485,11 +3518,20 @@ function initSourceSuggester() {
         <tr class="${isLow ? 'sg-row-low-conf' : ''}" data-idx="${idx}">
           <td style="font-family:var(--font-mono); font-size:0.74rem; color:var(--text-secondary);">
             <div><strong>${locLabel || (idx + 1)}</strong></div>
+            ${idx === 0 || sgState.rows[idx - 1].doan !== r.doan ? `<label class="sg-broll-toggle"><input type="checkbox" class="sg-allow-broll" data-idx="${idx}" ${r.allow_rai_2 !== 'no' ? 'checked' : ''}> Xen rai_2 trong đoạn</label>` : ''}
             <div style="font-size:0.68rem; opacity:0.75;">${r.start || ''}</div>
           </td>
           <td>
             <div style="line-height:1.4;">${safeText}</div>
             ${safeReason ? `<div class="sg-reason-hint">🤖 ${safeReason}</div>` : ''}
+          </td>
+          <td class="sg-context-cell">
+            <details class="sg-context-editor">
+              <summary>${escapeSuggesterHtml(contextLabel(r))}${r.context_locked === 'yes' ? ' 🔒' : ''}</summary>
+              ${[['cau_thu', 'Cầu thủ', 'Xavi'], ['doi_bong', 'Đội bóng', 'Spain'], ['thoi_diem', 'Thời điểm', 'Euro2008 / 2008-2012'], ['su_kien', 'Giải đấu (nếu có)', 'Euro']].map(([key, label, placeholder]) => `<label>${label}<input class="sg-input sg-context-input" data-key="${key}" data-idx="${idx}" value="${escapeSuggesterHtml(r[key])}" placeholder="${placeholder}"></label>`).join('')}
+              <label><input type="checkbox" class="sg-context-lock" data-idx="${idx}" ${r.context_locked === 'yes' ? 'checked' : ''}> Giữ khi chạy AI</label>
+              <div class="sg-context-actions"><button class="sg-fill-btn sg-apply-context" data-idx="${idx}" data-scope="cau">Áp dụng cho câu</button><button class="sg-fill-btn sg-apply-context" data-idx="${idx}" data-scope="doan">Áp dụng cho đoạn</button></div>
+            </details>
           </td>
           <td>
             <select class="sg-select sg-sel-p1" data-idx="${idx}">
@@ -3525,13 +3567,11 @@ function initSourceSuggester() {
             </select>
           </td>
           <td>
-            <input type="text" class="sg-input sg-inp-thoiky" data-idx="${idx}" value="${safeThoiKy}" placeholder="Euro 2008 · TBN / Xavi">
-          </td>
-          <td>
             <input type="text" class="sg-input sg-inp-note" data-idx="${idx}" value="${safeNote}" placeholder="Lý do sửa (tùy chọn)...">
           </td>
           <td>
             <span class="sg-conf-badge ${confClass}">${confPct}</span>
+            <button class="sg-fill-btn sg-mark-manual" data-idx="${idx}" title="Để trống ý này và tự xử lý">Làm thủ công</button>
           </td>
         </tr>
       `;
@@ -3596,13 +3636,36 @@ function initSourceSuggester() {
       });
     });
 
-    sgDom.tbody.querySelectorAll('.sg-inp-thoiky').forEach(inp => {
+    sgDom.tbody.querySelectorAll('.sg-context-input').forEach(inp => {
       inp.addEventListener('input', () => {
-        const i = Number(inp.dataset.idx);
-        sgState.rows[i].thoi_ky = inp.value;
+        const row = sgState.rows[Number(inp.dataset.idx)];
+        row[inp.dataset.key] = inp.value.trim();
+        if (inp.dataset.key === 'thoi_diem') row.su_kien = row.thoi_diem.replace(/[0-9\s./_-]/g, '');
+        Object.assign(row, { context_locked: 'yes', context_scope: 'row', schema_version: '2' });
+        row.thoi_ky = contextLabel(row);
+        const editor = inp.closest('.sg-context-editor');
+        if (editor) {
+          editor.querySelector('summary').textContent = contextLabel(row) + ' 🔒';
+          editor.querySelector('.sg-context-lock').checked = true;
+          if (inp.dataset.key === 'thoi_diem') editor.querySelector('[data-key="su_kien"]').value = row.su_kien;
+        }
         saveAnalysis();
       });
     });
+    sgDom.tbody.querySelectorAll('.sg-context-lock').forEach(chk => chk.addEventListener('change', () => {
+      const row = sgState.rows[Number(chk.dataset.idx)];
+      row.context_locked = chk.checked ? 'yes' : '';
+      row.context_scope = chk.checked ? 'row' : '';
+      saveAnalysis();
+    }));
+    sgDom.tbody.querySelectorAll('.sg-apply-context').forEach(btn => btn.addEventListener('click', () => applyContext(Number(btn.dataset.idx), btn.dataset.scope)));
+    sgDom.tbody.querySelectorAll('.sg-allow-broll').forEach(chk => chk.addEventListener('change', () => setParagraphBroll(Number(chk.dataset.idx), chk.checked)));
+    sgDom.tbody.querySelectorAll('.sg-mark-manual').forEach(btn => btn.addEventListener('click', () => {
+      const row = sgState.rows[Number(btn.dataset.idx)];
+      for (const key of ['loai_source', 'element', 'anim', 'bgm', 'sfx', 'si']) row[key] = '';
+      Object.assign(row, { analysis_status: 'manual', needs_review: true, confidence: null, reason: 'Người dùng chọn xử lý thủ công.' });
+      saveAnalysis(); renderTable();
+    }));
 
     sgDom.tbody.querySelectorAll('.sg-inp-note').forEach(inp => {
       inp.addEventListener('input', () => {
@@ -3611,7 +3674,7 @@ function initSourceSuggester() {
         saveAnalysis();
       });
     });
-    sgDom.tbody.querySelectorAll('select, input').forEach(el => { el.disabled = sgState.isSuggesting; });
+    sgDom.tbody.querySelectorAll('select, input, button').forEach(el => { el.disabled = sgState.isSuggesting; });
   }
 
   async function loadBackendState() {
@@ -3708,18 +3771,21 @@ function initSourceSuggester() {
         bgm: r.bgm || '',
         sfx: r.sfx || '',
         si: r.si || '',
-        thoi_ky: r.thoi_ky || defTk || '',
+        thoi_ky: r.thoi_ky || '',
+        schema_version: '2',
+        allow_rai_2: r.allow_rai_2 || 'yes',
         confidence: null,
-        analysis_status: 'pending',
-        needs_review: false,
-        reason: '',
+        analysis_status: r.is_source_plan ? (r.analysis_status || (r.loai_source ? 'edited' : 'manual')) : 'pending',
+        needs_review: r.is_source_plan ? (!r.loai_source || r.analysis_status === 'manual') : false,
+        reason: r.reason || '',
         note: ''
       }));
       if (!autoAnalyze) {
         try {
           const saved = JSON.parse(localStorage.getItem('sg_analysis') || 'null');
           const signature = rows => JSON.stringify(rows.map(r => [r.doan, r.cau, r.y, r.start, r.text]));
-          if (saved && saved.csvPath === csvPath && signature(saved.rows) === signature(sgState.rows)) {
+          if (saved && saved.schema_version !== '2') localStorage.setItem('sg_analysis_v1_backup', JSON.stringify(saved));
+          if (saved && saved.schema_version === '2' && saved.csvPath === csvPath && signature(saved.rows) === signature(sgState.rows)) {
             sgState.rows = saved.rows.map(r => ({ ...r, analysis_status: r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status }));
           }
         } catch (err) { /* A stale cache never replaces the selected CSV. */ }
@@ -3727,7 +3793,7 @@ function initSourceSuggester() {
       renderTable();
       saveAnalysis();
       sgLog(`Đã tải ${sgState.rows.length} câu thoại từ ${csvPath.split(/[\\/]/).pop()}`, 'success');
-      if (autoAnalyze) await runSuggestions({ automatic: true });
+      if (autoAnalyze && !sgState.rows.every(r => r.is_source_plan)) await runSuggestions({ automatic: true });
     } catch (err) {
       sgLog(`Lỗi đọc CSV: ${err.message}`, 'error');
     } finally {
@@ -4260,29 +4326,6 @@ function initSourceSuggester() {
     });
   }
 
-  // Điền nhanh Thời kỳ cho các dòng trống
-  if (sgDom.btnFillThoiKy) {
-    sgDom.btnFillThoiKy.addEventListener('click', () => {
-      if (!sgState.rows.length) return;
-      const firstVal = (sgDom.defaultThoiKy && sgDom.defaultThoiKy.value.trim()) ||
-        (sgState.rows.find(r => r.thoi_ky && r.thoi_ky.trim()) || {}).thoi_ky || '';
-      if (!firstVal) {
-        sgLog('Hãy nhập Thời kỳ ở ô Mặc định hoặc ở dòng đầu tiên trước khi điền nhanh.', 'warn');
-        return;
-      }
-      let filled = 0;
-      sgState.rows.forEach(r => {
-        if (!r.thoi_ky || !r.thoi_ky.trim()) {
-          r.thoi_ky = firstVal;
-          filled++;
-        }
-      });
-      renderTable();
-      saveAnalysis();
-      sgLog(`Đã điền Thời kỳ "${firstVal}" cho ${filled} dòng trống.`, 'info');
-    });
-  }
-
   // Analyze bounded groups while retaining the entire script as context.
   async function runSuggestions({ automatic = false } = {}) {
       if (sgState.isSuggesting) return;
@@ -4320,7 +4363,7 @@ function initSourceSuggester() {
         if (!sgState.backendLoaded) throw new Error('Chưa tải được bảng phân loại và quy tắc. Kiểm tra kết nối backend rồi chạy lại.');
         const rulesText = sgDom.rulesInput ? sgDom.rulesInput.value : '';
         const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
-        const contextRows = sgState.rows.map(({ doan, cau, y, start, text }) => ({ doan, cau, y, start, text }));
+        const contextRows = sgState.rows.map(r => ({ ...r }));
         for (const i of indices) {
           Object.assign(sgState.rows[i], { loai_source: '', element: '', anim: '', bgm: '', sfx: '', si: '',
             confidence: null, reason: '', needs_review: false, analysis_status: 'pending' });

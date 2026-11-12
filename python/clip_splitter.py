@@ -3,7 +3,7 @@ Clip Splitter (Cong cu B) — Cat video highlight thanh cac Element nho.
 Pipeline: FFmpeg scene detect → loc/gop → cat tung cut (bo am thanh) → thumbnail → catalog.csv
 
 Catalog fields (4 thuoc tinh chinh):
-  loai      : rai_1 | rai_2_1 | rai_2_2 | rai_3 | rai_4 | phong_van | training |
+  loai      : rai_1_1 | rai_1_2 | rai_1_3 | rai_2 | phong_van | training |
                binh_luan_chay | khan_dai | anh_thong_so | anh_thoi_diem |
                anh_chung_bao | sa_ban | chua_phan_loai
   cau_thu   : Xavi | Iniesta | Busquets | ...
@@ -11,7 +11,7 @@ Catalog fields (4 thuoc tinh chinh):
   ky_nang   : Skill | Goal | Assist | Pass | Tackle | Celebrate | Mixed
 
 Ten file: {loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:03d}.mp4
-Vi du  : rai_1_Xavi_Barcelona_Skill_007.mp4
+Vi du  : rai_1_3_Xavi_Barcelona_2010_Skill_007.mp4
 
 Hai cach dau vao:
   Cach 1 — Dat ten file nguon theo mau: rai1_Xavi_Barcelona_Skill.mp4
@@ -29,11 +29,10 @@ import unicodedata
 
 NO_WINDOW = getattr(subprocess, 'CREATE_NO_WINDOW', 0)
 
-VALID_LOAI = [
-    'rai_1', 'rai_2_1', 'rai_2_2', 'rai_3', 'rai_4',
-    'phong_van', 'training', 'binh_luan_chay', 'khan_dai',
-    'anh_thong_so', 'anh_thoi_diem', 'anh_chung_bao', 'sa_ban', 'chua_phan_loai'
-]
+from source_metadata import (VALID_CODES, SCHEMA_VERSION, parse_source_filename,
+                             normalize_catalog_row, temporal_token, event_from_time, year_bounds)
+
+VALID_LOAI = list(VALID_CODES) + ['chua_phan_loai']
 
 
 def get_valid_loai():
@@ -50,7 +49,7 @@ def get_valid_loai():
                 data = json.load(f)
             for item in data.get('source_types', []):
                 c = str(item.get('code', '')).strip().lower()
-                if c:
+                if re.fullmatch(r'[a-z0-9_]+', c) and c not in ("rai_1", "rai_2_1", "rai_2_2", "rai_3", "rai_4"):
                     valid.add(c)
     except Exception:
         pass
@@ -59,7 +58,8 @@ def get_valid_loai():
 CATALOG_FIELDS = [
     'ten_file', 'loai', 'cau_thu', 'doi_bong', 'ky_nang', 'stt',
     'video_nguon', 'start_s', 'end_s', 'duration_s',
-    'start_tc', 'end_tc', 'fps', 'ghi_chu'
+    'start_tc', 'end_tc', 'fps', 'ghi_chu',
+    'thoi_diem', 'su_kien', 'schema_version', 'source_relpath', 'legacy_loai'
 ]
 
 
@@ -91,59 +91,10 @@ def seconds_to_tc(seconds, fps):
 # Cach 1 — Trich xuat 4 truong tu ten file nguon
 # ---------------------------------------------------------------------------
 
-# Alias thuong gap → gia tri chuan
-_LOAI_ALIAS = {
-    'rai1': 'rai_1', 'rai2_1': 'rai_2_1', 'rai21': 'rai_2_1',
-    'rai2_2': 'rai_2_2', 'rai22': 'rai_2_2',
-    'rai3': 'rai_3', 'rai4': 'rai_4',
-    'phongvan': 'phong_van', 'train': 'training',
-    'binhluan': 'binh_luan_chay', 'khandai': 'khan_dai',
-    'anhthongso': 'anh_thong_so', 'anhthoidiem': 'anh_thoi_diem',
-    'anhchungbao': 'anh_chung_bao', 'saban': 'sa_ban',
-}
-
-_KY_NANG_ALIAS = {
-    'goal': 'Goal', 'banthang': 'Goal', 'score': 'Goal',
-    'assist': 'Assist', 'kientao': 'Assist',
-    'skill': 'Skill', 'pass': 'Pass', 'chuyen': 'Pass',
-    'tackle': 'Tackle', 'celebrate': 'Celebrate', 'anmung': 'Celebrate',
-    'mixed': 'Mixed',
-}
-
-
 def parse_filename(filename):
-    """
-    Trich xuat (loai, cau_thu, doi_bong, ky_nang) tu ten file nguon.
-    Ten file mau: rai1_Xavi_Barcelona_Skill.mp4
-    Neu khong khop → tra ve None cho truong do.
-    """
-    stem = os.path.splitext(os.path.basename(filename))[0]
-    parts = stem.split('_')
-    if len(parts) < 2:
-        return None, None, None, None
-
-    # Phan 1: loai (co the gom nhieu phan: rai, 2, 1)
-    loai = None
-    consumed = 0
-    for n in (3, 2, 1):
-        candidate = '_'.join(parts[:n]).lower().replace('_', '')
-        if candidate in _LOAI_ALIAS:
-            loai = _LOAI_ALIAS[candidate]
-            consumed = n
-            break
-        candidate2 = '_'.join(parts[:n]).lower()
-        if candidate2 in VALID_LOAI:
-            loai = candidate2
-            consumed = n
-            break
-
-    rem = parts[consumed:]
-    cau_thu = slugify(rem[0]) if len(rem) > 0 else None
-    doi_bong = slugify(rem[1]) if len(rem) > 1 else None
-    raw_ky = rem[2].lower() if len(rem) > 2 else ''
-    ky_nang = _KY_NANG_ALIAS.get(raw_ky, rem[2] if len(rem) > 2 else 'Mixed')
-
-    return loai, cau_thu, doi_bong, ky_nang
+    """Backward-compatible four-field wrapper around the shared filename parser."""
+    data = parse_source_filename(filename, get_valid_loai())
+    return tuple(data[k] for k in ('loai', 'cau_thu', 'doi_bong', 'ky_nang'))
 
 
 # ---------------------------------------------------------------------------
@@ -241,11 +192,17 @@ class ClipSplitter:
         if not os.path.exists(catalog_path):
             return []
         with open(catalog_path, 'r', encoding='utf-8-sig', newline='') as f:
-            return list(csv.DictReader(f))
+            return [normalize_catalog_row(r) for r in csv.DictReader(f)]
 
     @staticmethod
     def write_catalog(catalog_path, rows):
         """Ghi catalog.csv dang UTF-8 BOM de Excel doc dung tieng Viet."""
+        if os.path.exists(catalog_path):
+            with open(catalog_path, 'r', encoding='utf-8-sig', newline='') as old:
+                legacy = any(r.get('schema_version') != SCHEMA_VERSION for r in csv.DictReader(old))
+            if legacy and not os.path.exists(catalog_path + '.v1.bak'):
+                shutil.copy2(catalog_path, catalog_path + '.v1.bak')
+        rows = [normalize_catalog_row(r) for r in rows]
         with open(catalog_path, 'w', encoding='utf-8-sig', newline='') as f:
             w = csv.DictWriter(f, fieldnames=CATALOG_FIELDS, extrasaction='ignore')
             w.writeheader()
@@ -255,7 +212,7 @@ class ClipSplitter:
     def split(self, path, out_root,
               loai=None, cau_thu=None, doi_bong=None, ky_nang=None,
               threshold=0.1, min_len=0.5, segments=None,
-              make_thumbs=True, progress=None):
+              make_thumbs=True, progress=None, thoi_diem=None):
         """
         Cat video thanh clip (khong am thanh), ghi catalog. Tra ve list ban ghi moi.
 
@@ -263,20 +220,19 @@ class ClipSplitter:
             split(path, out_root)  — 4 truong duoc trich xuat tu ten file path.
 
         Cach 2 (truyen tham so tuong minh):
-            split(path, out_root, loai='rai_1', cau_thu='Xavi',
+            split(path, out_root, loai='rai_1_3', cau_thu='Xavi',
                   doi_bong='Barcelona', ky_nang='Skill')
         """
-        # Trich xuat 4 truong
-        if not all([loai, cau_thu, doi_bong, ky_nang]):
-            fl, fc, fd, fk = parse_filename(path)
-            loai = loai or fl or 'chua_phan_loai'
-            cau_thu = slugify(cau_thu or fc or 'Unknown')
-            doi_bong = slugify(doi_bong or fd or 'Unknown')
-            ky_nang = ky_nang or fk or 'Mixed'
-        else:
-            loai = loai if loai in get_valid_loai() else 'chua_phan_loai'
-            cau_thu = slugify(cau_thu)
-            doi_bong = slugify(doi_bong)
+        parsed = parse_source_filename(path, get_valid_loai())
+        loai = loai or parsed['loai']
+        if loai not in get_valid_loai():
+            raise ValueError(f"Loai Source khong hop le: {loai}")
+        cau_thu = slugify(cau_thu or parsed['cau_thu'] or 'Unknown').replace('_', '')
+        doi_bong = slugify(doi_bong or parsed['doi_bong'] or 'Unknown').replace('_', '')
+        ky_nang = slugify(ky_nang or parsed['ky_nang'] or 'Mixed').replace('_', '')
+        thoi_diem = temporal_token(parsed['thoi_diem'] if thoi_diem is None else thoi_diem)
+        if thoi_diem and not year_bounds(thoi_diem):
+            raise ValueError("Thoi diem can la nam, khoang nam hoac giai dau kem nam (Euro2008).")
 
         meta = self.probe(path)
         fps = meta['fps']
@@ -305,8 +261,10 @@ class ClipSplitter:
         for i, (start, end) in enumerate(segments):
             stt += 1
             dur = round(end - start, 3)
-            name = f"{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{stt:03d}.mp4"
+            name = f"{loai}_{cau_thu}_{doi_bong}_{thoi_diem or 'Unknown'}_{ky_nang}_{stt:03d}.mp4"
             out_path = os.path.join(folder, name)
+            if os.path.exists(out_path):
+                raise FileExistsError(f"Clip da ton tai: {out_path}")
 
             cmd = ['ffmpeg', '-hide_banner', '-loglevel', 'error', '-y',
                    '-ss', f"{start:.3f}", '-i', path, '-t', f"{dur:.3f}",
@@ -332,7 +290,9 @@ class ClipSplitter:
                 'start_s': start, 'end_s': end, 'duration_s': dur,
                 'start_tc': seconds_to_tc(start, fps),
                 'end_tc': seconds_to_tc(end, fps),
-                'fps': round(fps, 3), 'ghi_chu': ''
+                'fps': round(fps, 3), 'ghi_chu': '',
+                'thoi_diem': thoi_diem, 'su_kien': event_from_time(thoi_diem),
+                'schema_version': SCHEMA_VERSION, 'source_relpath': os.path.join(loai, name)
             })
             if progress:
                 progress(i + 1, len(segments))
@@ -355,15 +315,24 @@ class ClipSplitter:
 
             old_loai = r['loai']
             upd_loai = new_loai if new_loai else old_loai
-            upd_ky = new_ky_nang if new_ky_nang else r.get('ky_nang', 'Mixed')
+            upd_ky = slugify(new_ky_nang or r.get('ky_nang', 'Mixed')).replace('_', '')
+            if upd_loai not in get_valid_loai():
+                raise ValueError(f'Loai Source khong hop le: {upd_loai}')
 
-            new_name = f"{upd_loai}_{r['cau_thu']}_{r['doi_bong']}_{upd_ky}_{int(r['stt']):03d}.mp4"
-            src = os.path.join(out_root, old_loai, ten_file)
+            new_name = f"{upd_loai}_{r['cau_thu']}_{r['doi_bong']}_{temporal_token(r.get('thoi_diem')) or 'Unknown'}_{upd_ky}_{int(r['stt']):03d}.mp4"
+            src = os.path.abspath(os.path.join(out_root, r['source_relpath']))
+            if os.path.commonpath([os.path.abspath(out_root), src]) != os.path.abspath(out_root):
+                raise ValueError('Duong dan clip nam ngoai kho')
             dst_dir = os.path.join(out_root, upd_loai)
             os.makedirs(dst_dir, exist_ok=True)
 
-            if os.path.exists(src):
-                shutil.move(src, os.path.join(dst_dir, new_name))
+            dst = os.path.join(dst_dir, new_name)
+            if os.path.normcase(src) != os.path.normcase(os.path.abspath(dst)):
+                if os.path.exists(dst):
+                    raise ValueError(f'Clip dich da ton tai: {new_name}')
+                if not os.path.isfile(src):
+                    raise ValueError(f'Khong tim thay file: {ten_file}')
+                shutil.move(src, dst)
 
             # Di chuyen thumbnail
             old_thumb = os.path.join(out_root, '_thumbs', ten_file.replace('.mp4', '.jpg'))
@@ -374,6 +343,7 @@ class ClipSplitter:
             r['ten_file'] = new_name
             r['loai'] = upd_loai
             r['ky_nang'] = upd_ky
+            r['source_relpath'] = os.path.join(upd_loai, new_name)
             self.write_catalog(catalog_path, rows)
             return r
 
@@ -414,6 +384,7 @@ if __name__ == '__main__':
     ps.add_argument('--cau_thu', default=None)
     ps.add_argument('--doi_bong', default=None)
     ps.add_argument('--ky_nang', default=None)
+    ps.add_argument('--thoi_diem', default=None)
     ps.add_argument('--threshold', type=float, default=0.1)
 
     args = p.parse_args()
@@ -428,7 +399,7 @@ if __name__ == '__main__':
         rows = sp.split(args.video, args.out_root,
                         loai=args.loai, cau_thu=args.cau_thu,
                         doi_bong=args.doi_bong, ky_nang=args.ky_nang,
-                        threshold=args.threshold)
+                        threshold=args.threshold, thoi_diem=args.thoi_diem)
         print(f"Da cat {len(rows)} clip")
     else:
         p.print_help()

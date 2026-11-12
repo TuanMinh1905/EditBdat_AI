@@ -57,7 +57,7 @@
     },
     "crowd_cheer": {
       "file": "SFX/crowd_cheer.mp3",
-      "description": "Tiếng cổ động viên hò reo vang dội khi ghi bàn, ăn mừng danh hiệu (rai_4, khan_dai)"
+      "description": "Tiếng cổ động viên hò reo vang dội khi ghi bàn, ăn mừng danh hiệu (rai_2, khan_dai)"
     },
     "whistle": {
       "file": "SFX/whistle.mp3",
@@ -81,7 +81,7 @@
     "anh_thoi_diem": "camera_shutter",
     "anh_thong_so": "data_beep",
     "khan_dai": "crowd_cheer",
-    "rai_4": "crowd_cheer",
+    "rai_2": "crowd_cheer",
     "phong_van": "tv_glitch"
   }
 }

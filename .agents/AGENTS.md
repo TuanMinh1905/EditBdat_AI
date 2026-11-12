@@ -397,11 +397,16 @@ Ví dụ: `rai_1_Xavi_Spain_Skill_001.mp4`
 - Bỏ trống → auto-map theo `loai_source`
 - Dùng `+` để kết hợp: `tv_retro + paper_texture`
 
-### Pick clips — 4 mức fallback:
-1. `(norm(loai), norm(cau_thu), norm(ky_nang))` — khớp đầy đủ
-2. `(norm(loai), norm(cau_thu))` — bỏ ky_nang
-3. `(norm(loai),)` — chỉ theo loại
-4. `(bất kỳ clip nào còn trong catalog)` — ultimate fallback
+### Pick clips — Source v2, điều kiện lịch sử bắt buộc (12/11/2026):
+- Dùng `python/source_metadata.py` chung cho tên file, catalog, CSV phân loại và matcher.
+- `rai_1` chỉ là nhóm; các lựa chọn highlight là `rai_1_1` bàn thắng, `rai_1_2` kiến tạo, `rai_1_3` chung. `rai_2` mới là bối cảnh ngoài pha bóng.
+- Bắt buộc đúng loại + các điều kiện cầu thủ/đội/thời điểm/giải đấu đã khai báo. Thiếu mốc lịch sử hoặc Source phù hợp: khoảng trống + marker, tuyệt đối không fallback sang cầu thủ/năm/clip bất kỳ.
+- Kho đọc metadata từ tên file, không thêm khâu AI kiểm chứng video. Clip con kế thừa thời điểm video gốc.
+- Phiên bản CSV/catalog là `schema_version=2`; không diễn giải `rai_2` v1 theo nghĩa v2. Catalog cũ giữ đường dẫn qua `source_relpath`, ghi lần đầu lưu `.v1.bak`.
+- `context_locked=yes` giữ bối cảnh sửa tay qua lượt AI. `context_scope=row/cau/doan` bảo vệ override khi áp dụng bối cảnh. `allow_rai_2=no` cấm rải bối cảnh trong đoạn.
+- Cảnh quá chi tiết/chưa rõ thời điểm để trống, trạng thái manual. Không đưa vào kho ví dụ.
+- Chi tiết tên file, cột CSV và cách dùng: `doc/Source_ThoiDiem_v2.md`.
+- Kiểm thử Python bổ sung: `test_source_metadata`; giữ `test_source_suggester`, `test_assets` và các test JS hiện có.
 
 ### norm() function:
 `slugify_loose()` → bỏ dấu, bỏ ký tự đặc biệt, lowercase. Dùng cho cả index và lookup để khớp nhất quán.
@@ -506,3 +511,11 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 - Source trong o CSV phai giu trong khi xuat XML, them marker CAN LAM THU CONG; khong goi fallback pick_clips cho dong nay.
 - Tests: python/test_source_suggester.py, src/testSourceSuggester.js; test_assets.py bao gom truong hop source trong. Test Gemini bang mock; test API that can quyen su dung khoa va gui noi dung ra dich vu.
 - API key da luu nam o state.settings.geminiApiKey (khong phai apiKey); ca phan tich va luu vi du phai dung dung ten truong nay. Test fallback khi o nhap key trong nam trong src/testSourceSuggester.js.
+
+
+### Cập nhật 2026-11-12 — Source và Thời điểm v2
+- Thêm `python/source_metadata.py`, `python/test_source_metadata.py`, `doc/Source_ThoiDiem_v2.md` và bản lưu quy tắc trong `templates/backups/source_v1_before_20261112/`.
+- API `/api/clip-splitter/parse-filename` qua `clip-splitter-parse-filename` IPC; không parse metadata riêng ở renderer.
+- Tên file mới: `{loai}_{cau_thu}_{doi_bong}_{thoi_diem}_[ky_nang]_[STT].mp4` (nhãn hành động/STT đầu vào tùy chọn).
+- CSV phân loại giữ các cột cũ, bổ sung bối cảnh riêng, khóa/phạm vi bối cảnh, cờ rai_2, phiên bản, trạng thái/lý do và lời thoại/timecode để nạp lại.
+- Lý do đổi rule fallback: yêu cầu của user không ghép Xavi 2008 bằng Source 2018; cảnh không xử lý được phải bỏ trống. Phần lịch sử bên trên mô tả thiết kế cũ, không áp dụng cho v2.

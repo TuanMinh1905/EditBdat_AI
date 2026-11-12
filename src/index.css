@@ -3792,3 +3792,12 @@ body.is-resizing-v * {
   .asset-verify-box .modal-footer { flex-direction: column; align-items: stretch; }
   .asset-verify-table { min-width: 530px; }
 }
+
+/* Historical context stays compact until the user edits it. */
+.sg-context-cell { min-width: 205px; max-width: 270px; }
+.sg-context-editor summary { cursor: pointer; line-height: 1.45; color: var(--accent-cyan, #58d7ed); }
+.sg-context-editor label { display: block; margin-top: 8px; font-size: 11px; color: var(--text-secondary); }
+.sg-context-editor .sg-context-input { display: block; width: 100%; margin-top: 3px; }
+.sg-context-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.sg-broll-toggle { display: block; min-width: 95px; margin-top: 8px; font: 10px var(--font-sans); }
+.sg-mark-manual { display: block; margin-top: 7px; }

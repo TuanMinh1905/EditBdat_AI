@@ -36,7 +36,8 @@ from media_analyzer import MediaAnalyzer
 from gemini_client import GeminiClient
 from timeline_validator import TimelineValidator
 from jsx_generator import JSXGenerator
-from clip_splitter import ClipSplitter
+from clip_splitter import ClipSplitter, get_valid_loai
+from source_metadata import parse_source_filename
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
 from token_tracker import get_usage, reset_usage
@@ -471,6 +472,12 @@ def export_jsx_only():
 # CONG CU B — Clip Splitter
 # =============================================================================
 
+@app.route('/api/clip-splitter/parse-filename', methods=['POST'])
+def api_clip_parse_filename():
+    data = request.get_json() or {}
+    return jsonify(parse_source_filename(data.get('filename', ''), get_valid_loai()))
+
+
 @app.route('/api/clip-splitter/analyze', methods=['POST'])
 def api_clip_analyze():
     """
@@ -501,7 +508,7 @@ def api_clip_split():
     Body: {
         "video_path"  : "D:/...",
         "out_root"    : "D:/Edit SofaZone/Source",
-        "loai"        : "rai_1",          // null → lay tu ten file
+        "loai"        : "rai_1_3",          // null → lay tu ten file
         "cau_thu"     : "Xavi",           // null → lay tu ten file
         "doi_bong"    : "Barcelona",      // null → lay tu ten file
         "ky_nang"     : "Skill",          // null → lay tu ten file
@@ -532,6 +539,7 @@ def api_clip_split():
             cau_thu    = data.get('cau_thu') or None,
             doi_bong   = data.get('doi_bong') or None,
             ky_nang    = data.get('ky_nang') or None,
+            thoi_diem  = data.get('thoi_diem'),
             threshold  = threshold,
             make_thumbs= data.get('make_thumbs', True),
         )
@@ -559,7 +567,7 @@ def api_clip_reclassify():
     Body: {
         "out_root"    : "...",
         "ten_files"   : ["clip_001.mp4", ...],
-        "new_loai"    : "rai_1",
+        "new_loai"    : "rai_1_3",
         "new_ky_nang" : "Assist"
     }
     """

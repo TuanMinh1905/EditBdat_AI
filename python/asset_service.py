@@ -1,6 +1,7 @@
 """Resolve and inspect mapped assets without modifying the media library."""
 
 from pathlib import Path
+from source_metadata import normalize_plan_row
 
 from premiere_xml_generator import (
     _load_element_map, _load_sound_map, read_csv,
@@ -56,6 +57,7 @@ def verify_assets(source_plan_csv, element_dir=None, sound_root=None,
     rows = read_csv(source_plan_csv)
     if not rows or 'loai_source' not in rows[0]:
         raise ValueError('CSV phân loại phải có cột loai_source và ít nhất một dòng')
+    rows = [normalize_plan_row(r) for r in rows]
     auto_map, elements = _load_element_map()
     bgm, sfx, auto_sfx = _load_sound_map(sound_map_path)
     found = {}

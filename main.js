@@ -393,6 +393,11 @@ ipcMain.handle('select-video-file', async () => {
   return result.canceled ? null : result.filePaths[0];
 });
 
+ipcMain.handle('clip-splitter-parse-filename', async (event, params) => {
+  try { return await callPython('/api/clip-splitter/parse-filename', params); }
+  catch (err) { return { error: err.message }; }
+});
+
 ipcMain.handle('clip-splitter-analyze', async (event, { video_path, threshold }) => {
   try {
     const result = await callPython('/api/clip-splitter/analyze', { video_path, threshold });
@@ -521,7 +526,7 @@ ipcMain.handle('suggester-get-state', async () => {
         examples = raw.map((ex, idx) => ({
           id: ex.id || (idx + 1),
           text: ex.text || '',
-          loai_source: ex.loai_source || 'rai_1',
+          loai_source: ex.loai_source || '',
           element: ex.element || 'auto',
           anim: ex.anim || 'auto',
           thoi_ky: ex.thoi_ky || '',
@@ -564,6 +569,10 @@ ipcMain.handle('suggester-get-state', async () => {
 });
 
 ipcMain.handle('suggester-save-classifications', async (event, params) => {
+  const retired = new Set(['rai_1', 'rai_2_1', 'rai_2_2', 'rai_3', 'rai_4']);
+  if (params?.source_types?.some(item => retired.has(String(item.code || '').trim().toLowerCase()))) {
+    return { error: 'rai_1 là nhóm; hãy dùng rai_1_1, rai_1_2, rai_1_3 hoặc rai_2 theo cấu trúc mới.' };
+  }
   const clsPath = path.join(__dirname, 'templates', 'classifications.json');
   const clsMediaDir = path.join(__dirname, 'templates', 'cls_media');
   try {
@@ -628,6 +637,7 @@ ipcMain.handle('suggester-save-classifications', async (event, params) => {
         image: persistMedia('sfx', it.code || 'item', it.image),
       }));
     }
+    current.schema_version = '2';
     fs.writeFileSync(clsPath, JSON.stringify(current, null, 2), 'utf-8');
     return {
       success: true,

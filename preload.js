@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('api', {
 
   // Tool B: Clip Splitter
   selectVideoFile: () => ipcRenderer.invoke('select-video-file'),
+  clipSplitterParseFilename: (params) => ipcRenderer.invoke('clip-splitter-parse-filename', params),
   clipSplitterAnalyze: (params) => ipcRenderer.invoke('clip-splitter-analyze', params),
   clipSplitterSplit: (params) => ipcRenderer.invoke('clip-splitter-split', params),
   clipSplitterCatalog: (params) => ipcRenderer.invoke('clip-splitter-catalog', params),

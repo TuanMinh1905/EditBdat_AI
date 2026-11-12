@@ -1,0 +1,441 @@
+{
+  "source_types": [
+    {
+      "code": "rai_1",
+      "label": "Rải 1",
+      "description": "Rải 1 là các đoạn highlight chiếu từ truyền hình ( Bao gồm Skill - Kiến tạo - Ghi bàn )",
+      "image": ""
+    },
+    {
+      "code": "rai_2",
+      "label": "Rải 2",
+      "description": "mấy đoạn pha xử lí rồi cut nhanh ở góc gần",
+      "image": ""
+    },
+    {
+      "code": "rai_3",
+      "label": "Rải 3",
+      "description": "Là mấy đoạn như đoạn đầu Busi",
+      "image": ""
+    },
+    {
+      "code": "rai_4",
+      "label": "Rải 4",
+      "description": "Những đoạn đặc biệt như Video Kevin De Bruyne : Bước ra sân từ đường hầm , ăn mừng cùng CĐV, tri ân CĐV khán đài, Ăn mừng sau trận cùng đồng đội",
+      "image": ""
+    },
+    {
+      "code": "phong_van",
+      "label": "Phỏng vấn",
+      "description": "Cảnh phỏng vấn cầu thủ / HLV nói chuyện",
+      "image": ""
+    },
+    {
+      "code": "training",
+      "label": "Tập luyện",
+      "description": "Cảnh tập luyện trên sân tập",
+      "image": ""
+    },
+    {
+      "code": "binh_luan_chay",
+      "label": "BLV nói",
+      "description": "Những cảnh có giọng BLV nước ngoài gào thét như đoạn đầu Mourinho",
+      "image": ""
+    },
+    {
+      "code": "khan_dai",
+      "label": "Khán đài",
+      "description": "Cảnh cổ động viên, khán đài, bầu không khí sân vận động",
+      "image": ""
+    },
+    {
+      "code": "anh_thong_so",
+      "label": "Bảng số liệu",
+      "description": "Ảnh bảng thống kê, số liệu, biểu đồ so sánh ở các trang Web như Sofa Score",
+      "image": ""
+    },
+    {
+      "code": "anh_thoi_diem",
+      "label": "Ảnh khoảnh khắc",
+      "description": "Ảnh chụp khoảnh khắc / đội hình / tin tức tại một thời điểm cụ thể",
+      "image": ""
+    },
+    {
+      "code": "anh_chung_bao",
+      "label": "Mặt báo",
+      "description": "Ảnh mặt báo, tiêu đề báo chí truyền thông",
+      "image": ""
+    },
+    {
+      "code": "sa_ban",
+      "label": "Sa bàn",
+      "description": "Sa bàn chiến thuật, sơ đồ đội hình",
+      "image": ""
+    }
+  ],
+  "element_types": [
+    {
+      "code": "auto",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động theo loại Source (phong_van->tv_retro, anh_thong_so->stats_table, anh_thoi_diem->scout_frame, còn lại không phủ)",
+      "image": ""
+    },
+    {
+      "code": "none",
+      "label": "🚫 Không phủ (None)",
+      "param": "",
+      "description": "Không dùng lớp phủ khung/texture ở câu này (để hình gốc thoáng mắt)",
+      "image": ""
+    },
+    {
+      "code": "tv_retro",
+      "label": "📺 Khung Sofa TV",
+      "param": "tv_retro.png",
+      "description": "Khung SOFA TV cổ điển (bo góc tối + màn hình CRT) — hợp cho ảnh đội hình, khoảnh khắc đáng nhớ, phỏng vấn",
+      "image": ""
+    },
+    {
+      "code": "tv_green_frame",
+      "label": "📺 Khung màn hình xanh",
+      "param": "tv_green_frame.png",
+      "description": "Khung màn hình xanh viền đen (TV / Monitor Green Screen)",
+      "image": ""
+    },
+    {
+      "code": "tv_crt_gemini",
+      "label": "📺 TV CRT cổ điển",
+      "param": "tv_crt_gemini.png",
+      "description": "Khung TV CRT cổ điển trong phòng tối (Green Screen)",
+      "image": ""
+    },
+    {
+      "code": "tv_sony",
+      "label": "📺 TV Sony bàn gỗ",
+      "param": "tv_sony.mp4",
+      "description": "Khung TV Sony cổ điển trên bàn gỗ (Video)",
+      "image": ""
+    },
+    {
+      "code": "tv_dolly",
+      "label": "📺 TV Dolly In",
+      "param": "tv_dolly.webm",
+      "description": "Hiệu ứng TV retro dolly-in (Video)",
+      "image": ""
+    },
+    {
+      "code": "film_grain",
+      "label": "🎞️ Phim 8mm hồi ức",
+      "param": "film_grain.mp4",
+      "description": "Khung phim nhựa 8mm cổ điển (có lỗ cuốn phim bên cạnh) — rất hợp khi kể về thời niên thiếu, quá khứ xa, hồi ức",
+      "image": ""
+    },
+    {
+      "code": "scout_frame",
+      "label": "📋 Hồ sơ Scout",
+      "param": "scout_frame.png",
+      "description": "Khung hồ sơ tuyển trạch / tin tức cầu thủ (scout frame)",
+      "image": ""
+    },
+    {
+      "code": "stats_table",
+      "label": "📊 Bảng / Vòng gốc (Vàng nâu)",
+      "param": "stats_table.png",
+      "description": "Khung bảng thống kê / vòng tròn màu vàng nâu (mẫu gốc)",
+      "image": ""
+    },
+    {
+      "code": "stats_table_1",
+      "label": "📊 Bảng / Vòng mẫu 1 (Xanh đậm)",
+      "param": "stats_table_1.png",
+      "description": "Bảng thống kê / vòng tròn mẫu 1 (Xanh đậm)",
+      "image": ""
+    },
+    {
+      "code": "stats_table_2",
+      "label": "📊 Bảng / Vòng mẫu 2 (Đỏ đậm)",
+      "param": "stats_table_2.png",
+      "description": "Bảng thống kê / vòng tròn mẫu 2 (Đỏ đậm)",
+      "image": ""
+    },
+    {
+      "code": "stats_table_3",
+      "label": "📊 Bảng / Vòng mẫu 3 (Đen xám)",
+      "param": "stats_table_3.png",
+      "description": "Bảng thống kê / vòng tròn mẫu 3 (Đen xám)",
+      "image": ""
+    },
+    {
+      "code": "stats_table_4",
+      "label": "📊 Bảng / Vòng mẫu 4 (Xanh lá)",
+      "param": "stats_table_4.png",
+      "description": "Bảng thống kê / vòng tròn mẫu 4 (Xanh lá)",
+      "image": ""
+    },
+    {
+      "code": "stats_table_5",
+      "label": "📊 Bảng / Vòng mẫu 5 (Tím)",
+      "param": "stats_table_5.png",
+      "description": "Bảng thống kê / vòng tròn mẫu 5 (Tím)",
+      "image": ""
+    },
+    {
+      "code": "circle_gold",
+      "label": "🌑 Viền tối góc xanh (5.png)",
+      "param": "circle_gold.png",
+      "description": "Viền tối spotlight góc xanh (5.png) — nhấn mạnh cầu thủ / danh hiệu",
+      "image": ""
+    },
+    {
+      "code": "circle_blue",
+      "label": "🔵 Vòng tròn xanh (o.png)",
+      "param": "circle_blue.png",
+      "description": "Vòng tròn spotlight xanh dương (o.png — đánh dấu vị trí cầu thủ)",
+      "image": ""
+    },
+    {
+      "code": "paper_texture",
+      "label": "📜 Giấy cũ 1 (Sáng)",
+      "param": "paper_texture.png",
+      "description": "Lớp phủ giấy cũ 1 (paper texture.png) tạo chất liệu tư liệu",
+      "image": ""
+    },
+    {
+      "code": "paper_texture_2",
+      "label": "📜 Giấy cũ 2 (Tối)",
+      "param": "paper_texture_2.png",
+      "description": "Lớp phủ giấy cũ 2 tối (paper texture 2.png)",
+      "image": ""
+    },
+    {
+      "code": "texture_dark",
+      "label": "🌑 Phủ xám tối (textture.png)",
+      "param": "texture_dark.png",
+      "description": "Lớp phủ xám tối (textture.png) tạo chiều sâu trầm lắng, chuyển chương",
+      "image": ""
+    },
+    {
+      "code": "texture_2",
+      "label": "⬜ Phủ nền sáng (texture2.png)",
+      "param": "texture_2.png",
+      "description": "Lớp phủ nền sáng (texture2.png) cho toàn video",
+      "image": ""
+    },
+    {
+      "code": "grid_orange",
+      "label": "🟧 Lưới cam (Video)",
+      "param": "grid_orange.mp4",
+      "description": "Nền lưới cam chuyển động (grid animation video)",
+      "image": ""
+    },
+    {
+      "code": "intro",
+      "label": "🎬 Video Intro (intro.mp4)",
+      "param": "intro.mp4",
+      "description": "Video Intro mở đầu (intro.mp4)",
+      "image": ""
+    }
+  ],
+  "animation_types": [
+    {
+      "code": "auto",
+      "label": "🔄 Mặc định (Auto)",
+      "param": "auto",
+      "description": "Tự động xen kẽ zoom nhẹ 100% <-> 108% giữa các clip",
+      "image": ""
+    },
+    {
+      "code": "zoom_in",
+      "label": "🔍 Phóng to (Zoom In)",
+      "param": "100->108",
+      "description": "Zoom In từ từ (100% -> 108%) — tập trung dần vào nhân vật chính của bức ảnh",
+      "image": ""
+    },
+    {
+      "code": "zoom_out",
+      "label": "🔎 Thu nhỏ (Zoom Out)",
+      "param": "108->100",
+      "description": "Zoom Out từ từ (108% -> 100%) — mở rộng góc nhìn toàn cảnh",
+      "image": ""
+    },
+    {
+      "code": "static",
+      "label": "⏹️ Đứng yên (Static)",
+      "param": "100->100",
+      "description": "Đứng yên (100%) — không phóng to thu nhỏ",
+      "image": ""
+    },
+    {
+      "code": "flash_zoom_cut",
+      "label": "⚡ Chớp sáng phóng to (Flash Zoom Cut)",
+      "param": "Scale: 100->170, Flash: 0->100->0",
+      "description": "Giữ khung rộng, chớp sáng trắng cực ngắn (~0.12s), cắt sang cận cảnh chủ thể (scale 170%) rồi giữ nguyên. Thời điểm chuyển khoảng 1.8s. Dùng khi cần nhấn mạnh nhân vật, tạo điểm nhấn mạnh theo voice hoặc nhạc.",
+      "image": ""
+    },
+    {
+      "code": "typewriter_reveal",
+      "label": "⌨️ Chữ đánh máy (Typewriter Reveal)",
+      "param": "Characters: 0->100%, Cursor: on->off",
+      "description": "Hiện từng ký tự từ trái sang phải, con trỏ '|' di chuyển theo chữ rồi biến mất khi hoàn tất. Thời gian gõ khoảng 1.0s. Dùng để giới thiệu nhân vật, địa điểm, năm tháng, tiêu đề hoặc một câu trích dẫn.",
+      "image": ""
+    }
+  ],
+  "bgm_types": [
+    {
+      "code": "auto",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động chọn và nối liền mạch nhạc nền theo từng Đoạn lớn (doan) & mạch cảm xúc",
+      "image": ""
+    },
+    {
+      "code": "none",
+      "label": "🔇 Không nhạc nền (None)",
+      "param": "",
+      "description": "Tắt nhạc nền ở đoạn này (nhường chỗ cho tiếng BLV gốc hoặc khoảng lặng kịch tính)",
+      "image": ""
+    },
+    {
+      "code": "bgm_default",
+      "label": "🎵 Nhạc nền chuẩn SofaZone",
+      "param": "bgm_default.mp3",
+      "description": "Nhạc nền chủ đạo mặc định của kênh (dẫn chuyện chung, phân tích chiến thuật)",
+      "image": ""
+    },
+    {
+      "code": "bgm_momentum",
+      "label": "🎵 Momentum (Nhịp độ nhanh)",
+      "param": "bgm_momentum.mp3",
+      "description": "Nhạc nền nhịp độ dồn dập, cuốn hút — hợp cho chuỗi pha bóng tốc độ, phản công, cao trào",
+      "image": ""
+    },
+    {
+      "code": "bgm_dark_ambient",
+      "label": "🎵 Dark Ambient (Trầm / Bí ẩn)",
+      "param": "bgm_dark_ambient.mp3",
+      "description": "Nhạc nền trầm lắng, u tối, điện ảnh — hợp khi kể về khủng hoảng, thất bại, chấn thương, góc khuất",
+      "image": ""
+    },
+    {
+      "code": "bgm_freedom",
+      "label": "🎵 Price of Freedom (Hào hùng)",
+      "param": "bgm_freedom.mp3",
+      "description": "Nhạc nền hào hùng, xúc động — hợp cho đoạn nâng cúp vô địch, khoảnh khắc huyền thoại, kết bài",
+      "image": ""
+    },
+    {
+      "code": "bgm_nastelbom",
+      "label": "🎵 Nastelbom (Kể chuyện)",
+      "param": "bgm_nastelbom.mp3",
+      "description": "Nhạc nền kể chuyện hiện đại, mạch lạc — hợp cho phần mở bài hoặc giải thích bối cảnh",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_1",
+      "label": "🎵 Nhạc nền Mid 1",
+      "param": "bgm_mid_1.mp3",
+      "description": "Nhạc nền chuyển đoạn / dẫn chuyện nhịp vừa (mid.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_2",
+      "label": "🎵 Nhạc nền Mid 2",
+      "param": "bgm_mid_2.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 2 (mid2.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_3",
+      "label": "🎵 Nhạc nền Mid 3",
+      "param": "bgm_mid_3.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 3 (mid3.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_4",
+      "label": "🎵 Nhạc nền Mid 4",
+      "param": "bgm_mid_4.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 4 (mid4.mp3)",
+      "image": ""
+    },
+    {
+      "code": "bgm_mid_5",
+      "label": "🎵 Nhạc nền Mid 5",
+      "param": "bgm_mid_5.mp3",
+      "description": "Nhạc nền phân tích nhịp vừa 5 (mid5.mp3)",
+      "image": ""
+    }
+  ],
+  "sfx_types": [
+    {
+      "code": "auto",
+      "label": "✨ Tự động (Auto)",
+      "param": "",
+      "description": "Tự động đặt SFX hợp với Lớp phủ / Source (mặt báo->camera_shutter, bảng số->data_beep, khán đài->crowd_cheer)",
+      "image": ""
+    },
+    {
+      "code": "none",
+      "label": "🔇 Không hiệu ứng (None)",
+      "param": "",
+      "description": "Không chèn hiệu ứng âm thanh ở câu này (giữ giọng đọc sạch)",
+      "image": ""
+    },
+    {
+      "code": "whoosh",
+      "label": "💨 Whoosh (Chuyển cảnh)",
+      "param": "whoosh.mp3",
+      "description": "Tiếng gió lướt nhanh khi chuyển cảnh, đổi chủ đề hoặc phóng to đột ngột",
+      "image": ""
+    },
+    {
+      "code": "camera_shutter",
+      "label": "📸 Chụp ảnh (Mặt báo / Ảnh)",
+      "param": "camera_shutter.mp3",
+      "description": "Tiếng tách máy ảnh khi hiện mặt báo (anh_chung_bao), ảnh khoảnh khắc (anh_thoi_diem) hoặc hồ sơ",
+      "image": ""
+    },
+    {
+      "code": "data_beep",
+      "label": "📊 Tiếng số liệu (Bảng thống kê)",
+      "param": "data_beep.mp3",
+      "description": "Tiếng nhảy số điện tử / gõ phím khi hiện bảng thống kê (anh_thong_so / stats_table)",
+      "image": ""
+    },
+    {
+      "code": "crowd_cheer",
+      "label": "🏟️ Khán đài reo hò",
+      "param": "crowd_cheer.mp3",
+      "description": "Tiếng cổ động viên hò reo vang dội khi ghi bàn, ăn mừng danh hiệu (rai_4, khan_dai)",
+      "image": ""
+    },
+    {
+      "code": "whistle",
+      "label": "📢 Tiếng còi trọng tài",
+      "param": "whistle.mp3",
+      "description": "Tiếng còi khai cuộc / mãn cuộc hoặc tình huống phạm lỗi tranh cãi",
+      "image": ""
+    },
+    {
+      "code": "tv_glitch",
+      "label": "📺 Tiếng bật TV / Nhiễu sóng",
+      "param": "tv_glitch.mp3",
+      "description": "Tiếng bật tivi CRT / nhiễu sóng nhẹ khi xuất hiện khung TV (tv_retro, tv_sony)",
+      "image": ""
+    },
+    {
+      "code": "film_projector",
+      "label": "🎞️ Máy chiếu phim 8mm",
+      "param": "film_projector.mp3",
+      "description": "Tiếng cuộn phim nhựa cổ điển quay đều khi dùng lớp phủ hồi ức (film_grain)",
+      "image": ""
+    },
+    {
+      "code": "impact_boom",
+      "label": "💥 Bass Boom / Hit (Điểm nhấn)",
+      "param": "impact_boom.mp3",
+      "description": "Tiếng trống trầm / Cinematic Hit tạo điểm nhấn mạnh cho câu chốt hạ hoặc bước ngoặt lớn",
+      "image": ""
+    }
+  ]
+}

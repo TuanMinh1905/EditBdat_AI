@@ -1,4 +1,14 @@
-# AE AI Tool — Session Summary (Cập nhật 2026-11-11)
+# AE AI Tool — Session Summary (Cập nhật 2026-11-12)
+
+## Refactor Source và Thời điểm (2026-11-12)
+
+- Đã triển khai theo user chốt: phân loại video từ tên file; `rai_1` là nhóm gồm `rai_1_1` bàn thắng, `rai_1_2` kiến tạo, `rai_1_3` chung; `rai_2` là bối cảnh đường hầm/CĐV/ăn mừng.
+- Thêm `cau_thu`, `doi_bong`, `thoi_diem`, `su_kien` xuyên suốt tên file -> clip con -> catalog -> AI/CSV -> XML. Không đồng nhất thời điểm lịch sử với start/timecode.
+- Cột bối cảnh cạnh lời thoại có sửa riêng/áp dụng cho câu/đoạn, khóa bối cảnh khi chạy AI; từng đoạn có cờ cho phép rai_2. Cảnh quá cụ thể/chưa đủ thông tin để trống, tô vàng, có nút Làm thủ công.
+- Matcher bỏ hoàn toàn fallback clip bất kỳ; chỉ chọn Source đúng điều kiện. Thiếu Source đúng năm/đội/cầu thủ/giải đấu thì đặt marker, kể cả phần đuôi thiếu clip.
+- Dữ liệu có `schema_version=2`; adapter chuyển mã v1 và giữ đường dẫn cũ, backup `.v1.bak` khi ghi catalog/CSV cũ. Bản quy tắc hiện tại trước refactor được giữ tại `templates/backups/source_v1_before_20261112/`.
+- Đã thử video FFmpeg thật và đọc tương thích file phân loại thực tế 406 dòng (không sửa file gốc). Kiểm thử AI dùng mock; chưa xác nhận Gemini thật cho prompt v2. Browser không có kết nối iab, chưa kiểm tra trực tiếp Electron. Cần đóng/mở lại app.
+- Hướng dẫn và chi tiết kỹ thuật hiện hành: [Source_ThoiDiem_v2.md](Source_ThoiDiem_v2.md). Các mục bên dưới là lịch sử; thông tin 10 cột, rai_1 mặc định và fallback cũ đã được thay thế.
 
 ## Sửa luồng phân loại Timeline (2026-11-11)
 

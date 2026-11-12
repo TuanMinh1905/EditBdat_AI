@@ -14,7 +14,7 @@ function section(start, end) {
 }
 const script = new vm.Script([
   section('  function splitLoaiSource(', '  function updateRulesMeta('),
-  section('  function isUnanalyzed(', '  async function loadBackendState('),
+  section('  function contextLabel(', '  async function loadBackendState('),
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
   section('  // Chọn file Timeline CSV', '  // Lưu default thoi_ky'),
   section('  // Analyze bounded groups', '  // Bấm nút Lưu vào Kho ví dụ'),
@@ -31,7 +31,7 @@ function rows(n) {
     y: String(i), start: String(i * 3), text: `Câu ${i}`, loai_source: '', element: '', anim: '', bgm: '', sfx: '' }));
 }
 function complete(input, localIndex) {
-  return { ...input, row_index: localIndex, loai_source: 'rai_1', element: 'tv_retro + texture_2', anim: 'static',
+  return { ...input, row_index: localIndex, loai_source: 'rai_1_3', cau_thu: 'Xavi', doi_bong: 'Spain', thoi_diem: 'Euro2008', su_kien: 'Euro', element: 'tv_retro + texture_2', anim: 'static',
     bgm: 'bgm_default', sfx: 'none', si: '', confidence: .9, needs_review: false, analysis_status: 'complete', reason: 'Theo nội dung và quy tắc.' };
 }
 function harness({ count = 3, key = 'test-key', suggest } = {}) {
@@ -50,7 +50,7 @@ function harness({ count = 3, key = 'test-key', suggest } = {}) {
     sgLog: (...args) => calls.log.push(args),
     askConfirm: async () => { calls.confirm++; return true; },
     loadBackendState: async () => { sgState.backendLoaded = true; },
-    getValidLoaiList: () => [{ code: 'rai_1', label: 'Rải 1' }],
+    getValidLoaiList: () => [{ code: 'rai_1_3', label: 'Highlight chung' }, { code: 'rai_2', label: 'Bối cảnh' }],
     getValidElementsList: () => ['auto', 'none', 'tv_retro', 'texture_2'].map(code => ({ code, label: code })),
     getValidAnimsList: () => ['auto', 'static'].map(code => ({ code, label: code })),
     getValidBgmsList: () => [{ code: 'bgm_default', label: 'BGM' }],
@@ -174,4 +174,76 @@ test('editing one field never marks an otherwise blank row complete', async () =
   assert.equal(h.sgState.rows[0].analysis_status, 'pending');
   assert.equal(h.sgState.rows[0].confidence, null);
   assert.equal(h.sgDom.btnExport.disabled, true);
+});
+
+test('paragraph context respects explicit row and sentence overrides and survives reruns', async () => {
+  const h = harness({ count: 8 });
+  await h.sgDom.btnBrowseCsv.click();
+  Object.assign(h.sgState.rows[0], { thoi_diem: '2008', context_locked: 'yes', context_scope: 'row' });
+  Object.assign(h.sgState.rows[1], { thoi_diem: '2010', context_locked: 'yes', context_scope: 'row' });
+  Object.assign(h.sgState.rows[2], { thoi_diem: '2012', context_locked: 'yes', context_scope: 'cau' });
+  h.context.applyContext(0, 'doan');
+  assert.equal(h.sgState.rows[1].thoi_diem, '2010');
+  assert.equal(h.sgState.rows[2].thoi_diem, '2012');
+  assert.equal(h.sgState.rows[3].thoi_diem, '2008');
+  assert.equal(h.sgState.rows[4].thoi_diem, 'Euro2008');
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai[1].rows[1].context_locked, 'yes');
+  assert.equal(h.calls.ai[1].context_rows[1].thoi_diem, '2010');
+});
+
+test('turning off broll affects only its paragraph and requires reanalysis for empty source', async () => {
+  const h = harness({ count: 8 });
+  await h.sgDom.btnBrowseCsv.click();
+  h.sgState.rows[1].loai_source = 'rai_2';
+  h.sgState.rows[2].loai_source = 'rai_1_3 + rai_2';
+  h.context.setParagraphBroll(0, false);
+  assert.equal(h.sgState.rows[1].loai_source, '');
+  assert.equal(h.sgState.rows[1].analysis_status, 'pending');
+  assert.equal(h.sgState.rows[2].loai_source, 'rai_1_3');
+  assert.equal(h.sgState.rows[3].allow_rai_2, 'no');
+  assert.equal(h.sgState.rows[4].allow_rai_2, 'yes');
+  assert.equal(h.sgDom.btnExport.disabled, true);
+});
+
+test('legacy analysis cache is archived and cannot reinterpret old rai_2', async () => {
+  const h = harness({ count: 1 });
+  const csvPath = 'C:\\Project\\1_CSV_Timeline.csv';
+  h.storage.set('sg_analysis', JSON.stringify({ csvPath, rows: [{ ...complete(h.data[0], 0), loai_source: 'rai_2' }] }));
+  await h.context.loadCsvFile(csvPath);
+  assert.equal(h.sgState.rows[0].loai_source, '');
+  assert.equal(h.sgState.rows[0].analysis_status, 'pending');
+  assert.ok(h.storage.has('sg_analysis_v1_backup'));
+});
+
+test('editing historical context keeps the editor open and updates the lock and event', async () => {
+  const h = harness({ count: 1 });
+  await h.sgDom.btnBrowseCsv.click();
+  const input = new Element();
+  input.dataset = { idx: '0', key: 'thoi_diem' };
+  const summary = new Element(), lock = new Element(), event = new Element();
+  input.closest = () => ({ querySelector: selector => ({ summary, '.sg-context-lock': lock, '[data-key="su_kien"]': event })[selector] });
+  h.sgDom.tbody.querySelectorAll = selector => selector === '.sg-context-input' ? [input] : [];
+  h.context.renderTable();
+  const markup = h.sgDom.tbody.innerHTML;
+  input.value = 'WorldCup2010';
+  input.listeners.input();
+  assert.equal(h.sgState.rows[0].thoi_diem, 'WorldCup2010');
+  assert.equal(event.value, 'WorldCup');
+  assert.equal(lock.checked, true);
+  assert.equal(h.sgState.rows[0].context_scope, 'row');
+  assert.match(summary.textContent, /WorldCup2010.*🔒/);
+  assert.equal(h.sgDom.tbody.innerHTML, markup, 'editing must not replace the focused form');
+});
+
+test('loading an exported source plan preserves manual blanks without running AI', async () => {
+  const h = harness({ count: 1 });
+  Object.assign(h.data[0], { is_source_plan: true, analysis_status: 'manual', reason: 'Cần cảnh cụ thể',
+    schema_version: '2', thoi_diem: 'Euro2008', context_locked: 'yes', context_scope: 'row' });
+  await h.sgDom.btnBrowseCsv.click();
+  assert.equal(h.calls.ai.length, 0);
+  assert.equal(h.sgState.rows[0].analysis_status, 'manual');
+  assert.equal(h.sgState.rows[0].thoi_diem, 'Euro2008');
+  assert.equal(h.sgState.rows[0].reason, 'Cần cảnh cụ thể');
+  assert.equal(h.sgDom.btnExport.disabled, false);
 });

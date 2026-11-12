@@ -347,11 +347,12 @@
                 <label>Loại (loai)</label>
                 <select id="sp-loai">
                   <option value="chua_phan_loai">chua_phan_loai (mặc định)</option>
-                  <option value="rai_1">rai_1</option>
-                  <option value="rai_2_1">rai_2_1</option>
-                  <option value="rai_2_2">rai_2_2</option>
-                  <option value="rai_3">rai_3</option>
-                  <option value="rai_4">rai_4</option>
+                  <optgroup label="rai_1 · Highlight">
+                    <option value="rai_1_1">rai_1_1 · Bàn thắng</option>
+                    <option value="rai_1_2">rai_1_2 · Kiến tạo</option>
+                    <option value="rai_1_3">rai_1_3 · Chung</option>
+                  </optgroup>
+                  <option value="rai_2">rai_2 · Bối cảnh</option>
                   <option value="phong_van">phong_van</option>
                   <option value="training">training</option>
                   <option value="binh_luan_chay">binh_luan_chay</option>
@@ -367,11 +368,15 @@
                 <input type="text" id="sp-cau-thu" placeholder="VD: Xavi, Iniesta..." />
               </div>
               <div class="sp-field">
-                <label>Đội bóng / Thời kỳ</label>
+                <label>Đội bóng</label>
                 <input type="text" id="sp-doi-bong" placeholder="VD: Spain, Barcelona..." />
               </div>
               <div class="sp-field">
-                <label>Kỹ năng</label>
+                <label>Thời điểm lịch sử</label>
+                <input type="text" id="sp-thoi-diem" placeholder="Euro2008, 2010, 2008-2012" />
+              </div>
+              <div class="sp-field">
+                <label>Kỹ năng (tùy chọn)</label>
                 <div class="ky-nang-wrapper">
                   <select id="sp-ky-nang" class="ky-nang-select">
                     <option value="Mixed">Mixed</option>
@@ -495,6 +500,7 @@
                     <th>Loại</th>
                     <th>Cầu thủ</th>
                     <th>Kỹ năng</th>
+                    <th>Thời điểm</th>
                     <th>Thời lượng</th>
                   </tr>
                 </thead>
@@ -899,14 +905,14 @@
           <div class="rules-card-body">
             <div class="rules-format-box">
               <span class="rules-label">Format tên file:</span>
-              <code class="rules-code">{loai}_{cau_thu}_{doi_bong}_{ky_nang}_{STT:003}.mp4</code>
+              <code class="rules-code">{loai}_{cau_thu}_{doi_bong}_{thoi_diem}_[ky_nang]_[STT].mp4</code>
             </div>
             <div class="rules-example-row">
               <span class="rules-label">Ví dụ:</span>
               <div class="rules-examples-list">
-                <code class="rules-code rules-example">rai_1_Xavi_Spain_Skill_001.mp4</code>
-                <code class="rules-code rules-example">rai_2_1_Iniesta_Barcelona_Bantang_023.mp4</code>
-                <code class="rules-code rules-example">training_Busquets_Barcelona_Mixed_007.mp4</code>
+                <code class="rules-code rules-example">rai_1_2_Xavi_Spain_Euro2008_001.mp4</code>
+                <code class="rules-code rules-example">rai_1_1_Iniesta_Barcelona_2010_Goal_023.mp4</code>
+                <code class="rules-code rules-example">rai_2_Busquets_Barcelona_2008-2012_007.mp4</code>
               </div>
             </div>
             <table class="rules-table">
@@ -921,7 +927,7 @@
                 <tr>
                   <td><code>loai</code></td>
                   <td>Chọn từ danh sách VALID_LOAI bên dưới</td>
-                  <td><code>rai_1</code>, <code>training</code></td>
+                  <td><code>rai_1_1</code>, <code>rai_2</code>, <code>training</code></td>
                 </tr>
                 <tr>
                   <td><code>cau_thu</code></td>
@@ -930,12 +936,17 @@
                 </tr>
                 <tr>
                   <td><code>doi_bong</code></td>
-                  <td>Tên đội / thời kỳ, không dấu</td>
+                  <td>Tên đội, không dấu và không có dấu gạch dưới</td>
                   <td><code>Spain</code>, <code>Barcelona</code></td>
                 </tr>
                 <tr>
+                  <td><code>thoi_diem</code></td>
+                  <td>Năm, khoảng năm hoặc giải đấu kèm năm. Clip cắt ra kế thừa từ tên video gốc. Chưa rõ thì để Unknown; tool sẽ báo thiếu Source khi cần mốc cụ thể.</td>
+                  <td><code>2008</code>, <code>2008-2012</code>, <code>Euro2008</code></td>
+                </tr>
+                <tr>
                   <td><code>ky_nang</code></td>
-                  <td>Loại kỹ năng (xem dropdown Tool B)</td>
+                  <td>Nhãn hành động tùy chọn (xem dropdown Tool B)</td>
                   <td><code>Mixed</code>, <code>Skill</code>, <code>Bantang</code></td>
                 </tr>
                 <tr>
@@ -1036,7 +1047,7 @@
 │   └── 02_Clip_Da_Cat\               ← Trỏ cố định ở Tool B & Tool A (Source Root)
 │       ├── catalog.csv               (Sổ cái quản lý toàn bộ clip)
 │       ├── chua_phan_loai\           (Clip mới cắt xong)
-│       ├── rai_1\                    (Clip đã phân loại)
+│       ├── rai_1_1\                    (Clip đã phân loại)
 │       └── anh_thoi_diem\
 │
 └── 03_Projects\                      ← MỖI BÀI DỰNG MỚI LÀ 1 THƯ MỤC RIÊNG
@@ -1312,7 +1323,7 @@
               Dặn AI khi nào dùng loại Source hay Animation nào. Mặc định <strong>khóa an toàn</strong> — bấm <strong>Chỉnh sửa</strong> để viết thêm.
             </p>
             <textarea id="sg-rules-input" class="sg-rules-textarea is-locked" rows="6" readonly
-              placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
+              placeholder="File source_style_rules.txt đang trống.&#10;Bấm '✏️ Chỉnh sửa' bên dưới để thêm quy tắc, ví dụ:&#10;- Câu dẫn chuyện bình thường dùng rai_1_3, Lớp phủ để none&#10;- Câu hồi ức thời niên thiếu dùng film_grain (phim nhựa 8mm)&#10;- Câu có số liệu thống kê dùng anh_thong_so + stats_table"></textarea>
             <div class="v-split-resizer" data-vkey="sg-rules-h" data-target="#sg-rules-input" data-min-h="85" data-max-h="520" title="Kéo lên/xuống để chỉnh chiều cao ô Quy tắc .txt (Nhấp đúp để đặt lại)"></div>
             <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap;">
               <span class="sp-hint" id="sg-rules-char">0 dòng · 0 ký tự</span>
@@ -1378,7 +1389,7 @@
                 </div>
               </div>
               <div class="sg-ai-run-col">
-                <label class="sg-run-label">🏷️ 2. Thời kỳ / Bối cảnh mặc định (tùy chọn)</label>
+                <label class="sg-run-label">🏷️ 2. Gợi ý bối cảnh khi lời thoại chưa rõ (tùy chọn)</label>
                 <input type="text" class="sp-path-input" id="sg-default-thoiky"
                   placeholder="VD: Euro 2008 · Tây Ban Nha / Xavi" style="width:100%;">
               </div>
@@ -1422,6 +1433,7 @@
                   <tr>
                     <th style="width:62px;">Đoạn/Câu</th>
                     <th style="min-width:210px;">Lời thoại (text)</th>
+                    <th style="min-width:205px;" title="Bối cảnh lịch sử để tìm Source đúng năm, khác timecode dựng phim">🗓️ Thời điểm · Cầu thủ · Đội</th>
                     <th style="width:138px;" title="Loại Source chính ở Track V1 (Lấy từ Bảng 1)">📂 Source chính</th>
                     <th style="width:132px;" title="Loại Source phụ ghép thêm ở Track V2 (nếu có)">＋ Source phụ</th>
                     <th style="width:168px;" title="Lớp phủ Design đè lên đoạn Clip/Ảnh (Khung TV, Phim 8mm, Bảng số liệu... — Lấy từ Bảng 2)">🖼️ Lớp phủ Design</th>
@@ -1429,11 +1441,6 @@
                     <th style="width:142px;" title="Chuyển động Animation trong đoạn đó (Zoom In 100->108%, Zoom Out, Static... — Lấy từ Bảng 3)">🎬 Animation</th>
                     <th style="width:145px;" title="Nhạc nền (Sound Background) cho đoạn này — Lấy từ Bảng 4 (Track A2)">🎵 Sound nền</th>
                     <th style="width:145px;" title="Hiệu ứng âm thanh cho đoạn này — Lấy từ Bảng 5 (Track A3)">🔊 Sound Effect</th>
-                    <th style="width:185px;">
-                      Thời kỳ / Cầu thủ
-                      <button class="sg-fill-btn" id="sg-btn-fill-thoiky"
-                        title="Điền giá trị dòng đầu tiên xuống các dòng đang trống">⬇ Điền trống</button>
-                    </th>
                     <th style="width:140px;">Ghi chú dạy AI</th>
                     <th style="min-width:135px;">Trạng thái / Độ tự tin</th>
                   </tr>
@@ -1524,7 +1531,7 @@
     <div class="modal-box cls-img-modal-box">
       <div class="modal-header">
         <div class="cls-img-modal-title-wrap">
-          <span class="sg-code-chip" id="cls-img-modal-code">rai_1</span>
+          <span class="sg-code-chip" id="cls-img-modal-code">rai_1_3</span>
           <h3 id="cls-img-modal-title">Rải đơn</h3>
         </div>
         <button class="modal-close" id="cls-img-modal-close" title="Đóng (Esc)">
