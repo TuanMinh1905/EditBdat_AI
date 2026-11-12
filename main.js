@@ -83,15 +83,24 @@ ipcMain.handle('save-workflow-document', (event, { tab, revision, nodes } = {}) 
 });
 
 // --- Settings ---
-function loadSettings() {
+function loadSettings(strict = false) {
   try {
     if (fs.existsSync(SETTINGS_PATH)) {
-      return JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+      const settings = JSON.parse(fs.readFileSync(SETTINGS_PATH, 'utf-8'));
+      if (!settings || typeof settings !== 'object' || Array.isArray(settings)) throw new Error('Invalid settings');
+      return settings;
     }
-  } catch (e) { /* ignore */ }
+  } catch (e) {
+    if (strict) throw new Error('Không đọc được cấu hình đã lưu; chưa thay đổi dữ liệu.');
+  }
   return {
     geminiApiKey: '',
     geminiApiKeyBackup: '',
+    openaiApiKey: '',
+    geminiKey1Enabled: true,
+    geminiKey2Enabled: true,
+    openaiKey3Enabled: false,
+    openaiModel: 'gpt-6.1-sol',
     geminiModelPriority: ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'],
     afterEffectsPath: 'C:\\Program Files\\Adobe\\Adobe After Effects 2021\\Support Files\\AfterFX.exe',
     outputDir: 'C:\\\\Users\\\\GP\\\\Desktop\\\\Edit Bdat\\\\Video Demo\\\\Demo1\\\\Official',
@@ -104,7 +113,32 @@ function loadSettings() {
 function saveSettings(settings) {
   const dir = path.dirname(SETTINGS_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(SETTINGS_PATH, JSON.stringify(settings, null, 2));
+  const temporary = `${SETTINGS_PATH}.tmp`;
+  const serialized = JSON.stringify(settings, null, 2);
+  try {
+    fs.writeFileSync(temporary, serialized, 'utf8');
+    fs.renameSync(temporary, SETTINGS_PATH);
+    if (fs.readFileSync(SETTINGS_PATH, 'utf8') !== serialized) throw new Error('Settings verification failed');
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
+  }
+}
+
+function savedAiSettings() {
+  const settings = loadSettings(true);
+  return Object.fromEntries(['geminiApiKey', 'geminiApiKeyBackup', 'openaiApiKey',
+    'geminiKey1Enabled', 'geminiKey2Enabled', 'openaiKey3Enabled', 'geminiModelPriority', 'openaiModel']
+    .map(field => [field, settings[field]]));
+}
+
+function withSavedAiConfig(params = {}) {
+  const settings = savedAiSettings();
+  return { ...params,
+    api_keys: [settings.geminiApiKey || '', settings.geminiApiKeyBackup || ''],
+    key_enabled: [settings.geminiKey1Enabled !== false, settings.geminiKey2Enabled !== false, settings.openaiKey3Enabled === true],
+    openai_api_key: settings.openaiApiKey || '', openai_model: settings.openaiModel || 'gpt-6.1-sol',
+    model_priority: settings.geminiModelPriority
+  };
 }
 
 // --- Python Backend ---
@@ -333,8 +367,29 @@ function createWindow() {
 ipcMain.handle('get-settings', () => loadSettings());
 
 ipcMain.handle('save-settings', (event, settings) => {
-  saveSettings(settings);
-  return { success: true };
+  try {
+    saveSettings(settings);
+    return { success: true };
+  } catch (err) {
+    return { error: 'Không lưu được cài đặt. Kiểm tra quyền ghi và dung lượng ổ đĩa rồi thử lại.' };
+  }
+});
+
+ipcMain.handle('save-api-key', (event, { slot, value, enabled } = {}) => {
+  if (![1, 2, 3].includes(slot) || (value !== undefined && typeof value !== 'string') ||
+      (enabled !== undefined && typeof enabled !== 'boolean') || (value === undefined && enabled === undefined)) return { error: 'Ô API key không hợp lệ.' };
+  try {
+    const field = ['geminiApiKey', 'geminiApiKeyBackup', 'openaiApiKey'][slot - 1];
+    const enabledField = ['geminiKey1Enabled', 'geminiKey2Enabled', 'openaiKey3Enabled'][slot - 1];
+    const settings = loadSettings(true);
+    const patch = {};
+    if (value !== undefined) patch[field] = value.trim();
+    if (enabled !== undefined) patch[enabledField] = enabled;
+    saveSettings({ ...settings, ...patch });
+    return { success: true, slot };
+  } catch (err) {
+    return { error: 'Không lưu được API key. Cấu hình cũ được giữ nếu ghi thất bại; kiểm tra quyền ghi rồi thử lại.' };
+  }
 });
 
 // Session persistence (media files + prompt)
@@ -389,8 +444,8 @@ ipcMain.handle('export-jsx-only', async (event, { mediaFiles, prompt, settings }
     const result = await callPython('/api/export-jsx', {
       media_files: mediaFiles,
       prompt: prompt,
-      settings: settings
-    });
+      settings: { ...settings, ...savedAiSettings() }
+    }, 900000);
     return result;
   } catch (e) {
     return { error: e.message };
@@ -402,8 +457,8 @@ ipcMain.handle('get-timeline-preview', async (event, { mediaFiles, prompt, setti
     const result = await callPython('/api/preview-timeline', {
       media_files: mediaFiles,
       prompt: prompt,
-      settings: settings
-    });
+      settings: { ...settings, ...savedAiSettings() }
+    }, 900000);
     return result;
   } catch (e) {
     return { error: e.message };
@@ -431,8 +486,8 @@ ipcMain.handle('generate-project', async (event, { mediaFiles, prompt, settings 
     const result = await callPython('/api/generate', {
       media_files: mediaFiles,
       prompt: prompt,
-      settings: settings
-    });
+      settings: { ...settings, ...savedAiSettings() }
+    }, 900000);
     return result;
   } catch (e) {
     return { error: e.message };
@@ -745,7 +800,7 @@ ipcMain.handle('suggester-load-csv', async (event, params) => {
 
 ipcMain.handle('suggester-suggest', async (event, params) => {
   try {
-    return await callPython('/api/source-suggester/suggest', params, 600000);
+    return await callPython('/api/source-suggester/suggest', withSavedAiConfig(params), 900000);
   } catch (e) {
     return { error: e.message };
   }
@@ -753,7 +808,7 @@ ipcMain.handle('suggester-suggest', async (event, params) => {
 
 ipcMain.handle('suggester-save-examples', async (event, params) => {
   try {
-    return await callPython('/api/source-suggester/save-examples', params);
+    return await callPython('/api/source-suggester/save-examples', withSavedAiConfig(params));
   } catch (e) {
     return { error: e.message };
   }
@@ -778,7 +833,7 @@ ipcMain.handle('suggester-export-csv', async (event, params) => {
 // --- Token Usage Tracker & External Links ---
 ipcMain.handle('get-token-usage', async (event, params) => {
   try {
-    return await callPython('/api/token-usage/get', params || {});
+    return await callPython('/api/token-usage/get', withSavedAiConfig(params || {}));
   } catch (e) {
     return { error: e.message };
   }

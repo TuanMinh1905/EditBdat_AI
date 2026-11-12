@@ -31,6 +31,7 @@ function fakeChild() {
 test('source analysis has a separate HTTP timeout and a recoverable timeout message', async () => {
   const requests = [], handlers = {};
   const ctx = context({ backendStatus: true, Buffer,
+    withSavedAiConfig: params => params,
     ipcMain: { handle: (name, handler) => { handlers[name] = handler; } },
     http: { request: (options, callback) => {
       const request = new EventEmitter();
@@ -45,10 +46,10 @@ test('source analysis has a separate HTTP timeout and a recoverable timeout mess
   const end = source.indexOf("ipcMain.handle('suggester-save-examples'", start);
   vm.runInContext(source.slice(start, end), ctx);
   const analysis = handlers['suggester-suggest'](null, { rows: [] });
-  assert.equal(requests[0].options.timeout, 600000);
+  assert.equal(requests[0].options.timeout, 900000);
   requests[0].request.emit('timeout');
   assert.equal(requests[0].request.destroyed, true);
-  assert.match((await analysis).error, /600 giây.*chạy tiếp/);
+  assert.match((await analysis).error, /900 giây.*chạy tiếp/);
 
   const ordinary = ctx.callPython('/api/health', {});
   assert.equal(requests[1].options.timeout, 300000);
@@ -68,6 +69,16 @@ test('source analysis has a separate HTTP timeout and a recoverable timeout mess
   const quota = await quotaRequest;
   assert.equal(quota.quota_wait, true);
   assert.equal(quota.retry_after_seconds, 120);
+
+  const failedRequest = handlers['suggester-suggest'](null, { rows: [] });
+  const failedResponse = new EventEmitter();
+  failedResponse.statusCode = 503;
+  requests[3].callback(failedResponse);
+  failedResponse.emit('data', '{"error":"all providers unavailable","all_providers_failed":true,"key_status":{"paused":true}}');
+  failedResponse.emit('end');
+  const failed = await failedRequest;
+  assert.equal(failed.all_providers_failed, true);
+  assert.equal(failed.key_status.paused, true);
 });
 
 test('selects project venv and waits for HTTP health despite early/split ready output', async () => {

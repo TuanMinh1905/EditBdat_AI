@@ -4,7 +4,7 @@
 
 Chọn `1_CSV_Timeline.csv` ở Gợi ý Source chỉ hiện tên file. Bấm **Phân tích** để nạp lời thoại lên bảng và chạy AI.
 
-Có thể cấu hình hai API key trong Cài đặt để tự chuyển key khi HTTP 429; giữ nguyên model và kết quả đã có. Hướng dẫn: [Gemini_API_Keys.md](Gemini_API_Keys.md).
+Cài đặt hỗ trợ Gemini Key 1/2 và OpenAI Key 3, có Lưu/Chỉnh sửa và Sử dụng riêng. Thử hết model Key 1 → hết model Key 2 → OpenAI. Khi mọi key được bật đều lỗi, app giữ kết quả, tạm dừng và chờ Continue. Hướng dẫn: [Gemini_API_Keys.md](Gemini_API_Keys.md).
 
 Thanh tiến độ xanh → tím → hồng hiển thị phần trăm và số dòng đã xử lý. **Pause** giữ kết quả nhóm đang chạy (tối đa 8 dòng), rồi dừng gửi nhóm mới. **Continue** tiếp tục phần còn lại. Nếu nhóm cuối hoàn tất trong lúc yêu cầu Pause, phiên chuyển Hoàn tất.
 
@@ -14,7 +14,7 @@ Thanh tiến độ xanh → tím → hồng hiển thị phần trăm và số d
 
 Phiên phân tích tự lưu cục bộ bằng `localStorage.sg_analysis`: file đã chọn, bảng và chỉnh sửa, bối cảnh gợi ý, trạng thái và thời gian lưu. Mở lại app khôi phục trực tiếp snapshot, không cần đọc lại CSV và không tự gọi AI. Phiên đang chạy chuyển tạm dừng, chờ bấm Continue phân tích. Nhóm chưa nhận được kết quả khi đóng app được xử lý lại; các nhóm đã lưu được giữ. Lưu phiên gần nhất không thay cho xuất CSV hoặc sao lưu.
 
-Nếu gặp timeout: mỗi nhóm giờ tối đa 8 dòng, vẫn có ngữ cảnh toàn bài. Mỗi yêu cầu Gemini đặt timeout 120 giây, kết nối app → backend dành riêng cho phân tích đặt 10 phút để chờ nhiều bước. Chỉ nhóm đang xử lý bị đánh dấu lỗi; các dòng chưa gửi vẫn chờ. Nếu lượt bổ sung bị lỗi, kết quả hợp lệ từ lượt đầu vẫn giữ. Bấm **Phân tích** để chạy tiếp các dòng chưa hoàn tất. Dịch vụ Gemini vẫn có thể chậm hoặc báo lỗi; thay đổi này không bảo đảm dịch vụ luôn trả được kết quả.
+Nếu gặp timeout: mỗi nhóm tối đa 8 dòng, vẫn có ngữ cảnh toàn bài. Gemini chờ phản hồi tối đa 60 giây/lần, OpenAI 120 giây/lần; kết nối app → backend cho tác vụ AI đặt 15 phút để chờ các bước dự phòng/bổ sung. Lỗi server/mạng Gemini thử lại một lần rồi sang key kế. Nếu lượt bổ sung lỗi, kết quả hợp lệ từ lượt đầu vẫn giữ. Hết lựa chọn thì app tạm dừng để kiểm tra Cài đặt rồi Continue.
 
 Bản sửa timeout có thay đổi main process và Python: **đóng hẳn rồi mở lại app**, không chỉ Ctrl+R. Phiên đã lưu sẽ tự khôi phục; không cần bấm Làm mới hay nạp lại CSV.
 

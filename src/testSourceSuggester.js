@@ -19,7 +19,7 @@ const script = new vm.Script([
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
   section('  // Chọn file Timeline CSV', '  // Lưu default thoi_ky'),
   section('  // Analyze bounded groups', '  // Bấm nút Lưu vào Kho ví dụ'),
-  section('  // Live Gemini routing notifications', '  // Restore backend state'),
+  section('  // Live provider routing notifications', '  // Restore backend state'),
 ].join('\n'));
 
 class Element {
@@ -61,7 +61,7 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
   const progress = new Element();
   const extras = Object.fromEntries(['sg-progress-bar', 'sg-progress-track', 'sg-progress-percent', 'sg-progress-status', 'sg-routing-notice'].map(id => [id, new Element()]));
   const context = vm.createContext({
-    sgState, sgDom, dom: { settingApiKey: { value: key } }, state: { settings: {} },
+    sgState, sgDom, dom: { settingApiKey: { value: key } }, state: { settings: { geminiApiKey: key } },
     $: id => extras[id.slice(1)] || progress,
     localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value) },
     sgLog: (...args) => calls.log.push(args),
@@ -108,6 +108,80 @@ test('both saved API keys reach analysis but are never stored in the analysis sn
   assert.doesNotMatch(h.storage.get('sg_analysis'), /backup-test-key|api_keys/);
 });
 
+test('OpenAI alone works when enabled; unchecked keys and unsaved drafts are skipped', async () => {
+  const h = harness();
+  Object.assign(h.context.state.settings, { geminiKey1Enabled: false, geminiKey2Enabled: false,
+    openaiApiKey: 'saved-openai-key', openaiKey3Enabled: true });
+  h.context.dom.settingOpenaiApiKey = { value: 'unsaved-openai-draft' };
+  await h.sgDom.btnBrowseCsv.click();
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai.length, 1);
+  assert.deepEqual(h.calls.ai[0].api_keys, ['', '']);
+  assert.deepEqual(h.calls.ai[0].key_enabled, [false, false, true]);
+  assert.equal(h.calls.ai[0].openai_api_key, 'saved-openai-key');
+  assert.doesNotMatch(h.storage.get('sg_analysis'), /saved-openai-key|unsaved-openai-draft/);
+});
+
+test('all provider failures pause without automatic requests; Continue reads changed keys', async () => {
+  const h = harness({ count: 3, suggest: (params, n) => n === 1 ? {
+    all_providers_failed: true, error: 'Tất cả key đều lỗi', key_status: { paused: true },
+  } : { rows: params.rows.map(complete) } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.calls.ai.length, 1);
+  assert.ok(h.sgState.rows.every(row => row.analysis_status === 'pending'));
+  assert.match(h.extras['sg-routing-notice'].textContent, /Tất cả key/);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.calls.ai.length, 1);
+  Object.assign(h.context.state.settings, { geminiKey1Enabled: false, openaiKey3Enabled: true, openaiApiKey: 'new-saved-openai' });
+  await h.sgDom.btnPause.click();
+  await run;
+  assert.equal(h.calls.ai[1].api_keys[0], '');
+  assert.equal(h.calls.ai[1].openai_api_key, 'new-saved-openai');
+  assert.equal(h.sgState.phase, 'complete');
+});
+
+test('partial success remains saved while all-provider failure pauses only missing rows', async () => {
+  const h = harness({ count: 3, suggest: (params, n) => n === 1 ? {
+    all_providers_failed: true,
+    rows: params.rows.map((row, i) => i === 0 ? complete(row, i) : { ...row, row_index: i,
+      analysis_status: 'pending', all_providers_failed: true, confidence: null }),
+  } : { rows: params.rows.map(complete), key_status: { provider: 'openai', active_slot: 3, model: 'test-model' } } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgState.rows[0].analysis_status, 'complete');
+  const reopened = harness({ savedStorage: h.storage });
+  assert.equal(reopened.sgState.phase, 'paused');
+  assert.equal(reopened.sgState.rows[0].analysis_status, 'complete');
+  await h.sgDom.btnPause.click();
+  await run;
+  assert.deepEqual(h.calls.ai[1].rows.map(row => row.text), ['Câu 1', 'Câu 2']);
+  assert.equal(h.sgState.phase, 'complete');
+  assert.ok(h.sgState.rows.every(row => !row.all_providers_failed));
+});
+
+test('successful OpenAI preference survives restart for unfinished rows and reset clears it', async () => {
+  const h = harness({ count: 9, suggest: (params, n) => n === 1 ? {
+    rows: params.rows.map(complete), key_status: { provider: 'openai', active_slot: 3, model: 'test-model' },
+  } : { all_providers_failed: true, error: 'providers temporarily unavailable' } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.phase, 'paused');
+  const reopened = harness({ count: 9, savedStorage: h.storage });
+  assert.equal(reopened.sgState.preferredProvider, 'openai');
+  await reopened.sgDom.btnSuggest.click();
+  assert.equal(reopened.calls.ai[0].preferred_provider, 'openai');
+  assert.equal(reopened.calls.ai[0].rows.length, 1);
+  await h.sgDom.btnReset.click();
+  await run;
+  assert.equal(h.sgState.preferredProvider, '');
+});
+
 test('settings load old single-key data and persist the new backup across reloads', async () => {
   const h = harness();
   new vm.Script([
@@ -118,7 +192,7 @@ test('settings load old single-key data and persist the new backup across reload
     'settingCompHeight', 'settingCompFps', 'btnSaveSettings']) h.context.dom[name] = new Element();
   let saved = { geminiApiKey: 'primary-test-key' };
   h.context.window.api.getSettings = async () => saved;
-  h.context.window.api.saveSettings = async value => { saved = structuredClone(value); };
+  h.context.window.api.saveSettings = async value => { saved = structuredClone(value); return { success: true }; };
   h.context.addLog = () => {};
   h.context.loadTokenUsage = () => {};
   h.context.setTimeout = () => {};
@@ -165,6 +239,10 @@ test('live switch notices ignore canceled runs and show current model/key', () =
   assert.equal(h.extras['sg-routing-notice'].textContent, '');
   h.calls.pythonLog('[GeminiRun:current-run] [Gemini] model-b · Key 2');
   assert.match(h.extras['sg-routing-notice'].textContent, /model-b.*Key 2/);
+  h.calls.pythonLog('[GeminiRun:current-run] [OpenAI] test-model · Key 3');
+  assert.match(h.extras['sg-routing-notice'].textContent, /OpenAI.*Key 3/);
+  h.calls.pythonLog('[GeminiRun:old-run] [OpenAI] stale model');
+  assert.doesNotMatch(h.extras['sg-routing-notice'].textContent, /stale/);
 });
 
 test('all model/key quota exhaustion waits automatically and retries the same group', async () => {

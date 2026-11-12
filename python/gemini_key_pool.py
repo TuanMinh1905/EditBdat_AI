@@ -1,4 +1,4 @@
-"""Try Gemini models in priority order, trying both keys before the next model."""
+"""Try all priority Gemini models on Key 1, then the models on Key 2."""
 
 import hashlib
 import math
@@ -17,6 +17,7 @@ _PREFERRED = {}
 _COOLDOWNS = {}
 _ROUTES = {}
 _UNAVAILABLE = {}
+_SERVER_COOLDOWNS = {}
 DEFAULT_MODEL_PRIORITY = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3-flash-preview", "gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-2.5-flash-lite"]
 
 
@@ -55,6 +56,16 @@ def _model_config(config, model):
     for field in ("thinking_config", "temperature", "top_p", "top_k"):
         data.pop(field, None)
     return types.GenerateContentConfig(**data)
+
+
+def response_is_blocked(response):
+    """Recognize explicit refusal without treating an unspecified enum as one."""
+    feedback = getattr(getattr(response, 'prompt_feedback', None), 'block_reason', None)
+    blocked = str(getattr(feedback, 'value', feedback) or '').upper()
+    finish = [str(getattr(item, 'finish_reason', '')) for item in (getattr(response, 'candidates', None) or [])]
+    return blocked not in ('', '0', 'BLOCK_REASON_UNSPECIFIED', 'BLOCKED_REASON_UNSPECIFIED') or any(
+        value in ('SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII') or
+        value.rsplit('.', 1)[-1] in ('SAFETY', 'PROHIBITED_CONTENT', 'BLOCKLIST', 'SPII') for value in finish)
 
 
 def _configured_keys(api_keys):
@@ -142,6 +153,10 @@ class GeminiQuotaError(RuntimeError):
         self.retry_after_seconds = max(1, retry_after_seconds)
 
 
+class GeminiProviderError(RuntimeError):
+    """The enabled Gemini credentials cannot currently serve this request."""
+
+
 CONNECT_TIMEOUT_SECONDS = 20
 
 
@@ -157,9 +172,9 @@ class _FastConnectTransport(httpx.HTTPTransport):
 
 
 class GeminiKeyClient:
-    """Try models in priority order; each model tries both distinct keys."""
+    """Try all priority models on Key 1 before moving to Key 2."""
 
-    def __init__(self, api_keys, log=None, timeout_ms=120000, model_priority=None):
+    def __init__(self, api_keys, log=None, timeout_ms=120000, model_priority=None, server_failover=False):
         self._keys = _configured_keys(api_keys)
         if not self._keys:
             raise ValueError("Chưa có Gemini API Key. Vào Cài đặt để nhập key.")
@@ -170,6 +185,7 @@ class GeminiKeyClient:
         self.active_key = ""
         self.active_model = ""
         self._model_priority = model_priority
+        self._server_failover = server_failover
         self.models = self
 
     def _invoke(self, method, **kwargs):
@@ -178,12 +194,14 @@ class GeminiKeyClient:
         attempted = False
         with _LOCK:
             last_announced = _ROUTES.get((self._signature, tuple(chain)))
-        for model in chain:
-            now = time.monotonic()
+        for slot, key, key_id in self._keys:
             with _LOCK:
-                available = [entry for entry in self._keys if _COOLDOWNS.get((entry[2], model), 0) <= now
-                             and _UNAVAILABLE.get((entry[2], model), 0) <= now]
-            for slot, key, key_id in available:
+                if self._server_failover and _SERVER_COOLDOWNS.get(key_id, 0) > time.monotonic():
+                    continue
+            for model in chain:
+                with _LOCK:
+                    if _COOLDOWNS.get((key_id, model), 0) > time.monotonic() or _UNAVAILABLE.get((key_id, model), 0) > time.monotonic():
+                        continue
                 attempted = True
                 if last_announced != (model, key_id):
                     self._log(f"[Gemini] Đang chuyển sang {model} · Key {slot}.")
@@ -197,19 +215,49 @@ class GeminiKeyClient:
                             api_key=key, http_options=types.HttpOptions(
                                 timeout=self._timeout_ms,
                                 client_args={"transport": _FastConnectTransport()}))
-                    response = getattr(self._clients[key_id].models, method)(**payload)
+                    for transport_attempt in range(2 if self._server_failover else 1):
+                        try:
+                            response = getattr(self._clients[key_id].models, method)(**payload)
+                            break
+                        except Exception as transport_error:
+                            transient = isinstance(transport_error, (httpx.TransportError, TimeoutError, ConnectionError)) or getattr(transport_error, 'code', None) in (408, 500, 502, 503, 504)
+                            if not self._server_failover or not transient:
+                                raise
+                            if transport_attempt:
+                                with _LOCK:
+                                    _SERVER_COOLDOWNS[key_id] = time.monotonic() + 60
+                                raise GeminiProviderError(f"Gemini Key {slot} lỗi mạng/máy chủ sau một lần thử lại.") from None
+                            self._log(f"[Gemini] Key {slot} lỗi mạng/máy chủ; thử lại một lần trước khi chuyển key.")
+                            time.sleep(1)
                 except Exception as exc:
+                    if isinstance(exc, GeminiProviderError):
+                        self._log(f"[Gemini] Key {slot} chưa phục vụ được; chuyển key tiếp theo.")
+                        break
+                    if self._server_failover and getattr(exc, 'code', None) in (400, 401, 403, 404):
+                        with _LOCK:
+                            _UNAVAILABLE[(key_id, model)] = time.monotonic() + 900
+                        self._log(f"[Gemini] {model} · Key {slot} không dùng được (HTTP {exc.code}); thử lựa chọn tiếp theo.")
+                        continue
                     if len(chain) > 1 and getattr(exc, "code", None) in (403, 404):
                         with _LOCK:
                             _UNAVAILABLE[(key_id, model)] = time.monotonic() + 900
                         self._log(f"[Gemini] {model} · Key {slot} không khả dụng/không có quyền; chuyển lựa chọn tiếp theo.")
                         continue
                     if getattr(exc, "code", None) != 429:
+                        if self._server_failover:
+                            self._log(f'[Gemini] Key {slot} gặp lỗi và chưa trả được kết quả; thử key kế tiếp.')
+                            break
                         raise
                     with _LOCK:
                         _COOLDOWNS[(key_id, model)] = time.monotonic() + _retry_delay(exc)
                     self._log(f"[Gemini] {model} · Key {slot} chạm hạn mức; chuyển lựa chọn tiếp theo.")
                     continue
+                if self._server_failover and not getattr(response, 'text', None) and method == 'generate_content':
+                    if not response_is_blocked(response):
+                        with _LOCK:
+                            _UNAVAILABLE[(key_id, model)] = time.monotonic() + 60
+                        self._log(f'[Gemini] {model} · Key {slot} trả kết quả trống; thử lựa chọn tiếp theo.')
+                        continue
                 self.active_key, self.active_model = key, model
                 with _LOCK:
                     _PREFERRED[(self._signature, model)] = key_id
@@ -220,16 +268,16 @@ class GeminiKeyClient:
         status = get_key_status([key for _, key, _ in self._keys], model_priority=chain)
         retry_after = status["retry_after_seconds"] or 60
         if not status["all_limited"]:
-            raise RuntimeError("Không model/key nào trong danh sách có quyền sử dụng. Kiểm tra mã model và quyền API trong AI Studio.")
+            raise GeminiProviderError("Các key Gemini được bật hiện không thể phục vụ. Kiểm tra mạng, quyền API hoặc cấu hình model.")
         if attempted:
-            self._log(f"[Gemini] Tất cả model/key chạm hạn mức; chờ ít nhất {retry_after} giây để tự chạy tiếp.")
+            self._log(f"[Gemini] Tất cả model/key chạm hạn mức; thời gian chờ ít nhất {retry_after} giây.")
         raise GeminiQuotaError(
-            f"Các model/key đã cấu hình đều đang chạm hạn mức. Tự thử lại sau ít nhất {retry_after} giây.",
+            f"Các model/key đã cấu hình đều đang chạm hạn mức. Có thể thử lại sau ít nhất {retry_after} giây.",
             retry_after_seconds=retry_after
         ) from None
 
     def generate_content(self, **kwargs):
-        """Try each model's credentials before proceeding to the next model."""
+        """Try every model on each credential in configured key order."""
         return self._invoke("generate_content", **kwargs)
 
     def embed_content(self, **kwargs):

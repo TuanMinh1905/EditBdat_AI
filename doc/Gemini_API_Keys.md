@@ -1,21 +1,32 @@
-# Hai API key Gemini — 12/11/2026
+# API AI: Gemini Key 1/2 và OpenAI Key 3 — 13/11/2026
 
-Trong **Cài đặt → Google Gemini API**, nhập **API Key 1 — ưu tiên** và **API Key 2 — dự phòng**, rồi bấm **Lưu cài đặt**. Các key được lưu cùng cấu hình ứng dụng trên máy, không nằm trong CSV, snapshot phân tích hay repository. Cấu hình một key cũ vẫn dùng bình thường; có thể chỉ nhập Key 2.
+Trong **Cài đặt → API AI**, mỗi key có **Chỉnh sửa**, **Lưu**, hiện/ẩn và ô **Sử dụng**. Nhập rồi bấm **Lưu ngay cạnh ô key**. Khi hiện “Đã lưu”, key sẽ tự nạp lại sau khi đóng/mở app. Key đã lưu được khóa; bấm Chỉnh sửa để thay, hoặc lưu ô trống để gỡ. Bản đang nhập chưa lưu không được dùng gọi API. Lưu riêng chỉ cập nhật ô đó, giữ các ô khác đang sửa.
 
-Trong **Model ưu tiên**, đặt mã model theo thứ tự cao xuống thấp, cách nhau bằng dấu phẩy (tối đa 8 model). App chạy **A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2…**: chỉ sang model sau khi các key của model trước bị giới hạn hoặc không khả dụng. Key trùng bị bỏ qua. Mỗi cặp chạm quota nghỉ ít nhất 60 giây, hoặc lâu hơn theo RetryInfo/Retry-After. Khi quota lựa chọn ưu tiên phục hồi, app lại ưu tiên lựa chọn đó.
+Ô **Sử dụng** được lưu ngay, áp dụng từ yêu cầu AI kế tiếp và không xóa key. Yêu cầu đã gửi vẫn có thể hoàn tất. Có thể bật một key hoặc bất kỳ tổ hợp Key 1/2/3 nào. Cấu hình Gemini cũ mặc định bật Key 1/2; Key 3 mặc định tắt. Key nằm trong cấu hình ứng dụng trên máy, không nằm trong CSV, snapshot hay repository. Ghi thất bại thì app báo lỗi và giữ bản đang nhập.
 
-Theo ảnh quota user cung cấp ngày 12/11/2026, mặc định ưu tiên **Gemini 3.8 Flash → Gemini 3.6 Flash → Gemini 3 Flash → Gemini 2.5 Flash → Gemini 3.5 Flash-Lite → Gemini 3.1 Flash-Lite → Gemini 2.5 Flash-Lite**. Chọn các model có hạn mức lớn hơn 0, ưu tiên nhóm Flash rồi mới Flash-Lite; đây là thứ tự đề xuất, chưa kiểm chứng chất lượng trên bài user. Bỏ Gemini 2 Flash/Flash-Lite, 2.5 Pro, 3.1 Pro đang có hạn mức 0/0; không thêm Carbon/Argon ngoài ảnh.
+## Thứ tự dự phòng hiện hành
 
-Mã API tương ứng: `gemini-3.8-flash`, `gemini-3.6-flash`, `gemini-3-flash-preview`, `gemini-2.5-flash`, `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-2.5-flash-lite`. Có thể chỉnh trong Cài đặt rồi lưu trước lượt phân tích. Thông báo đổi model/key hiện trên thanh tiến độ và nhật ký, lọc theo lượt đang chạy để bỏ thông báo cũ sau Làm mới.
+**Thử hết model Gemini Key 1 → hết model Key 2 → OpenAI Key 3.** Ví dụ: A/Key 1 → B/Key 1 → A/Key 2 → B/Key 2 → OpenAI/Key 3. Bỏ qua key tắt, trống và key Gemini trùng. Đây là quyết định mới thay thứ tự model trước key ngày 12/11.
 
-Nếu mọi model/key chạm quota, **phân tích Source tự chờ rồi thử lại các dòng còn thiếu**, có đếm ngược. Pause/Continue/Làm mới vẫn hoạt động. Phần đã xong được giữ, kể cả quota hết trong lượt AI bổ sung. Đóng/mở lại app khôi phục tạm dừng, giữ thời điểm chờ; bấm Continue khi muốn tiếp tục.
+- Quota 429: bỏ qua cặp key/model ít nhất 60 giây, hoặc lâu hơn theo RetryInfo/Retry-After; thử model kế trên cùng key trước khi chuyển key.
+- Model/key không dùng được (HTTP 400/401/403/404): bỏ qua cặp đó tạm thời và thử lựa chọn kế. Có thể sửa key/model rồi lưu.
+- Mạng/timeout/server Gemini 408/500/502/503/504: thử lại **một lần** với cùng payload; vẫn lỗi thì sang key kế, không lặp mọi model trên server lỗi. Gemini chờ phản hồi tối đa 60 giây/lần, kết nối tối đa 20 giây.
+- Gemini được bật đều không thể xử lý: dùng OpenAI nếu Key 3 đã lưu và bật. OpenAI thành công thì tiếp tục bằng OpenAI đến hết lượt, kể cả Continue/khôi phục phiên. Tắt Key 3 hoặc OpenAI lỗi thì thử các key Gemini còn bật.
+- Tất cả key được bật đều lỗi: **Source tạm dừng, thông báo và giữ kết quả**, không tự gửi lại định kỳ. Kiểm tra/lưu cấu hình rồi **Continue**. Chỉ các dòng chưa xong được gửi lại. Tạo/preview/sửa timeline dừng và báo để chạy lại, giữ đầu vào.
+- Thông báo model/provider/key xuất hiện ngay trên tiến độ Source và nhật ký; bỏ thông báo của lượt đã Làm mới.
 
-Với nhiều model, HTTP 403/404 khiến cặp không có quyền/không khả dụng bị bỏ qua 15 phút và có thông báo. Mọi cặp đều không có quyền thì cần sửa key/model. Timeout, HTTP 400/503 và `MAX_TOKENS` không được coi là quota; tác vụ có thể retry riêng hoặc báo lỗi. `MAX_TOKENS` là giới hạn độ dài một phản hồi, khác quota API.
+MAX_TOKENS là giới hạn độ dài phản hồi, khác quota tài khoản. Gemini trống sẽ thử lựa chọn khác; phản hồi có nội dung vẫn qua kiểm tra JSON/mã và có thể yêu cầu bổ sung một lần. Lượt bổ sung lỗi giữ phần hợp lệ từ lượt đầu, không tự điền kết quả giả. OpenAI chưa hoàn tất/trả cấu trúc sai không được coi là thành công.
 
-Cơ chế dự phòng dùng cho phân tích Source, embedding ví dụ và các chức năng tạo/preview/sửa timeline Gemini. Trong phần thống kê, chọn **Key 1 / Key 2** để xem bộ đếm riêng. Token được ghi cho key thực sự trả phản hồi; bộ đếm chỉ phản ánh usage app nhận được, không phải quota còn lại trên Google. Reset bộ đếm không cấp thêm quota.
+## Model và phạm vi
 
-Hai key cùng Google Cloud project dùng chung quota. Hai Gmail có Google AI Pro không tự bảo đảm hạn mức API cao hơn: quyền lợi thuê bao AI Studio và Gemini API của ứng dụng ngoài được quản lý riêng. Kiểm tra project và quota thực tế của mỗi key trong AI Studio.
+Gemini mặc định theo ảnh quota ngày 12/11: gemini-3.8-flash, gemini-3.6-flash, gemini-3-flash-preview, gemini-2.5-flash, gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemini-2.5-flash-lite. Chọn model có quota >0 trong ảnh, ưu tiên Flash rồi Flash-Lite; chưa benchmark trên bài user. Có thể sửa tối đa 8 mã rồi **Lưu cài đặt**.
 
-Nguồn Google: [Models](https://ai.google.dev/gemini-api/docs/models), [Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), [Google AI plans — API usage](https://ai.google.dev/gemini-api/docs/google-ai-plans).
+OpenAI mặc định **gpt-6.1-sol**, reasoning medium, có ô model riêng để đổi rồi Lưu cài đặt. Dùng Responses API, store:false; Source dùng JSON schema nghiêm ngặt rồi qua bộ kiểm tra phân loại hiện có. Chưa xác nhận quyền truy cập/model/quota bằng Key 3 thực tế. Tài liệu: [GPT-6.1 Sol](https://developers.openai.com/api/docs/models/gpt-6.1-sol), [Structured Outputs](https://developers.openai.com/api/docs/guides/structured-outputs).
 
-Sau khi cập nhật, đóng hẳn rồi mở lại app để nạp main process/backend mới; không cần xóa phiên đang có. Sinh nội dung/quota được kiểm thử bằng mock. Đã thử đọc danh sách model bằng key lưu trong app nhưng gặp ConnectTimeout; Key 2 chưa được lưu lúc kiểm tra. Không gửi bài phân tích cho Google trong lần kiểm tra danh sách này.
+Dự phòng áp dụng cho **mọi chức năng sinh/phân tích nội dung AI**: Source và tạo/preview/sửa timeline. Kho ví dụ vẫn được dùng; Gemini embedding có timeout ngắn riêng, không gọi khi Gemini tắt hoặc lượt đã chuyển OpenAI. Không có embedding thì đối chiếu ví dụ theo từ khóa. Không trộn vector OpenAI vào kho Gemini.
+
+Thống kê có **Key 1 / Key 2 / OpenAI Key 3**, ghi usage cho key/model thực sự trả phản hồi. Reasoning OpenAI tách khỏi output để tránh đếm hai lần. Bộ đếm chỉ phản ánh usage app nhận được, không phải quota còn lại; Reset không cấp thêm quota.
+
+Hai key Gemini cùng Cloud project dùng chung quota. Google AI Pro và hạn mức Gemini API quản lý riêng. Nguồn: [Models](https://ai.google.dev/gemini-api/docs/models), [Rate limits](https://ai.google.dev/gemini-api/docs/rate-limits), [Google AI plans](https://ai.google.dev/gemini-api/docs/google-ai-plans).
+
+Sau cập nhật, **đóng hẳn rồi mở lại app** để nạp main/preload/backend mới. Phiên gần nhất vẫn giữ, không cần Làm mới. Điều phối/HTTP kiểm thử bằng mô phỏng, chưa gọi sinh nội dung thật bằng Gemini/OpenAI trong lần thay đổi này.

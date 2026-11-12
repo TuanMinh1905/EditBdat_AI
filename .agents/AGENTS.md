@@ -14,7 +14,7 @@
 | Frontend | HTML + Vanilla CSS + Vanilla JS | — | KHÔNG dùng framework (React, Vue...) |
 | Backend | Python | 3.13 | Chạy như child process của Electron |
 | Web server | Flask + waitress | Flask 3.1, waitress 3.0 | Chạy local tại `127.0.0.1:5599` |
-| AI API | Google Gemini | Danh sách ưu tiên trong Cài đặt | Qua `google-genai`; mặc định 7 model Flash/Flash-Lite có quota trong ảnh user |
+| AI API | Google Gemini + OpenAI Responses | Model chỉnh trong Cài đặt | `google-genai` + `httpx` sẵn có; hết model Key 1 → hết model Key 2 → OpenAI Key 3 (`gpt-6.1-sol`) |
 | Media analysis | FFprobe | 8.x | Đã cài sẵn trên máy |
 | After Effects | ExtendScript (.jsx) | AE 2021 | Path: `C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe` |
 | OS | Windows | 10/11 | Encoding mặc định là `cp1252`, cần xử lý UTF-8 |
@@ -41,7 +41,9 @@ Code_AI/
 │   ├── main.py                      # Flask API server (entry point, port 5599)
 │   ├── media_analyzer.py            # Phân tích media bằng FFprobe
 │   ├── gemini_client.py             # Gọi Gemini API
-│   ├── gemini_key_pool.py           # Model ưu tiên trước, thử hai key trước model tiếp theo
+│   ├── gemini_key_pool.py           # Thử hết model Key 1 rồi Key 2, quota/cooldown và retry mạng
+│   ├── ai_provider_router.py        # Dự phòng Gemini → OpenAI, giữ OpenAI trong lượt, lỗi hết lựa chọn có thể Continue
+│   ├── test_ai_provider_router.py   # Adapter Responses, thứ tự key/model và tích hợp API, không gọi thật
 │   ├── test_gemini_key_pool.py      # Kiểm thử quota/key dự phòng, không gọi API thật
 │   ├── timeline_validator.py        # Validate timeline JSON
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
@@ -326,6 +328,8 @@ try {
 
 Ngày 12/11/2026: user yêu cầu ưu tiên model trước key, tự chuyển A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2. Thay giới hạn model cố định bằng danh sách Cài đặt, thêm chờ quota tự tiếp tục và thông báo theo lượt chạy. Giữ nguyên tech stack Gemini/Electron/Flask.
 
+Ngày 13/11/2026: user đổi yêu cầu sang thử hết model Key 1 → hết model Key 2 → OpenAI Key 3, bật/tắt riêng từng key, lưu/chỉnh sửa tại mỗi ô. Cho phép thêm OpenAI Responses qua httpx sẵn có để dự phòng mọi tác vụ sinh/phân tích AI. OpenAI thành công thì dùng hết lượt; mọi key lỗi thì tạm dừng và thông báo, thay tự chờ quota. Lỗi server/mạng Gemini thử lại một lần rồi chuyển key. Quyết định này thay chính sách ngày 12/11 bên trên.
+
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-12 | Thêm quy tắc #15: đọc Rules + Summary đầu conversation, cập nhật Summary sau mỗi task và commit/push tài liệu bàn giao | Theo yêu cầu user để conversation sau tiếp tục đúng bối cảnh |
@@ -522,17 +526,22 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 ## 15. Phan loai Timeline bang AI (2026-11-11)
 
-- User chốt 12/11/2026 thay chính sách chỉ đổi key bằng `geminiModelPriority`/`model_priority`: A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2, tối đa 8 model. Cooldown theo cặp; bỏ qua 403/404 khi nhiều model, không coi timeout/503/MAX_TOKENS là quota. `quota_wait` + thời gian chờ phải đi nguyên vẹn qua HTTP/IPC để Source tự chờ/thử dòng thiếu, giữ phần hợp lệ khi AI bổ sung hết quota. Pause/Continue/Làm mới dùng được lúc chờ. Thông báo live `[GeminiRun:<run_id>]` lọc đúng lượt đang chạy; usage ghi model/key thực tế. Chi tiết `doc/Gemini_API_Keys.md`. Lý do đổi rule: user muốn tự chuyển model thay vì dừng sau khi hai key một model hết quota.
+- Hiện hành 13/11/2026: `AIProviderRouter` dùng hết model Gemini Key 1 → hết model Key 2 → OpenAI Key 3; chỉ key đã lưu và bật Sử dụng. OpenAI mặc định `gpt-6.1-sol`, chỉnh riêng trong Cài đặt; mọi tác vụ sinh/phân tích nội dung (Source/tạo/preview/sửa timeline) dùng cùng router. Đổi provider không đổi bộ kiểm tra mã/JSON hay tự điền kết quả. Không trộn OpenAI embedding vào kho Gemini; thiếu embedding dùng ví dụ theo từ khóa.
+- Mọi key được bật đều lỗi: HTTP/IPC phải giữ `all_providers_failed`, trạng thái paused và kết quả hợp lệ. Source tạm dừng, báo trên tiến độ/log, chờ Continue hoặc Làm mới; không tự thử lại. Các tác vụ timeline dừng/báo lỗi, giữ đầu vào. Continue đọc lại key/lựa chọn đã lưu; bản nhập chưa lưu không được dùng. Backend nhận cấu hình mới nhất từ main process trên từng request. Gemini cũ bật Key 1/2 mặc định, Key 3 mặc định tắt.
+- Lưu riêng key/ô Sử dụng qua IPC `save-api-key`, không gọi provider: merge đúng trường, ghi file tạm rồi rename và đọc kiểm tra. Chỉ báo Đã lưu sau thành công; giữ bản nhập khi lỗi. Ô Sử dụng lưu ngay; tác dụng từ request kế tiếp, không hủy request đã gửi. Key không nằm trong CSV/snapshot/log/tài liệu; `src/testApiKeySettings.js` dùng file tạm/credential giả.
+- OpenAI thành công phải giữ cho phần còn lại của lượt, cả Pause/Continue và khôi phục snapshot. Nếu tắt Key 3 hoặc Key 3 lỗi thì thử các Gemini còn bật. Thông báo `[Gemini]`/`[OpenAI]`/`[AI]` giữ tag `[GeminiRun:<run_id>]` và lọc đúng lượt để bỏ thông báo sau Làm mới. Usage ghi đúng key/model thực tế; reasoning OpenAI không cộng hai lần.
+- Quota theo cặp key/model, tôn trọng RetryInfo/Retry-After; model không khả dụng thử model kế trong cùng key. Gateway thử lỗi mạng/timeout/408/500/502/503/504 đúng một lần rồi chuyển key, không lặp toàn bộ model trên server lỗi. Gemini response timeout 60s, connect tối đa 20s; OpenAI response timeout 120s. Gemini embedding tùy chọn timeout 10s, không làm cooldown dịch vụ sinh nội dung. IPC tác vụ AI 900000ms để chứa bước dự phòng/bổ sung.
+- Lịch sử 12/11: từng ưu tiên model trước key và Source tự đếm ngược quota. Nhánh `quota_wait` còn tương thích phản hồi cũ; gateway hiện hành dùng tạm dừng khi hết mọi provider. Chi tiết `doc/Gemini_API_Keys.md`.
 
-- HTTP 503 khi phân tích: chờ 10 giây và thử lại một lần cùng model/payload/key; tối đa 2 lần gọi mỗi lượt phân tích/bổ sung, dùng chung giới hạn với retry TLS. Hết lượt báo model quá tải; giữ kết quả hợp lệ của lượt đầu nếu bổ sung thất bại.
+- Client trực tiếp cũ (ngoài gateway): HTTP 503 chờ 10s, TLS thử tối đa 3 lần với nghỉ 2s/4s. Gateway hiện hành tự xử lý retry một lần/key, không cộng retry trực tiếp này.
 
-- Cập nhật 2026-11-12: `httpx.ConnectTimeout` khi kết nối/bắt tay TLS được thử lại đúng một lần sau 1 giây với cùng payload; không đổi key vì lỗi mạng, không tự thử lại ReadTimeout. Nếu vẫn lỗi, báo kiểm tra mạng/VPN/proxy/tường lửa và giữ kết quả đã lưu. Kiểm thử bằng mock, không coi là xác nhận kết nối Gemini thật.
+- Các hành vi retry không đổi key do lỗi mạng trước ngày 13/11 là lịch sử, đã được thay bằng chính sách gateway bên trên. Kiểm thử AI dùng mock, không coi là xác nhận kết nối/quota/chất lượng thật.
 
 - Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
 - Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.
 - `sg_analysis` lưu cả file chọn chưa phân tích, bảng/chỉnh sửa/bối cảnh và phase. Khôi phục snapshot trực tiếp; phiên chạy dở chuyển paused, không tự gọi AI; nhóm chưa trả kết quả chuyển pending. Nạp phân loại dùng dữ liệu file, không lấy cache đè lên.
 - Mỗi request tối đa 8 dòng (giảm từ 32 sau lỗi timeout ngày 2026-11-12), kèm context_rows toàn bài và previous_rows để giữ ngữ cảnh đoạn/câu/ý và BGM. rules là snapshot cho request, không tự ghi đè file.
-- Gemini client của phân tích dùng `HttpOptions(timeout=120000)` (milliseconds); IPC phân tích có timeout riêng 600000ms để chờ cả lượt phân tích/bổ sung và truy xuất ví dụ. Khi request lỗi chỉ nhóm đang analyzing chuyển error; nhóm chưa gửi giữ pending. Lượt bổ sung lỗi phải giữ các dòng hợp lệ từ lượt đầu. Log phân biệt lượt gọi Gemini với timeout backend.
+- Khi request lỗi chỉ nhóm đang analyzing chuyển error; nhóm chưa gửi giữ pending. Với hết provider, nhóm chưa xong chuyển pending và phiên paused. Lượt bổ sung lỗi phải giữ các dòng hợp lệ từ lượt đầu. Log phân biệt lỗi provider với timeout backend; timeout hiện hành nêu ở gateway bên trên.
 - AI chon ma cu the tu 5 bang; element ho tro nhieu ma ghep bang +. needs_review=true danh dau dong lam thu cong: de trong cac lua chon va to vang.
 - Kiem tra tung row_index, trung/thiếu dong, ma phan loai, confidence va reason; yeu cau bo sung mot lan. Loi con lai giu trong, analysis_status=error; khong gia lap ket qua AI.
 - UI luu ket qua theo noi dung CSV, giu nhom da xong khi request sau loi. Chay tiep chi gui dong chua xong. Khong xuat CSV khi con dong pending/analyzing/error; khong hoc tu dong manual/error.

@@ -40,6 +40,7 @@ class SuggesterTests(unittest.TestCase):
         gemini_key_pool._COOLDOWNS.clear()
         gemini_key_pool._ROUTES.clear()
         gemini_key_pool._UNAVAILABLE.clear()
+        gemini_key_pool._SERVER_COOLDOWNS.clear()
         patch.object(gemini_key_pool.genai, 'Client', return_value=SimpleNamespace(models=self.model)).start()
         patch.object(module, 'record_usage').start()
 
@@ -342,7 +343,7 @@ class SuggesterTests(unittest.TestCase):
         self.assertIn('Quy tắc tạm cho lượt này', prompt)
         self.assertEqual(Path(self.s.rules_path).read_text(encoding='utf-8'), original)
 
-    def test_api_quota_error_exposes_wait_metadata(self):
+    def test_api_quota_error_pauses_when_all_enabled_providers_are_exhausted(self):
         from google.genai.errors import ClientError
         with patch.object(SourceSuggester, '__init__', return_value=None):
             backend = importlib.import_module('main')
@@ -351,9 +352,10 @@ class SuggesterTests(unittest.TestCase):
             response = backend.app.test_client().post('/api/source-suggester/suggest', json={
                 'api_key': 'test-key', 'api_keys': ['test-key', 'backup-key'], 'rows': self.rows(1),
                 'model_priority': ['model-a', 'model-b']})
-        self.assertEqual(response.status_code, 429)
-        self.assertTrue(response.json['quota_wait'])
-        self.assertGreaterEqual(response.json['retry_after_seconds'], 60)
+        self.assertEqual(response.status_code, 503)
+        self.assertTrue(response.json['all_providers_failed'])
+        self.assertTrue(response.json['key_status']['paused'])
+        self.assertFalse(response.json['quota_wait'])
 
     def test_api_partial_quota_reply_keeps_completed_rows(self):
         from google.genai.errors import ClientError
@@ -366,8 +368,54 @@ class SuggesterTests(unittest.TestCase):
                 'api_key': 'test-key', 'api_keys': ['test-key', 'backup-key'], 'rows': self.rows(2),
                 'model_priority': ['model-a', 'model-b']})
         self.assertEqual(response.status_code, 200)
-        self.assertTrue(response.json['quota_wait'])
+        self.assertTrue(response.json['all_providers_failed'])
+        self.assertFalse(response.json['quota_wait'])
         self.assertEqual([row['analysis_status'] for row in response.json['rows']], ['complete', 'pending'])
+
+    def test_openai_only_source_uses_existing_validator_context_and_actual_usage(self):
+        import ai_provider_router
+        payload = {'status': 'completed', 'output': [{'type': 'message', 'content': [
+            {'type': 'output_text', 'text': json.dumps({'rows': [self.choice(0)]})}]}],
+            'usage': {'input_tokens': 90, 'output_tokens': 20, 'total_tokens': 110}}
+        with patch.object(ai_provider_router.httpx, 'post', return_value=Mock(status_code=200, json=lambda: payload)) as post:
+            result = self.s.suggest_from_timeline(self.rows(1), '', api_keys=['', ''],
+                ai_config={'openai_api_key': 'fake-openai-key'}, context_rows=self.rows(4),
+                previous_rows=[{'text': 'Dòng trước', 'bgm': 'bgm_default'}], rules_text='Giữ quy tắc test')
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(result[0]['loai_source'], 'rai_1_3')
+        prompt = post.call_args.kwargs['json']['input']
+        for text in ['Câu thứ 3 về Xavi.', 'Dòng trước', 'Giữ quy tắc test']:
+            self.assertIn(text, prompt)
+        self.assertEqual(module.record_usage.call_args.args[0], 'fake-openai-key')
+        self.assertEqual(module.record_usage.call_args.kwargs['model'], 'gpt-6.1-sol')
+        gemini_key_pool.genai.Client.assert_not_called()
+
+    def test_openai_failed_repair_keeps_valid_rows_and_pauses_only_missing(self):
+        import ai_provider_router
+        payload = {'status': 'completed', 'output': [{'type': 'message', 'content': [
+            {'type': 'output_text', 'text': json.dumps({'rows': [self.choice(0)]})}]}]}
+        with patch.object(ai_provider_router.httpx, 'post', side_effect=[
+                Mock(status_code=200, json=lambda: payload), httpx.ReadTimeout('fake read timeout')]):
+            result = self.s.suggest_from_timeline(self.rows(2), '', api_keys=['', ''],
+                ai_config={'openai_api_key': 'fake-openai-key'})
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(result[1]['analysis_status'], 'pending')
+        self.assertEqual(result[1]['loai_source'], '')
+        self.assertTrue(result[1]['all_providers_failed'])
+        self.assertFalse(result[1]['needs_review'])
+
+    def test_unchecked_keys_cannot_be_used_through_source_api(self):
+        import ai_provider_router
+        with patch.object(SourceSuggester, '__init__', return_value=None):
+            backend = importlib.import_module('main')
+        with patch.object(backend, 'source_suggester', self.s), patch.object(ai_provider_router.httpx, 'post') as post:
+            response = backend.app.test_client().post('/api/source-suggester/suggest', json={
+                'api_keys': ['fake-gemini-one', 'fake-gemini-two'], 'openai_api_key': 'fake-openai-key',
+                'key_enabled': [False, False, False], 'rows': self.rows(1)})
+        self.assertEqual(response.status_code, 503)
+        self.assertTrue(response.json['all_providers_failed'])
+        gemini_key_pool.genai.Client.assert_not_called()
+        post.assert_not_called()
 
     def test_invalid_export_does_not_truncate_existing_file(self):
         path = self.root / 'existing.csv'

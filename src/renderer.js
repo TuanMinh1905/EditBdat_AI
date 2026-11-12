@@ -7,7 +7,8 @@ const state = {
   mediaFiles: [],      // Array of { path, name, ext, type, size, metadata }
   isGenerating: false,
   backendReady: false,
-  settings: {}
+  settings: {},
+  apiKeyEditors: {}
 };
 
 // --- DOM Elements ---
@@ -63,6 +64,21 @@ const dom = {
   // Settings
   settingApiKey: $('#setting-api-key'),
   settingApiKeyBackup: $('#setting-api-key-backup'),
+  settingOpenaiApiKey: $('#setting-openai-api-key'),
+  settingOpenaiModel: $('#setting-openai-model'),
+  key1Enabled: $('#setting-key-1-enabled'),
+  key2Enabled: $('#setting-key-2-enabled'),
+  key3Enabled: $('#setting-key-3-enabled'),
+  btnEditOpenaiKey: $('#btn-edit-openai-key'),
+  btnSaveOpenaiKey: $('#btn-save-openai-key'),
+  btnToggleOpenaiKey: $('#btn-toggle-openai-key'),
+  openaiKeySaveStatus: $('#openai-key-save-status'),
+  btnEditApiKey: $('#btn-edit-api-key'),
+  btnSaveApiKey: $('#btn-save-api-key'),
+  apiKeySaveStatus: $('#api-key-save-status'),
+  btnEditApiKeyBackup: $('#btn-edit-api-key-backup'),
+  btnSaveApiKeyBackup: $('#btn-save-api-key-backup'),
+  apiKeyBackupSaveStatus: $('#api-key-backup-save-status'),
   btnToggleKeyBackup: $('#btn-toggle-key-backup'),
   tokenKeySelect: $('#token-key-select'),
   geminiKeyStatus: $('#gemini-key-status'),
@@ -649,11 +665,142 @@ async function previewTimeline() {
 // --- Settings ---
 
 function getGeminiApiKeys() {
+  return getSavedApiKeys().slice(0, 2).map((key, i) => isApiKeyEnabled(i + 1) ? key : '');
+}
+
+function getSavedApiKeys() {
   const settings = state.settings || {};
-  return [
-    (dom.settingApiKey && dom.settingApiKey.value.trim()) || settings.geminiApiKey || '',
-    (dom.settingApiKeyBackup && dom.settingApiKeyBackup.value.trim()) || settings.geminiApiKeyBackup || ''
-  ];
+  // Drafts stay in the input until a local save has succeeded.
+  return ['geminiApiKey', 'geminiApiKeyBackup', 'openaiApiKey'].map(field => String(settings[field] || '').trim());
+}
+
+function isApiKeyEnabled(slot) {
+  const field = ['geminiKey1Enabled', 'geminiKey2Enabled', 'openaiKey3Enabled'][slot - 1];
+  const value = (state.settings || {})[field];
+  return value === undefined ? slot !== 3 : value === true;
+}
+
+function getOpenaiConfig() {
+  const model = (dom.settingOpenaiModel && dom.settingOpenaiModel.value.trim()) || (state.settings || {}).openaiModel || 'gpt-6.1-sol';
+  return { api_key: isApiKeyEnabled(3) ? getSavedApiKeys()[2] : '', model };
+}
+
+function getAiRequestConfig() {
+  const openai = getOpenaiConfig();
+  const apiKeys = getGeminiApiKeys();
+  return { api_key: apiKeys.find(Boolean) || '', api_keys: apiKeys,
+    key_enabled: [1, 2, 3].map(isApiKeyEnabled), openai_api_key: openai.api_key,
+    openai_model: openai.model, model_priority: getGeminiModelPriority() };
+}
+
+function apiKeyControls(slot) {
+  return slot === 1 ? { input: dom.settingApiKey, edit: dom.btnEditApiKey, save: dom.btnSaveApiKey, status: dom.apiKeySaveStatus, enabled: dom.key1Enabled } :
+    slot === 2 ? { input: dom.settingApiKeyBackup, edit: dom.btnEditApiKeyBackup, save: dom.btnSaveApiKeyBackup, status: dom.apiKeyBackupSaveStatus, enabled: dom.key2Enabled } :
+    { input: dom.settingOpenaiApiKey, edit: dom.btnEditOpenaiKey, save: dom.btnSaveOpenaiKey, status: dom.openaiKeySaveStatus, enabled: dom.key3Enabled };
+}
+
+function renderApiKeyEditor(slot) {
+  const row = apiKeyControls(slot);
+  const editor = state.apiKeyEditors && state.apiKeyEditors[slot];
+  if (!row.input || !editor) return;
+  const saved = getSavedApiKeys()[slot - 1];
+  const changed = row.input.value.trim() !== saved;
+  row.input.readOnly = editor.saving || !editor.editing;
+  if (row.enabled) row.enabled.disabled = editor.saving;
+  if (row.edit) row.edit.disabled = editor.saving || editor.editing || !saved;
+  if (row.save) {
+    row.save.disabled = editor.saving || !editor.editing || !changed;
+    row.save.textContent = editor.saving ? 'Đang lưu…' : '💾 Lưu';
+  }
+  if (row.status) {
+    const type = editor.error ? 'error' : editor.saving || (editor.editing && changed) ? 'pending' : saved ? 'saved' : 'empty';
+    row.status.setAttribute('data-state', type);
+    row.status.textContent = editor.error || (editor.saving ? 'Đang lưu vào máy…' :
+      editor.editing && changed ? (row.input.value.trim() ? 'Chưa lưu — bấm Lưu ở cạnh ô này.' : 'Chưa lưu — lưu ô trống sẽ gỡ key này.') :
+      editor.editing && saved ? 'Đang chỉnh sửa. App vẫn dùng key đã lưu cho đến khi bạn bấm Lưu.' :
+      saved ? (isApiKeyEnabled(slot) ? '🔒 Đã lưu · tự nạp lại khi mở app.' : '🔒 Đã lưu · đang tắt sử dụng key này.') : 'Chưa có key — nhập key rồi bấm Lưu.');
+  }
+  if (dom.btnSaveSettings) dom.btnSaveSettings.disabled = Object.values(state.apiKeyEditors).some(item => item.saving);
+}
+
+function initApiKeyEditors() {
+  state.apiKeyEditors = state.apiKeyEditors || {};
+  for (const slot of [1, 2, 3]) {
+    const row = apiKeyControls(slot);
+    if (!row.input) continue;
+    const editor = state.apiKeyEditors[slot] || (state.apiKeyEditors[slot] = {});
+    const saved = getSavedApiKeys()[slot - 1];
+    Object.assign(editor, { editing: !saved, saving: false, error: '' });
+    row.input.value = saved;
+    row.input.type = 'password';
+    if (row.enabled) row.enabled.checked = isApiKeyEnabled(slot);
+    if (!editor.bound) {
+      row.input.addEventListener?.('input', () => { editor.error = ''; renderApiKeyEditor(slot); });
+      row.edit?.addEventListener('click', () => {
+        editor.editing = true;
+        editor.error = '';
+        renderApiKeyEditor(slot);
+        row.input.focus();
+      });
+      row.save?.addEventListener('click', () => saveApiKey(slot));
+      row.enabled?.addEventListener('change', () => saveApiKeyUsage(slot));
+      editor.bound = true;
+    }
+    renderApiKeyEditor(slot);
+  }
+}
+
+async function saveApiKey(slot) {
+  const row = apiKeyControls(slot);
+  const editor = state.apiKeyEditors && state.apiKeyEditors[slot];
+  if (!row.input || !editor || editor.saving || !editor.editing) return;
+  const value = row.input.value.trim();
+  const field = ['geminiApiKey', 'geminiApiKeyBackup', 'openaiApiKey'][slot - 1];
+  editor.saving = true;
+  editor.error = '';
+  renderApiKeyEditor(slot);
+  try {
+    const result = await window.api.saveApiKey({ slot, value });
+    if (!result || !result.success) throw new Error('Key save failed');
+    const persisted = await window.api.getSettings();
+    if (persisted[field] !== value) throw new Error('Key save verification failed');
+    state.settings = { ...state.settings, [field]: value };
+    row.input.value = value;
+    row.input.type = 'password';
+    editor.editing = !value;
+    addLog(`Đã lưu API Key ${slot} vào máy.`, 'success');
+    loadTokenUsage();
+  } catch (err) {
+    editor.error = 'Không lưu được key. Ô đang nhập được giữ; kiểm tra quyền ghi rồi bấm Lưu lại.';
+    addLog(`Không lưu được API Key ${slot}.`, 'error');
+  } finally {
+    editor.saving = false;
+    renderApiKeyEditor(slot);
+  }
+}
+
+async function saveApiKeyUsage(slot) {
+  const row = apiKeyControls(slot), editor = state.apiKeyEditors && state.apiKeyEditors[slot];
+  if (!row.enabled || !editor || editor.saving) return;
+  const enabled = row.enabled.checked;
+  const field = ['geminiKey1Enabled', 'geminiKey2Enabled', 'openaiKey3Enabled'][slot - 1];
+  editor.saving = true;
+  editor.error = '';
+  renderApiKeyEditor(slot);
+  try {
+    const result = await window.api.saveApiKey({ slot, enabled });
+    if (!result || !result.success) throw new Error('Key usage save failed');
+    const persisted = await window.api.getSettings();
+    if (persisted[field] !== enabled) throw new Error('Key usage verification failed');
+    state.settings = { ...state.settings, [field]: enabled };
+  } catch (err) {
+    row.enabled.checked = isApiKeyEnabled(slot);
+    editor.error = 'Không lưu được lựa chọn Sử dụng. Hãy thử lại.';
+  } finally {
+    editor.saving = false;
+    renderApiKeyEditor(slot);
+    loadTokenUsage();
+  }
 }
 
 function getGeminiModelPriority() {
@@ -664,7 +811,7 @@ function getGeminiModelPriority() {
 }
 
 function getTokenApiKey() {
-  const keys = getGeminiApiKeys();
+  const keys = getSavedApiKeys();
   const select = dom.tokenKeySelect;
   let index = Number(select ? select.value : 0);
   if (!keys[index]) index = keys.findIndex(Boolean);
@@ -682,9 +829,10 @@ function renderGeminiKeyStatus(status, logger) {
   const keys = status.keys || [];
   if (dom.geminiKeyStatus) {
     const allLimited = status.all_limited ?? (keys.length && keys.every(key => key.state === 'cooldown'));
-    const summary = allLimited ? 'Các model/key đều chạm hạn mức; chờ quota để tự chạy tiếp.' :
-      status.active_slot ? `Đang dùng Key ${status.active_slot} · ${status.model}.` :
-      keys.length ? 'Ưu tiên model trước, rồi Key 1 → Key 2; tự chuyển khi API báo 429.' : 'Chưa nhập API key.';
+    const summary = status.paused ? 'Đã tạm dừng vì các key được bật chưa thể xử lý. Kiểm tra Cài đặt rồi bấm Continue.' :
+      status.active_slot ? `Đang dùng ${status.provider === 'openai' ? 'OpenAI' : 'Gemini'} Key ${status.active_slot} · ${status.model}.` :
+      allLimited ? 'Các model Gemini đang chạm hạn mức. OpenAI chỉ được dùng khi bật Sử dụng Key 3.' :
+      'Thử hết model Key 1 → hết model Key 2 → OpenAI Key 3; bỏ qua key đang tắt.';
     const waiting = keys.filter(key => key.retry_after_seconds > 0).map(key => `Key ${key.slot}: chờ ít nhất ${key.retry_after_seconds}s`);
     dom.geminiKeyStatus.textContent = [summary, ...waiting].join(' ');
   }
@@ -702,6 +850,9 @@ async function loadSettings() {
   state.settings = await window.api.getSettings();
   dom.settingApiKey.value = state.settings.geminiApiKey || '';
   if (dom.settingApiKeyBackup) dom.settingApiKeyBackup.value = state.settings.geminiApiKeyBackup || '';
+  if (dom.settingOpenaiApiKey) dom.settingOpenaiApiKey.value = state.settings.openaiApiKey || '';
+  if (dom.settingOpenaiModel) dom.settingOpenaiModel.value = state.settings.openaiModel || 'gpt-6.1-sol';
+  initApiKeyEditors();
   if (dom.settingModelPriority) {
     dom.settingModelPriority.value = '';
     dom.settingModelPriority.value = getGeminiModelPriority().join(', ');
@@ -727,7 +878,7 @@ function renderTokenUsage(usage) {
     if (dom.tokenStatIo) dom.tokenStatIo.textContent = '0 / 0';
     if (dom.tokenStatRequests) dom.tokenStatRequests.textContent = '0';
     if (dom.tokenLastCall) {
-      dom.tokenLastCall.textContent = 'Nhập Gemini API Key để xem thống kê token của key đó trong App.';
+      dom.tokenLastCall.textContent = 'Lưu API Key để xem thống kê token của key đó trong app.';
     }
     return;
   }
@@ -752,12 +903,12 @@ function renderTokenUsage(usage) {
         create_timeline: 'Tạo Timeline',
         fix_timeline: 'Fix Timeline'
       };
-      const featName = featMap[lc.feature] || lc.feature || 'Gemini API';
+      const featName = featMap[lc.feature] || lc.feature || 'AI API';
       dom.tokenLastCall.textContent =
         `Gần nhất (${lc.timestamp} · ${featName}): ${formatTokenNum(lc.total_tokens)} tokens ` +
         `(In ${formatTokenNum(lc.prompt_tokens)} · Out ${formatTokenNum(lc.output_tokens)} · Think ${formatTokenNum(lc.thoughts_tokens)})`;
     } else {
-      dom.tokenLastCall.textContent = 'Chưa có lượt gọi Gemini API nào được ghi nhận cho key này.';
+      dom.tokenLastCall.textContent = 'Chưa có lượt gọi AI nào được ghi nhận cho key này.';
     }
   }
 }
@@ -766,7 +917,7 @@ async function loadTokenUsage() {
   if (!window.api || !window.api.getTokenUsage) return;
   try {
     const apiKey = getTokenApiKey();
-    const res = await window.api.getTokenUsage({ api_key: apiKey, api_keys: getGeminiApiKeys(), model_priority: getGeminiModelPriority() });
+    const res = await window.api.getTokenUsage({ ...getAiRequestConfig(), api_key: apiKey });
     if (res && res.success) {
       renderTokenUsage(res.usage);
       renderGeminiKeyStatus(res.key_status);
@@ -799,6 +950,7 @@ async function resetTokenUsage() {
 }
 
 async function saveSettings() {
+  if (Object.values(state.apiKeyEditors || {}).some(editor => editor.saving)) return;
   const ok = await askConfirm('Bạn có muốn lưu các thay đổi trong Cài đặt không?', {
     title: '⚙️ Xác nhận lưu Cài đặt',
     confirmText: 'Có, lưu cài đặt'
@@ -810,9 +962,19 @@ async function saveSettings() {
     addLog('Danh sách model không hợp lệ. Nhập tối đa 8 mã model API, cách nhau bằng dấu phẩy.', 'error');
     return;
   }
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(getOpenaiConfig().model)) {
+    addLog('Mã model OpenAI không hợp lệ.', 'error');
+    return;
+  }
   const settings = {
+    ...state.settings,
     geminiApiKey: dom.settingApiKey.value.trim(),
     geminiApiKeyBackup: dom.settingApiKeyBackup ? dom.settingApiKeyBackup.value.trim() : '',
+    openaiApiKey: dom.settingOpenaiApiKey ? dom.settingOpenaiApiKey.value.trim() : (state.settings.openaiApiKey || ''),
+    geminiKey1Enabled: isApiKeyEnabled(1),
+    geminiKey2Enabled: isApiKeyEnabled(2),
+    openaiKey3Enabled: isApiKeyEnabled(3),
+    openaiModel: getOpenaiConfig().model,
     geminiModelPriority: modelPriority,
     afterEffectsPath: dom.settingAePath.value.trim(),
     outputDir: dom.settingOutputDir.value.trim(),
@@ -820,8 +982,16 @@ async function saveSettings() {
     compHeight: parseInt(dom.settingCompHeight.value) || 1080,
     compFps: parseInt(dom.settingCompFps.value) || 30
   };
-  await window.api.saveSettings(settings);
+  try {
+    const result = await window.api.saveSettings(settings);
+    if (!result || !result.success) throw new Error('Settings save failed');
+  } catch (err) {
+    addLog('Không lưu được cài đặt. Dữ liệu đang nhập được giữ; hãy thử lại.', 'error');
+    dom.btnSaveSettings.textContent = '❌ Lưu thất bại — thử lại';
+    return;
+  }
   state.settings = settings;
+  initApiKeyEditors();
   addLog('Đã lưu cài đặt', 'success');
   loadTokenUsage();
 
@@ -979,6 +1149,10 @@ function initEvents() {
   });
   if (dom.btnToggleKeyBackup) dom.btnToggleKeyBackup.addEventListener('click', () => {
     const input = dom.settingApiKeyBackup;
+    input.type = input.type === 'password' ? 'text' : 'password';
+  });
+  if (dom.btnToggleOpenaiKey) dom.btnToggleOpenaiKey.addEventListener('click', () => {
+    const input = dom.settingOpenaiApiKey;
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 
@@ -3516,7 +3690,7 @@ function initSourceSuggester() {
 
   function saveAnalysis() {
     try {
-      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows, phase: sgState.phase, quotaWaitUntil: sgState.quotaWaitUntil || 0, defaultThoiKy: sgState.defaultThoiKy, savedAt: new Date().toISOString() }));
+      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows, phase: sgState.phase, preferredProvider: sgState.preferredProvider || '', quotaWaitUntil: sgState.quotaWaitUntil || 0, defaultThoiKy: sgState.defaultThoiKy, savedAt: new Date().toISOString() }));
     } catch (err) { sgLog(`Không lưu được phiên phân tích: ${err.message}`, 'warn'); }
   }
 
@@ -3530,6 +3704,7 @@ function initSourceSuggester() {
       sgState.phase = ['running', 'pausing', 'paused', 'loading', 'waiting_quota'].includes(saved.phase) ? 'paused' : (saved.phase || 'idle');
       sgState.quotaWaitUntil = Number(saved.quotaWaitUntil) || 0;
       sgState.paused = sgState.phase === 'paused';
+      sgState.preferredProvider = saved.preferredProvider === 'openai' ? 'openai' : '';
       if (typeof saved.defaultThoiKy === 'string') sgState.defaultThoiKy = saved.defaultThoiKy;
       if (sgDom.timelineCsv) sgDom.timelineCsv.value = sgState.csvPath;
       renderTable();
@@ -3901,6 +4076,7 @@ function initSourceSuggester() {
       if (generation !== sgState.generation) return;
       if (res.error) throw new Error(res.error);
       sgState.csvPath = csvPath;
+      sgState.preferredProvider = '';
       localStorage.setItem('sg_timeline_csv', csvPath);
       if (sgDom.timelineCsv) sgDom.timelineCsv.value = csvPath;
 
@@ -3929,6 +4105,7 @@ function initSourceSuggester() {
           if (saved && saved.schema_version !== '2') localStorage.setItem('sg_analysis_v1_backup', JSON.stringify(saved));
           if (saved && saved.schema_version === '2' && saved.csvPath === csvPath && signature(saved.rows) === signature(sgState.rows)) {
             sgState.rows = saved.rows.map(r => ({ ...r, analysis_status: r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status }));
+            sgState.preferredProvider = saved.preferredProvider === 'openai' ? 'openai' : '';
           }
         } catch (err) { /* A stale cache never replaces the selected CSV. */ }
       }
@@ -4468,6 +4645,7 @@ function initSourceSuggester() {
       sgState.generation = (sgState.generation || 0) + 1;
       sgState.csvPath = filePath;
       sgState.rows = [];
+      sgState.preferredProvider = '';
       sgState.phase = 'selected';
       sgState.quotaWaitUntil = 0;
       sgState.paused = false;
@@ -4503,7 +4681,7 @@ function initSourceSuggester() {
     sgState.generation = (sgState.generation || 0) + 1;
     if (sgState.resumeWaiter) sgState.resumeWaiter();
     if (sgState.quotaWake) sgState.quotaWake();
-    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, resumeWaiter: null, defaultThoiKy: '' });
+    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, resumeWaiter: null, defaultThoiKy: '', preferredProvider: '' });
     sgState.quotaWaitUntil = 0;
     sgState.runId = '';
     const notice = $('#sg-routing-notice');
@@ -4569,11 +4747,9 @@ function initSourceSuggester() {
         return;
       }
 
-      const apiKeys = getGeminiApiKeys();
-      const modelPriority = getGeminiModelPriority();
-      const apiKey = apiKeys.find(Boolean) || '';
-      if (!apiKey) {
-        sgLog('Chưa có Gemini API Key! Vui lòng vào tab Cài đặt để nhập API Key.', 'error');
+      const initialAuth = getAiRequestConfig();
+      if (!initialAuth.api_key && !initialAuth.openai_api_key) {
+        sgLog('Chưa có API Key đã lưu được bật Sử dụng. Vào Cài đặt để nhập, lưu và chọn key.', 'error');
         return;
       }
 
@@ -4585,6 +4761,7 @@ function initSourceSuggester() {
         });
         if (!ok) return;
         indices = sgState.rows.map((_, i) => i);
+        sgState.preferredProvider = '';
       }
       if (!indices.length || generation !== sgState.generation) return;
 
@@ -4631,12 +4808,13 @@ function initSourceSuggester() {
               rows: pendingBatch.map(i => sgState.rows[i]),
               context_rows: contextRows,
               previous_rows: sgState.rows.slice(Math.max(0, pendingBatch[0] - 4), pendingBatch[0]),
-              csv_path: sgState.csvPath, api_key: apiKey, api_keys: apiKeys, model_priority: modelPriority, run_id: sgState.runId, default_thoi_ky: defTk, rules: rulesText
+              ...getAiRequestConfig(), csv_path: sgState.csvPath, run_id: sgState.runId, preferred_provider: sgState.preferredProvider || '', default_thoi_ky: defTk, rules: rulesText
             });
             if (generation !== sgState.generation) return;
             renderGeminiKeyStatus(res.key_status, sgLog);
-            if (res.error && !res.quota_wait) throw new Error(res.error);
-            if (res.quota_wait && res.error) {
+            if (!res.error && res.key_status && res.key_status.active_slot) sgState.preferredProvider = res.key_status.provider || '';
+            if (res.error && !res.quota_wait && !res.all_providers_failed) throw new Error(res.error);
+            if ((res.quota_wait || res.all_providers_failed) && res.error) {
               for (const i of pendingBatch) Object.assign(sgState.rows[i], { analysis_status: 'pending', needs_review: false, confidence: null });
             } else {
               if (!Array.isArray(res.rows) || res.rows.length !== pendingBatch.length ||
@@ -4646,14 +4824,29 @@ function initSourceSuggester() {
               res.rows.forEach((r, localIndex) => {
                 const i = pendingBatch[localIndex];
                 sgState.rows[i] = { ...sgState.rows[i], ...r, row_index: i };
-                if (!isUnanalyzed(sgState.rows[i])) delete sgState.rows[i].quota_retry_after_seconds;
+                if (!isUnanalyzed(sgState.rows[i])) {
+                  delete sgState.rows[i].quota_retry_after_seconds;
+                  delete sgState.rows[i].all_providers_failed;
+                }
               });
             }
             saveAnalysis();
             renderTable();
-            if (!res.quota_wait) break;
+            if (!res.quota_wait && !res.all_providers_failed) break;
             pendingBatch = pendingBatch.filter(i => isUnanalyzed(sgState.rows[i]));
             if (!pendingBatch.length) break;
+            if (res.all_providers_failed) {
+              sgState.paused = true;
+              sgState.phase = 'paused';
+              const message = res.error || 'Các key được bật đều chưa thể xử lý. Đã giữ kết quả; kiểm tra Cài đặt rồi bấm Continue.';
+              sgLog(message, 'warn');
+              const notice = $('#sg-routing-notice');
+              if (notice) { notice.hidden = false; notice.textContent = message; }
+              saveAnalysis(); updateRunControls();
+              await new Promise(resolve => { sgState.resumeWaiter = resolve; });
+              if (generation !== sgState.generation) return;
+              continue;
+            }
             sgLog('Mọi model/key hiện đều chạm hạn mức. App giữ kết quả và chờ để tự chạy tiếp.', 'warn');
             if (!await waitForQuota(res.retry_after_seconds, generation)) return;
           }
@@ -4704,14 +4897,12 @@ function initSourceSuggester() {
       });
       if (!ok) return;
 
-      const apiKeys = getGeminiApiKeys();
-      const apiKey = apiKeys.find(Boolean) || '';
       sgDom.btnLearn.disabled = true;
-      sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ và tạo vector Gemini Embedding...`, 'info');
+      sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ...`, 'info');
       try {
         const res = await window.api.suggesterSaveExamples({
           items: learnRows,
-          api_key: apiKey, api_keys: apiKeys
+          ...getAiRequestConfig()
         });
         if (res.error) throw new Error(res.error);
         sgState.examples = res.examples || [];
@@ -4781,10 +4972,10 @@ function initSourceSuggester() {
     });
   }
 
-  // Live Gemini routing notifications
+  // Live provider routing notifications scoped to the active run.
   window.api.onPythonLog?.(message => {
     if (!sgState.isSuggesting) return;
-    for (const line of String(message).split('\n').filter(line => line.includes('[Gemini]'))) {
+    for (const line of String(message).split('\n').filter(line => /\[(Gemini|OpenAI|AI)\]/.test(line))) {
       const tag = line.match(/\[GeminiRun:([A-Za-z0-9-]+)\]/);
       if (!tag || tag[1] !== sgState.runId) continue;
       const text = line.replace(/\[GeminiRun:[A-Za-z0-9-]+\]\s*/, '').trim();

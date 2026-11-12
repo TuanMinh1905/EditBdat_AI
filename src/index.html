@@ -770,38 +770,60 @@
         <h2>⚙️ Cài đặt</h2>
 
         <div class="settings-group">
-          <h3>🔑 Google Gemini API</h3>
+          <h3>🔑 API AI — Gemini và OpenAI</h3>
           <div class="setting-item">
-            <label for="setting-api-key">API Key 1 — ưu tiên</label>
-            <div class="input-with-action">
-              <input type="password" id="setting-api-key" placeholder="Nhập Gemini API Key..." />
+            <div class="api-key-label-row"><label for="setting-api-key">Gemini API Key 1 — ưu tiên</label><label class="key-use-toggle"><input type="checkbox" id="setting-key-1-enabled" checked> Sử dụng</label></div>
+            <div class="input-with-action api-key-row">
+              <input type="password" id="setting-api-key" placeholder="Nhập Gemini API Key..." readonly autocomplete="off" />
               <button class="btn-icon" id="btn-toggle-key" title="Hiện/ẩn">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                   <circle cx="12" cy="12" r="3" />
                 </svg>
               </button>
+              <button type="button" class="btn-secondary" id="btn-edit-api-key">✏️ Chỉnh sửa</button>
+              <button type="button" class="btn-primary" id="btn-save-api-key" disabled>💾 Lưu</button>
             </div>
+            <p class="setting-hint api-key-save-status" id="api-key-save-status" role="status" aria-live="polite"></p>
             <p class="setting-hint">Lấy API key tại <a href="#" id="link-gemini-api">Google AI Studio</a></p>
           </div>
 
           <div class="setting-item">
-            <label for="setting-api-key-backup">API Key 2 — dự phòng (tùy chọn)</label>
-            <div class="input-with-action">
-              <input type="password" id="setting-api-key-backup" placeholder="Nhập API key của project thứ hai..." autocomplete="off" />
+            <div class="api-key-label-row"><label for="setting-api-key-backup">Gemini API Key 2 — dự phòng</label><label class="key-use-toggle"><input type="checkbox" id="setting-key-2-enabled" checked> Sử dụng</label></div>
+            <div class="input-with-action api-key-row">
+              <input type="password" id="setting-api-key-backup" placeholder="Nhập API key của project thứ hai..." readonly autocomplete="off" />
               <button type="button" class="btn-icon" id="btn-toggle-key-backup" title="Hiện/ẩn key dự phòng" aria-label="Hiện/ẩn key dự phòng">👁</button>
+              <button type="button" class="btn-secondary" id="btn-edit-api-key-backup">✏️ Chỉnh sửa</button>
+              <button type="button" class="btn-primary" id="btn-save-api-key-backup" disabled>💾 Lưu</button>
             </div>
-            <p class="setting-hint">Thử cả hai key của model ưu tiên trước khi chuyển model tiếp theo. Hai key cùng project dùng chung quota. Gói Google AI Pro được quản lý riêng với API.</p>
+            <p class="setting-hint api-key-save-status" id="api-key-backup-save-status" role="status" aria-live="polite"></p>
+            <p class="setting-hint">Thử hết model của Key 1, rồi Key 2, cuối cùng OpenAI Key 3; bỏ qua key không được chọn Sử dụng. Hai key Gemini cùng project dùng chung quota.</p>
             <p class="setting-hint" id="gemini-key-status" role="status" aria-live="polite">Chưa gọi API trong phiên này.</p>
           </div>
 
           <div class="setting-item">
-            <label for="setting-model-priority">Model ưu tiên — từ cao xuống thấp</label>
+            <label for="setting-model-priority">Model Gemini ưu tiên — từ cao xuống thấp</label>
             <input type="text" id="setting-model-priority" placeholder="Mã model API, cách nhau bằng dấu phẩy" />
-            <p class="setting-hint">A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2… Tối đa 8 model. Thông báo chuyển model/key xuất hiện ngay trên thanh tiến độ phân tích.</p>
+            <p class="setting-hint">A/Key 1 → B/Key 1… → A/Key 2 → B/Key 2… → OpenAI Key 3. Tối đa 8 model Gemini. Thông báo chuyển xuất hiện trên thanh tiến độ phân tích.</p>
           </div>
 
-          <!-- Token Usage Tracker -->
+          <div class="setting-item">
+            <div class="api-key-label-row"><label for="setting-openai-api-key">OpenAI API Key 3 — dự phòng sau Gemini</label><label class="key-use-toggle"><input type="checkbox" id="setting-key-3-enabled"> Sử dụng</label></div>
+            <div class="input-with-action api-key-row">
+              <input type="password" id="setting-openai-api-key" placeholder="Nhập OpenAI API key..." readonly autocomplete="off" />
+              <button type="button" class="btn-icon" id="btn-toggle-openai-key" title="Hiện/ẩn OpenAI key" aria-label="Hiện/ẩn OpenAI key">👁</button>
+              <button type="button" class="btn-secondary" id="btn-edit-openai-key">✏️ Chỉnh sửa</button>
+              <button type="button" class="btn-primary" id="btn-save-openai-key" disabled>💾 Lưu</button>
+            </div>
+            <p class="setting-hint api-key-save-status" id="openai-key-save-status" role="status" aria-live="polite"></p>
+            <p class="setting-hint">Key 3 tiếp tục đến hết lượt sau khi các key Gemini được bật đều lỗi. Nếu tất cả đều lỗi, app tạm dừng và giữ kết quả. Sử dụng được lưu ngay; nhóm đang chạy dùng cấu hình lúc bắt đầu, nhóm kế tiếp dùng lựa chọn mới.</p>
+          </div>
+          <div class="setting-item">
+            <label for="setting-openai-model">Model OpenAI</label>
+            <input type="text" id="setting-openai-model" placeholder="gpt-6.1-sol" />
+            <p class="setting-hint">Mặc định GPT-6.1 Sol để cân bằng chất lượng và chi phí; bấm Lưu cài đặt sau khi đổi model.</p>
+          </div>
+
           <div class="token-usage-box" id="token-usage-box">
             <div class="token-usage-header">
               <div class="token-usage-title">
@@ -809,6 +831,7 @@
                 <select id="token-key-select" aria-label="Chọn key để xem thống kê">
                   <option value="0">Key 1</option>
                   <option value="1">Key 2</option>
+                  <option value="2">OpenAI Key 3</option>
                 </select>
                 <span class="token-key-badge" id="token-key-badge">Chưa có key</span>
               </div>
@@ -839,7 +862,7 @@
             </div>
 
             <div class="token-last-call" id="token-last-call">
-              Chưa có lượt gọi Gemini API nào được ghi nhận cho key này.
+              Chưa có lượt gọi AI nào được ghi nhận cho key này.
             </div>
             <p class="setting-hint">Bộ đếm ghi nhận token từ phản hồi API trong app; không phải quota còn lại trên Google. Reset bộ đếm không khôi phục quota.</p>
           </div>

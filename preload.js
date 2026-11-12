@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('api', {
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),
+  saveApiKey: (params) => ipcRenderer.invoke('save-api-key', params),
 
   // Session persistence
   getSession: () => ipcRenderer.invoke('get-session'),

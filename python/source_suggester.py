@@ -19,6 +19,7 @@ import httpx
 from google.genai import types
 from token_tracker import record_usage
 from gemini_key_pool import GeminiKeyClient, GeminiQuotaError
+from ai_provider_router import AIProviderRouter, AllProvidersUnavailable
 from source_metadata import (SOURCE_TYPES, SCHEMA_VERSION, CONTEXT_FIELDS, PLAN_META_FIELDS,
     migrate_classifications, normalize_plan_row, context_of, context_label, year_bounds)
 
@@ -1009,7 +1010,7 @@ class SourceSuggester:
                     return [list(e.values) for e in res.embeddings]
             except Exception as e:
                 self._log(
-                    f"[Suggester] Embedding model {model_name} khong kha dung: {str(e)}"
+                    f"[Suggester] Embedding model {model_name} không khả dụng ({type(e).__name__}, HTTP {getattr(e, 'code', '—')}); dùng ví dụ theo từ khóa nếu cần."
                 )
                 continue
         return [None] * len(texts)
@@ -1299,7 +1300,7 @@ class SourceSuggester:
     # ------------------------------------------------------------------
 
     def suggest_from_timeline(self, timeline_rows, api_key, default_thoi_ky="",
-                              context_rows=None, previous_rows=None, rules_text=None, api_keys=None, model_priority=None, run_id=None):
+                              context_rows=None, previous_rows=None, rules_text=None, api_keys=None, model_priority=None, run_id=None, ai_config=None):
         """
         Phan tich danh sach dong timeline (doi tuong Time) va goi y:
         `loai_source`, `element`, `anim`, `bgm`, `sfx`, `thoi_ky`, `confidence`, `reason`.
@@ -1309,7 +1310,9 @@ class SourceSuggester:
           3. 5 bang Phan loai dong (classifications.json)
         """
         keys = api_keys or [api_key]
-        if not any(str(key or "").strip() for key in keys):
+        if not any(str(key or "").strip() for key in keys) and not (ai_config or {}).get('openai_api_key'):
+            if ai_config is not None:
+                raise AllProvidersUnavailable('Chưa có key đã lưu được bật Sử dụng.')
             raise ValueError(
                 "Chua co Gemini API Key. Vui long nhap API Key trong tab Cai dat."
             )
@@ -1322,14 +1325,14 @@ class SourceSuggester:
             for start in range(0, len(timeline_rows), 8):
                 batch = self.suggest_from_timeline(
                     timeline_rows[start:start + 8], api_key, default_thoi_ky,
-                    context_rows, results[-4:], rules_text, api_keys=keys, model_priority=model_priority, run_id=run_id)
+                    context_rows, results[-4:], rules_text, api_keys=keys, model_priority=model_priority, run_id=run_id, ai_config=ai_config)
                 for offset, row in enumerate(batch):
                     row["row_index"] = start + offset
                 results.extend(batch)
             return results
         run_tag = re.sub(r"[^A-Za-z0-9-]", "", str(run_id or ""))[:64]
         route_log = (lambda message: self._log(f"[GeminiRun:{run_tag}] {message}")) if run_tag else self._log
-        client = GeminiKeyClient(keys, log=route_log, model_priority=model_priority)
+        client = AIProviderRouter(keys, config=ai_config, model_priority=model_priority, log=route_log, run_id=run_id, kind='source_plan') if ai_config is not None else GeminiKeyClient(keys, log=route_log, model_priority=model_priority)
         rules_text = (self.get_rules() if rules_text is None else rules_text).strip()
         examples = self._load_examples_raw()
         loai_dict, element_dict, anim_dict, bgm_dict, sfx_dict = self._get_dynamic_dicts()
@@ -1527,7 +1530,7 @@ class SourceSuggester:
 
         full_prompt = "\n".join(prompt_parts)
         self._log(
-            f"[Suggester] Dang goi Gemini theo thu tu uu tien cho {len(timeline_rows)} dong Time (kho vi du: {len(examples)})..."
+            f"[Suggester] Đang gọi AI theo thứ tự ưu tiên cho {len(timeline_rows)} dòng Time (kho ví dụ: {len(examples)})..."
         )
 
         config = types.GenerateContentConfig(
@@ -1542,6 +1545,7 @@ class SourceSuggester:
         by_idx, errors = {}, {}
         remaining = set(range(len(timeline_rows)))
         quota_retry_after = 0
+        providers_failed = False
         for attempt in range(2):
             request_prompt = full_prompt
             if attempt:
@@ -1551,10 +1555,11 @@ class SourceSuggester:
                     + json.dumps(sorted(remaining)) + "\nLỗi cần sửa: "
                     + json.dumps(errors, ensure_ascii=False)
                 )
-            self._log(f"[Suggester] Gửi nhóm {len(timeline_rows)} dòng, lượt {attempt + 1}/2; timeout Gemini 120 giây.")
+            timeout_note = 'Gemini 60 giây/lần, OpenAI 120 giây/lần' if ai_config is not None else 'Gemini 120 giây'
+            self._log(f"[Suggester] Gửi nhóm {len(timeline_rows)} dòng, lượt {attempt + 1}/2; timeout {timeout_note}.")
             try:
-                # Bound transport retries separately from JSON repair. Two calls
-                # per pass keep both passes below the 600-second IPC timeout.
+                # The provider router bounds retries per key. Legacy direct
+                # clients retain the existing TLS/503 retry behavior.
                 for connection_attempt in range(3):
                     try:
                         response = client.models.generate_content(
@@ -1580,19 +1585,20 @@ class SourceSuggester:
                         self._log("[Suggester] Gemini đang quá tải (503); chờ 10 giây rồi thử lại (1/1).")
                         time.sleep(10)
             except Exception as exc:
+                providers_failed = isinstance(exc, AllProvidersUnavailable)
                 if isinstance(exc, GeminiQuotaError):
                     quota_retry_after = exc.retry_after_seconds
-                self._log(f"[Suggester] Gemini không hoàn tất lượt {attempt + 1}: {exc}")
+                self._log(f"[Suggester] AI không hoàn tất lượt {attempt + 1}: {exc}")
                 if not by_idx:
-                    if isinstance(exc, GeminiQuotaError):
+                    if isinstance(exc, (GeminiQuotaError, AllProvidersUnavailable)):
                         raise
                     raise RuntimeError(
-                        "Gemini chưa trả được kết quả cho nhóm hiện tại: "
+                        "AI chưa trả được kết quả cho nhóm hiện tại: "
                         f"{exc}. Các nhóm đã lưu vẫn được giữ; bấm Phân tích để chạy tiếp."
                     ) from exc
                 # A failed repair request must not discard valid first-pass rows.
                 for idx in remaining:
-                    errors[idx] = f"Gemini không hoàn tất lượt bổ sung: {exc}"
+                    errors[idx] = f"AI không hoàn tất lượt bổ sung: {exc}"
                 break
             record_usage(client.active_key, response, feature="source_suggester", model=client.active_model)
             try:
@@ -1658,11 +1664,13 @@ class SourceSuggester:
                 "confidence": round(float(item["confidence"]), 2) if item else 0.0,
                 "reason": item["reason"].strip() if item else errors.get(idx, "AI chưa phân tích dòng này."),
                 "needs_review": blank,
-                "analysis_status": ("pending" if quota_retry_after else "error") if item is None else "manual" if manual else "complete",
+                "analysis_status": ("pending" if quota_retry_after or providers_failed else "error") if item is None else "manual" if manual else "complete",
             })
             if item is None and quota_retry_after:
                 result["quota_retry_after_seconds"] = quota_retry_after
                 result.update(needs_review=False, confidence=None)
+            if item is None and providers_failed:
+                result.update(all_providers_failed=True, needs_review=False, confidence=None)
             if item and manual and not item["needs_review"]:
                 result["reason"] = "Chưa xác định được thời điểm lịch sử; để trống để chọn thủ công."
             results.append(result)

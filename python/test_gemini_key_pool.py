@@ -21,10 +21,12 @@ class KeyPoolTests(unittest.TestCase):
         module._COOLDOWNS.clear()
         module._ROUTES.clear()
         module._UNAVAILABLE.clear()
+        module._SERVER_COOLDOWNS.clear()
         self.addCleanup(module._PREFERRED.clear)
         self.addCleanup(module._COOLDOWNS.clear)
         self.addCleanup(module._ROUTES.clear)
         self.addCleanup(module._UNAVAILABLE.clear)
+        self.addCleanup(module._SERVER_COOLDOWNS.clear)
         self.keys = ["test-primary-one", "test-backup-two"]
         self.models = {key: Mock() for key in self.keys}
         self.factory = patch.object(module.genai, "Client", side_effect=lambda api_key, **kw:
@@ -117,7 +119,7 @@ class KeyPoolTests(unittest.TestCase):
         client.fix_timeline({"layers": []}, [])
         self.assertEqual([call.args[0] for call in usage.call_args_list], [self.keys[1], self.keys[1]])
 
-    def test_model_first_key_second_order_and_no_repeating_limited_pairs(self):
+    def test_key_first_model_second_order_and_no_repeating_limited_pairs(self):
         order = ["model-a", "model-b", "model-c", "model-d"]
         calls = []
         def generate(key, **payload):
@@ -129,7 +131,7 @@ class KeyPoolTests(unittest.TestCase):
             model.generate_content.side_effect = lambda _key=key, **kw: generate(_key, **kw)
         client = module.GeminiKeyClient(self.keys, model_priority=order)
         client.models.generate_content(model='old-default', contents='same prompt')
-        self.assertEqual(calls, [(name, key) for name in order for key in self.keys])
+        self.assertEqual(calls, [(name, key) for key in self.keys for name in order])
         self.assertEqual(client.active_model, 'model-d')
         module.GeminiKeyClient(self.keys, model_priority=order).models.generate_content(model='old-default')
         self.assertEqual(calls[-1], ('model-d', self.keys[1]))

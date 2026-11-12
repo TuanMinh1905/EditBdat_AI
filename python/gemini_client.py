@@ -9,6 +9,7 @@ from google.genai import types
 from preset_catalog import catalog_prompt
 from token_tracker import record_usage
 from gemini_key_pool import GeminiKeyClient
+from ai_provider_router import AIProviderRouter, AllProvidersUnavailable
 
 
 # System prompt hướng dẫn AI sinh timeline JSON đúng schema
@@ -109,18 +110,21 @@ SYSTEM_PROMPT = SYSTEM_PROMPT + DIRECTOR_RULES + "\n" + catalog_prompt()
 class GeminiClient:
     """Client gọi Google Gemini API để sinh timeline JSON."""
 
-    def __init__(self, api_key, api_keys=None, log=None, model_priority=None):
+    def __init__(self, api_key, api_keys=None, log=None, model_priority=None, ai_config=None):
         self.api_keys = api_keys or [api_key]
-        if not any(str(key or "").strip() for key in self.api_keys):
+        if not any(str(key or "").strip() for key in self.api_keys) and not (ai_config or {}).get('openai_api_key'):
+            if ai_config is not None:
+                raise AllProvidersUnavailable('Chưa có key đã lưu được bật Sử dụng.')
             raise ValueError("Gemini API key không được để trống")
         self.api_key = api_key
         self._log = log
         self.model_priority = model_priority
+        self.ai_config = ai_config
         self._init_client()
 
     def _init_client(self):
         """Khởi tạo Gemini client."""
-        self.client = GeminiKeyClient(self.api_keys, log=self._log, timeout_ms=None, model_priority=self.model_priority)
+        self.client = AIProviderRouter(self.api_keys, config=self.ai_config, log=self._log, model_priority=self.model_priority) if self.ai_config is not None else GeminiKeyClient(self.api_keys, log=self._log, timeout_ms=None, model_priority=self.model_priority)
         self.model_name = "gemini-3.8-flash"
 
     def _make_config(self, temperature=0.2, max_output_tokens=16384):

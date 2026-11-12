@@ -41,7 +41,8 @@ from source_metadata import parse_source_filename
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
 from token_tracker import get_usage, reset_usage
-from gemini_key_pool import get_key_status, GeminiQuotaError, DEFAULT_MODEL_PRIORITY
+from gemini_key_pool import GeminiQuotaError, DEFAULT_MODEL_PRIORITY
+from ai_provider_router import get_ai_status, AllProvidersUnavailable, DEFAULT_OPENAI_MODEL
 from asset_service import verify_assets, list_assets, MEDIA_EXTENSIONS
 
 app = Flask(__name__)
@@ -125,7 +126,26 @@ def _resolve_output_dir(settings):
 
 def _gemini_api_keys(settings):
     """Keep key slots stable, including settings saved before backup-key support."""
-    return [settings.get('geminiApiKey', ''), settings.get('geminiApiKeyBackup', '')]
+    return [settings.get('geminiApiKey', '') if settings.get('geminiKey1Enabled', True) else '',
+            settings.get('geminiApiKeyBackup', '') if settings.get('geminiKey2Enabled', True) else '']
+
+
+def _ai_config(settings):
+    """Only send credentials explicitly enabled in settings."""
+    return {'openai_api_key': settings.get('openaiApiKey', '') if settings.get('openaiKey3Enabled', False) else '',
+            'openai_model': settings.get('openaiModel') or DEFAULT_OPENAI_MODEL}
+
+
+def _request_ai_config(data):
+    enabled = data.get('key_enabled', [True, True, False])
+    keys = data.get('api_keys') or [data.get('api_key', ''), '']
+    if not isinstance(enabled, (list, tuple)) or not isinstance(keys, (list, tuple)):
+        raise ValueError('Danh sách key/lựa chọn Sử dụng không hợp lệ.')
+    keys = [(keys[i] if i < len(keys) and i < len(enabled) and enabled[i] else '') for i in range(2)]
+    config = {'openai_api_key': data.get('openai_api_key', '') if len(enabled) > 2 and enabled[2] else '',
+              'openai_model': data.get('openai_model') or DEFAULT_OPENAI_MODEL,
+              'prefer_openai': data.get('preferred_provider') == 'openai'}
+    return keys, config
 
 
 @app.route('/api/generate', methods=['POST'])
@@ -142,9 +162,9 @@ def generate_project():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
-        if not api_key:
-            return jsonify({"error": "Chưa cài đặt Gemini API Key. Vào Settings để nhập API key."}), 400
+        api_key = next((key for key in _gemini_api_keys(settings) if key), '')
+        if not api_key and not _ai_config(settings)['openai_api_key']:
+            raise AllProvidersUnavailable('Chưa có API key đã lưu được bật Sử dụng. Vào Cài đặt để chọn key.')
 
         ae_path = settings.get('afterEffectsPath', '')
         comp_width = settings.get('compWidth', 1920)
@@ -187,9 +207,9 @@ def generate_project():
         # --- Step 2: Call Gemini AI ---
         log("[STEP] ai : active")
         log("[PROGRESS] 30")
-        log("Đang gọi Gemini AI sinh timeline...")
+        log("Đang gọi AI sinh timeline...")
 
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY, ai_config=_ai_config(settings))
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -306,8 +326,9 @@ def generate_project():
 
     except Exception as e:
         log(f"Lỗi generate: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        if not isinstance(e, AllProvidersUnavailable):
+            traceback.print_exc()
+        return jsonify({"error": str(e), "all_providers_failed": isinstance(e, AllProvidersUnavailable)}), 503 if isinstance(e, AllProvidersUnavailable) else 500
 
 
 @app.route('/api/preview-timeline', methods=['POST'])
@@ -322,15 +343,15 @@ def preview_timeline():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
-        if not api_key:
-            return jsonify({"error": "Chưa cài đặt Gemini API Key"}), 400
+        api_key = next((key for key in _gemini_api_keys(settings) if key), '')
+        if not api_key and not _ai_config(settings)['openai_api_key']:
+            raise AllProvidersUnavailable('Chưa có API key đã lưu được bật Sử dụng. Vào Cài đặt để chọn key.')
 
         comp_width = settings.get('compWidth', 1920)
         comp_height = settings.get('compHeight', 1080)
         comp_fps = settings.get('compFps', 30)
 
-        log("Đang gọi Gemini AI sinh timeline preview...")
+        log("Đang gọi AI sinh timeline preview...")
 
         media_context = []
         for mf in media_files:
@@ -346,7 +367,7 @@ def preview_timeline():
                 "fps": info.get('fps'),
             })
 
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY, ai_config=_ai_config(settings))
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -360,8 +381,9 @@ def preview_timeline():
 
     except Exception as e:
         log(f"Lỗi preview-timeline: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        if not isinstance(e, AllProvidersUnavailable):
+            traceback.print_exc()
+        return jsonify({"error": str(e), "all_providers_failed": isinstance(e, AllProvidersUnavailable)}), 503 if isinstance(e, AllProvidersUnavailable) else 500
 
 
 @app.route('/api/export-jsx', methods=['POST'])
@@ -378,9 +400,9 @@ def export_jsx_only():
         if not prompt:
             return jsonify({"error": "Không có prompt"}), 400
 
-        api_key = settings.get('geminiApiKey', '') or settings.get('geminiApiKeyBackup', '')
-        if not api_key:
-            return jsonify({"error": "Chưa cài đặt Gemini API Key"}), 400
+        api_key = next((key for key in _gemini_api_keys(settings) if key), '')
+        if not api_key and not _ai_config(settings)['openai_api_key']:
+            raise AllProvidersUnavailable('Chưa có API key đã lưu được bật Sử dụng. Vào Cài đặt để chọn key.')
 
         comp_width = settings.get('compWidth', 1920)
         comp_height = settings.get('compHeight', 1080)
@@ -413,7 +435,7 @@ def export_jsx_only():
         # Call Gemini
         log("[STEP] ai : active")
         log("[PROGRESS] 30")
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY, ai_config=_ai_config(settings))
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -469,8 +491,9 @@ def export_jsx_only():
 
     except Exception as e:
         log(f"Lỗi export-jsx: {str(e)}")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
+        if not isinstance(e, AllProvidersUnavailable):
+            traceback.print_exc()
+        return jsonify({"error": str(e), "all_providers_failed": isinstance(e, AllProvidersUnavailable)}), 503 if isinstance(e, AllProvidersUnavailable) else 500
 
 
 # =============================================================================
@@ -858,9 +881,11 @@ def api_suggester_suggest():
     }
     """
     data = {}
+    keys, ai_config = [], {}
     try:
         data = request.get_json() or {}
         api_key = data.get('api_key', '')
+        keys, ai_config = _request_ai_config(data)
         default_thoi_ky = data.get('default_thoi_ky', '')
 
         rows = data.get('rows')
@@ -877,29 +902,36 @@ def api_suggester_suggest():
             context_rows=data.get('context_rows'),
             previous_rows=data.get('previous_rows'),
             rules_text=data.get('rules'),
-            api_keys=data.get('api_keys'),
+            api_keys=keys,
             model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY,
             run_id=data.get('run_id'),
+            ai_config=ai_config,
         )
         retry_after = min((row.get('quota_retry_after_seconds', 0) for row in results
                            if row.get('quota_retry_after_seconds')), default=0)
+        paused = any(row.get('all_providers_failed') for row in results)
+        status = get_ai_status(keys, ai_config, data.get('model_priority') or DEFAULT_MODEL_PRIORITY)
+        status['paused'] = paused
         return jsonify({
             "success": True,
             "rows": results,
             "total": len(results),
-            "key_status": get_key_status(data.get('api_keys') or [api_key], model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY),
+            "key_status": status,
+            "all_providers_failed": paused,
             "quota_wait": bool(retry_after),
             "retry_after_seconds": retry_after,
         })
     except Exception as e:
         log(f"Loi suggester-suggest: {str(e)}")
-        if not isinstance(e, GeminiQuotaError):
+        if not isinstance(e, (GeminiQuotaError, AllProvidersUnavailable)):
             traceback.print_exc()
-        keys = (data.get('api_keys') or [data.get('api_key', '')]) if isinstance(data, dict) else []
         priority = (data.get('model_priority') or DEFAULT_MODEL_PRIORITY) if isinstance(data, dict) else DEFAULT_MODEL_PRIORITY
-        return jsonify({"error": str(e), "key_status": get_key_status(keys, model_priority=priority),
+        paused = isinstance(e, AllProvidersUnavailable)
+        status = get_ai_status(keys, ai_config, priority)
+        status['paused'] = paused
+        return jsonify({"error": str(e), "key_status": status, "all_providers_failed": paused,
                         "quota_wait": isinstance(e, GeminiQuotaError),
-                        "retry_after_seconds": getattr(e, 'retry_after_seconds', 0)}), 429 if isinstance(e, GeminiQuotaError) else 500
+                        "retry_after_seconds": getattr(e, 'retry_after_seconds', 0)}), 503 if paused else 429 if isinstance(e, GeminiQuotaError) else 500
 
 
 @app.route('/api/source-suggester/save-examples', methods=['POST'])
@@ -908,8 +940,8 @@ def api_suggester_save_examples():
     try:
         data = request.get_json() or {}
         items = data.get('items', [])
-        api_key = data.get('api_key', '')
-        stats = source_suggester.add_examples(items, api_key=api_key, api_keys=data.get('api_keys'))
+        keys, _ = _request_ai_config(data)
+        stats = source_suggester.add_examples(items, api_key=next((key for key in keys if key), ''), api_keys=keys)
         examples = source_suggester.get_examples()
         return jsonify({
             "success": True,
@@ -978,8 +1010,9 @@ def api_token_usage_get():
         data = request.get_json() or {}
         api_key = data.get('api_key', '')
         usage = get_usage(api_key)
+        keys, config = _request_ai_config(data)
         return jsonify({"success": True, "usage": usage,
-                        "key_status": get_key_status(data.get('api_keys') or [api_key], model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY)})
+                        "key_status": get_ai_status(keys, config, data.get('model_priority') or DEFAULT_MODEL_PRIORITY)})
     except Exception as e:
         log(f"Loi token-usage-get: {str(e)}")
         return jsonify({"error": str(e)}), 500

@@ -1066,6 +1066,18 @@ a:hover { color: #c4b5fd; }
   flex: 1;
 }
 
+.api-key-row { flex-wrap: wrap; align-items: center; }
+.api-key-row input { flex: 1 1 220px; min-width: 160px; }
+.api-key-row button { flex-shrink: 0; white-space: nowrap; }
+.api-key-row input[readonly] { cursor: default; }
+.api-key-label-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.api-key-label-row > label { margin-bottom: 0; }
+.key-use-toggle { display: inline-flex !important; align-items: center; gap: 8px; cursor: pointer; }
+.setting-item .key-use-toggle input[type="checkbox"] { width: 16px; height: 16px; padding: 0; margin: 0; flex: none; accent-color: var(--accent-primary); box-shadow: none; }
+.api-key-save-status[data-state="saved"] { color: var(--success); }
+.api-key-save-status[data-state="pending"] { color: var(--warning); }
+.api-key-save-status[data-state="error"] { color: var(--error); }
+
 .setting-hint {
   font-size: var(--font-xs);
   color: var(--text-tertiary);
