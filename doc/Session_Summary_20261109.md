@@ -1,5 +1,13 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Quy tắc bàn giao sau mỗi task (2026-11-12)
+
+- User yêu cầu bổ sung quy tắc để conversation sau tiếp tục được bối cảnh.
+- Đã thêm quy tắc #15 và lịch sử thay đổi trong `.agents/AGENTS.md`: đầu conversation đọc Rules + Summary, cuối mỗi task cập nhật Summary; commit/push tài liệu bàn giao cùng thay đổi thuộc task.
+- File sửa: `.agents/AGENTS.md`, `doc/Session_Summary_20261109.md`. Không sửa code ứng dụng; không chạy test ứng dụng. Kiểm tra bằng rà soát diff và `git diff --cached --check` trước commit.
+- Chỉ stage phần tài liệu của task này; các thay đổi code và đoạn ConnectTimeout có sẵn trong AGENTS.md được giữ ngoài commit. Commit/push thực hiện sau cập nhật này; xác nhận kết quả qua phản hồi cuối và lịch sử Git.
+- Bước tiếp theo: conversation mới đọc hai tài liệu trên và kiểm tra trạng thái Git trước khi tiếp tục công việc ứng dụng.
+
 ## Sửa timeout phân tích (2026-11-12)
 
 - User gặp `Request timed out` đúng khoảng 5 phút khi nhóm đầu chưa trả kết quả. Thông báo do HTTP helper trong Electron cắt kết nối ở 300000ms; chưa xác nhận vì sao Gemini không trả kịp.

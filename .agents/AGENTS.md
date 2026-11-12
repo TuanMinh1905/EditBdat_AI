@@ -304,12 +304,21 @@ try {
     - **Kéo rộng từng cột bảng (`.th-col-resizer`)**: Mọi bảng dữ liệu (`.sg-cls-table`, `.sg-table`, `.sp-catalog-table`, `.rules-table`) đều tự động gắn `.th-col-resizer` trên `thead th` để kéo rộng/hẹp từng cột.
     - **Responsive theo kích thước Container (`@container` & `@media`)**: Các cột lớn (`.sg-right`, `.sg-left`, `.splitter-left`, `.splitter-right`, `.pgen-left`, `.pgen-right`, `.rules-container`) phải bật `container-type: inline-size` để khi người dùng kéo hẹp một cột, các container nhỏ bên trong tự động chuyển sang xếp chồng dọc (`flex-direction: column`), không bao giờ làm khuất hay cắt mất nội dung.
 
+15. **Bàn giao bối cảnh qua Summary sau mỗi task:**
+    - Đầu mỗi conversation, **BẮT BUỘC** đọc `.agents/AGENTS.md` và `doc/Session_Summary_20261109.md` trước khi thực hiện task. Giữ tên Summary cố định dù ngày cập nhật thay đổi.
+    - Sau mỗi task, **BẮT BUỘC** cập nhật Summary trước khi trả lời kết thúc, kể cả task chỉ kiểm tra hoặc sửa tài liệu. Task chưa xong phải ghi tiến độ và nguyên nhân.
+    - Nội dung gồm: ngày cập nhật, yêu cầu/quyết định của user, kết quả, file đã sửa, kiểm tra đã chạy và kết quả, giới hạn chưa kiểm chứng, việc còn tồn và bước tiếp theo. Nếu không sửa code hoặc không chạy test thì ghi rõ; không ghi kết quả chưa thực hiện.
+    - Đặt trạng thái mới nhất ở đầu Summary; cập nhật thông tin hiện hành, giữ lịch sử có nhãn để tránh dùng nhầm quyết định cũ. Không ghi API key, token hoặc bí mật.
+    - Với task có code, cập nhật Summary trước khi commit và đưa vào cùng commit theo quy tắc #13. Task chỉ sửa quy tắc/tài liệu cũng phải commit và push thay đổi thuộc task, dùng commit message tiếng Việt.
+    - Chỉ stage thay đổi thuộc task; giữ nguyên thay đổi có sẵn của user hoặc task khác. Nếu commit/push thất bại, ghi nguyên nhân và bước còn thiếu vào Summary và phản hồi cuối.
+
 ---
 
 ## 9. Lịch sử thay đổi Rule
 
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
+| 2026-11-12 | Thêm quy tắc #15: đọc Rules + Summary đầu conversation, cập nhật Summary sau mỗi task và commit/push tài liệu bàn giao | Theo yêu cầu user để conversation sau tiếp tục đúng bối cảnh |
 | 2026-10-20 | Tạo file Rule ban đầu | Khởi tạo project, định nghĩa cấu trúc và quy tắc |
 | 2026-11-09 | Thêm `clip_splitter.py` (Công cụ B). Tên clip: `{loai}_{CauThu}_{ThoiKy}_{STT}.mp4`, loại mặc định `chua_phan_loai`, ghi `catalog.csv` (UTF-8 BOM) | Chuẩn bị Source cho Công cụ A sinh file Premiere. Scene detect dùng FFmpeg (ngưỡng mặc định 0.1), không thêm dependency |
 | 2026-10-21 | Thêm session persistence (`session.json`), fix model name `gemini-2.5-flash` → `gemini-3.8-flash`, thêm lỗi #7 | Lưu data input giữa các lần restart app, Google deprecate model cũ |
