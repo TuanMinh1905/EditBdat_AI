@@ -1,5 +1,14 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
+## Trạng thái bàn giao mới nhất (2026-11-12)
+
+- Refactor Source và Thời điểm đã hoàn tất, commit [`7e4791d`](https://github.com/TuanMinh1905/EditBdat_AI/commit/7e4791d) đã push thành công lên nhánh `main` của repo [`TuanMinh1905/EditBdat_AI`](https://github.com/TuanMinh1905/EditBdat_AI). User đã xác nhận trực tiếp repo này và yêu cầu push; bước đồng bộ mã không còn bị chặn.
+- Chốt yêu cầu: **phân loại video dựa vào tên file**; không thêm bước AI xem/kiểm chứng video khi nhập kho. Nội dung quá chi tiết hoặc không xử lý được thì **để trống, tô vàng và ghi lý do** để user làm thủ công.
+- Kiểm thử đã qua: **38 test Python + 36 test JavaScript**, kiểm tra cú pháp, smoke test khởi động backend thật và cắt video bằng FFmpeg thật. Các test AI dùng phản hồi mô phỏng; chưa xác nhận chất lượng Gemini thật với prompt v2 và chưa kiểm tra trực tiếp giao diện Electron.
+- Đã đọc tương thích file `D:\Edit SofaZone\03_Projects\02_X_I_B_TestAI\2_CSV_PhanTich\2_CSV_PhanLoaiSource.csv` gồm **406 dòng**, không sửa file gốc. Không tự đổi tên/di chuyển hàng loạt video trong kho.
+- Bước sử dụng tiếp theo: **đóng hẳn rồi mở lại ứng dụng**, sau đó nạp lại `1_CSV_Timeline.csv` để AI phân tích theo cấu trúc mới. `Ctrl+R` chỉ tải lại renderer, không nạp lại Python backend.
+- Nếu làm tiếp trong phiên sau: dùng [Source_ThoiDiem_v2.md](Source_ThoiDiem_v2.md) làm tài liệu hiện hành; kiểm tra phản hồi Gemini thật/giao diện khi có điều kiện, không coi test mô phỏng là xác nhận chất lượng phân loại thực tế.
+
 ## Refactor Source và Thời điểm (2026-11-12)
 
 - Đã triển khai theo user chốt: phân loại video từ tên file; `rai_1` là nhóm gồm `rai_1_1` bàn thắng, `rai_1_2` kiến tạo, `rai_1_3` chung; `rai_2` là bối cảnh đường hầm/CĐV/ăn mừng.
@@ -7,6 +16,10 @@
 - Cột bối cảnh cạnh lời thoại có sửa riêng/áp dụng cho câu/đoạn, khóa bối cảnh khi chạy AI; từng đoạn có cờ cho phép rai_2. Cảnh quá cụ thể/chưa đủ thông tin để trống, tô vàng, có nút Làm thủ công.
 - Matcher bỏ hoàn toàn fallback clip bất kỳ; chỉ chọn Source đúng điều kiện. Thiếu Source đúng năm/đội/cầu thủ/giải đấu thì đặt marker, kể cả phần đuôi thiếu clip.
 - Dữ liệu có `schema_version=2`; adapter chuyển mã v1 và giữ đường dẫn cũ, backup `.v1.bak` khi ghi catalog/CSV cũ. Bản quy tắc hiện tại trước refactor được giữ tại `templates/backups/source_v1_before_20261112/`.
+- Quy ước tên video: `{loai}_{cau_thu}_{doi_bong}_{thoi_diem}_[ky_nang]_[STT].mp4`; ví dụ `rai_1_2_Xavi_Spain_Euro2008_001.mp4`, `rai_1_3_Iniesta_Barcelona_2008-2012_Skill_001.mp4`, `rai_2_Xavi_Spain_Euro2008_Celebrate_001.mp4`. Kỹ năng/STT đầu vào tùy chọn; clip con tự có STT và kế thừa thời điểm.
+- Phân biệt nghĩa mã cũ/mới: `rai_4` v1 -> `rai_2` v2; các nhóm rải v1 khác -> highlight bàn thắng/kiến tạo khi có nhãn hành động rõ, còn lại `rai_1_3`. `rai_2` cũ không được tự hiểu thành cảnh bối cảnh mới. Cache phân tích v1 được lưu riêng khi khôi phục, không tự áp vào bảng v2.
+- Điều kiện thời điểm: yêu cầu 2008 không lấy clip 2018 hoặc video tổng hợp 2008-2012; yêu cầu giai đoạn 2008-2012 có thể lấy clip 2010. Yêu cầu Euro2008 cần thông tin giải Euro, không chỉ năm 2008. Thiếu clip phù hợp đặt marker `THIEU SOURCE DUNG THOI DIEM`; ý để trống thủ công đặt `CAN LAM THU CONG`.
+- CSV v2 giữ 10 cột cũ, bổ sung `cau_thu,doi_bong,thoi_diem,su_kien,context_locked,context_scope,allow_rai_2,schema_version,analysis_status,reason,start,text`. Nạp CSV phân loại đã xuất mở để chỉnh, không tự chạy lại AI; bối cảnh sửa tay có khóa để giữ qua lượt phân tích lại.
 - Đã thử video FFmpeg thật và đọc tương thích file phân loại thực tế 406 dòng (không sửa file gốc). Kiểm thử AI dùng mock; chưa xác nhận Gemini thật cho prompt v2. Browser không có kết nối iab, chưa kiểm tra trực tiếp Electron. Cần đóng/mở lại app.
 - Hướng dẫn và chi tiết kỹ thuật hiện hành: [Source_ThoiDiem_v2.md](Source_ThoiDiem_v2.md). Các mục bên dưới là lịch sử; thông tin 10 cột, rai_1 mặc định và fallback cũ đã được thay thế.
 
@@ -30,20 +43,21 @@
 
 ---
 
-## 1. Tổng quan Project & Mô hình Đối tượng "Time" (6 Thuộc Tính)
+## 1. Tổng quan Project & Mô hình Đối tượng "Time" (7 thuộc tính, cập nhật v2)
 
-**Tiến độ mới nhất (2026-11-11 — Plan 3):** Đã chuẩn hóa tên 20 Element + 10 BGM theo mã, giữ `intro.mp4`. Có API preview `/api/asset-thumbnail`, API xác minh `/api/verify-assets`, modal kiểm tra trước Gen XML và ô chọn Sounds dùng chung cho preview/xuất. 21 Element + 10 BGM có file; 8 SFX chưa có file. Khi user chọn tiếp tục, generator bỏ qua lớp phủ/âm thanh thiếu và ghi `skipped_assets`, vẫn xuất XML. Chi tiết/bản sao lưu: [Plan_3_Implementation.md](Plan_3_Implementation.md).
+**Mốc trước đó (2026-11-11 — Plan 3):** Đã chuẩn hóa tên 20 Element + 10 BGM theo mã, giữ `intro.mp4`. Có API preview `/api/asset-thumbnail`, API xác minh `/api/verify-assets`, modal kiểm tra trước Gen XML và ô chọn Sounds dùng chung cho preview/xuất. Tại lần kiểm tra đó, 21 Element + 10 BGM có file; 8 SFX chưa có file. Khi user chọn tiếp tục, generator bỏ qua lớp phủ/âm thanh thiếu và ghi `skipped_assets`, vẫn xuất XML. Chi tiết/bản sao lưu: [Plan_3_Implementation.md](Plan_3_Implementation.md).
 
 **AE AI Tool** là ứng dụng desktop tự động hóa quy trình hậu kỳ video cho kênh YouTube **SofaZone** (kênh phân tích bóng đá chuyên sâu mang phong cách tư liệu hoài niệm / vintage).
 
 ### 🎯 Mô hình đối tượng "Time" (Mỗi đoạn thời gian trong kịch bản):
-Mỗi dòng trong timeline đại diện cho một đối tượng **Time** chứa đầy đủ **6 thuộc tính độc lập**:
+Mỗi dòng trong timeline đại diện cho một đối tượng **Time/Clip** chứa **7 thuộc tính**:
 1. **Voice (Lời thoại)**: Track **A1** (file voice gốc + timecode từ CapCut SRT / CSV)
-2. **Source Video (`loai_source`)**: Track **V1/V2** (Rải đơn, rải đôi, rải 3, rải 4, phỏng vấn, khán đài, sa bàn...)
+2. **Source Video (`loai_source`)**: Track **V1/V2** (`rai_1_1` bàn thắng, `rai_1_2` kiến tạo, `rai_1_3` highlight chung, `rai_2` bối cảnh, phỏng vấn, khán đài, sa bàn...)
 3. **Lớp phủ Design (`element`)**: Track **V3** (overlay per-clip như Khung Sofa TV CRT, Phim 8mm hồi ức, Scout frame, Bảng infographic...) và **V4** (Full-video Texture giấy cũ / Film grain 15%)
 4. **Animation (`anim`)**: Chuyển động Ken Burns trên V1/V2 (`zoom_in` 100%→108%, `zoom_out` 108%→100%, `static`, `auto`)
 5. **Sound nền (`bgm`)**: Track **A2** (Nhạc nền chạy xuyên suốt, tự động nối liền mạch các dòng liên tiếp có cùng mã `bgm`, âm lượng 0.15)
 6. **Sound Effect (`sfx`)**: Track **A3** (Hiệu ứng âm thanh điểm nhấn: tiếng còi, tiếng tách máy ảnh, tiếng tivi rè, tiếng reo hò, tiếng beep số liệu... tại thời điểm xuất hiện, âm lượng 0.6)
+7. **Thời điểm / bối cảnh lịch sử**: `cau_thu`, `doi_bong`, `thoi_diem`, `su_kien`; dùng để chọn Source đúng nội dung, không phải vị trí/timecode trên timeline.
 
 ---
 
