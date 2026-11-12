@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 
 import source_suggester as module
 import gemini_key_pool
+import httpx
 from source_suggester import SourceSuggester
 
 
@@ -37,6 +38,8 @@ class SuggesterTests(unittest.TestCase):
         self.addCleanup(patch.stopall)
         gemini_key_pool._PREFERRED.clear()
         gemini_key_pool._COOLDOWNS.clear()
+        gemini_key_pool._ROUTES.clear()
+        gemini_key_pool._UNAVAILABLE.clear()
         patch.object(gemini_key_pool.genai, 'Client', return_value=SimpleNamespace(models=self.model)).start()
         patch.object(module, 'record_usage').start()
 
@@ -100,6 +103,85 @@ class SuggesterTests(unittest.TestCase):
         self.assertEqual(self.model.generate_content.call_args, backup_model.generate_content.call_args)
         self.assertIn('Câu thứ 4 về Xavi.', backup_model.generate_content.call_args.kwargs['contents'])
         self.assertEqual(module.record_usage.call_args.args[0], 'backup-test-key')
+
+    def test_quota_during_repair_keeps_completed_rows_and_requeues_only_missing(self):
+        from google.genai.errors import ClientError
+        def exhausted():
+            return ClientError(429, {'error': {'status': 'RESOURCE_EXHAUSTED'}})
+        self.model.generate_content.side_effect = [SimpleNamespace(text=json.dumps([self.choice(0)])),
+                                                  exhausted(), exhausted(), exhausted(), exhausted()]
+        result = self.s.suggest_from_timeline(self.rows(2), 'test-key', api_keys=['test-key', 'backup-key'],
+                                            model_priority=['model-a', 'model-b'])
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(result[1]['analysis_status'], 'pending')
+        self.assertFalse(result[1]['needs_review'])
+        self.assertGreaterEqual(result[1]['quota_retry_after_seconds'], 60)
+
+    def test_first_pass_quota_error_keeps_structured_retry_information(self):
+        from google.genai.errors import ClientError
+        self.model.generate_content.side_effect = ClientError(429, {'error': {'status': 'RESOURCE_EXHAUSTED'}})
+        with self.assertRaises(gemini_key_pool.GeminiQuotaError) as caught:
+            self.s.suggest_from_timeline(self.rows(1), 'test-key', model_priority=['model-a', 'model-b'])
+        self.assertGreaterEqual(caught.exception.retry_after_seconds, 60)
+
+    @patch.object(module.time, 'sleep')
+    def test_tls_connect_timeout_retries_same_payload(self, sleep):
+        self.model.generate_content.side_effect = [
+            httpx.ConnectTimeout('TLS handshake timed out'),
+            SimpleNamespace(text=json.dumps([self.choice(0)])),
+        ]
+        result = self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(self.model.generate_content.call_args_list[0],
+                         self.model.generate_content.call_args_list[1])
+        sleep.assert_called_once_with(1)
+
+    @patch.object(module.time, 'sleep')
+    def test_persistent_connect_timeout_stops_after_two_calls(self, sleep):
+        self.model.generate_content.side_effect = httpx.ConnectTimeout('TLS handshake timed out')
+        with self.assertRaisesRegex(RuntimeError, 'HTTPS.*2 lần thử'):
+            self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(self.model.generate_content.call_count, 2)
+
+    def test_read_timeout_is_not_retried(self):
+        self.model.generate_content.side_effect = httpx.ReadTimeout('read timed out')
+        with self.assertRaisesRegex(RuntimeError, 'read timed out'):
+            self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(self.model.generate_content.call_count, 1)
+
+    def overloaded(self):
+        error = RuntimeError('503 UNAVAILABLE: high demand')
+        error.code = 503
+        return error
+
+    @patch.object(module.time, 'sleep')
+    def test_overloaded_provider_retries_same_request(self, sleep):
+        self.model.generate_content.side_effect = [self.overloaded(),
+            SimpleNamespace(text=json.dumps([self.choice(0)]))]
+        result = self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(self.model.generate_content.call_args_list[0],
+                         self.model.generate_content.call_args_list[1])
+        sleep.assert_called_once_with(10)
+
+    @patch.object(module.time, 'sleep')
+    def test_persistent_overload_stops_with_clear_message(self, sleep):
+        self.model.generate_content.side_effect = self.overloaded()
+        with self.assertRaisesRegex(RuntimeError, 'quá tải.*503.*2 lần thử'):
+            self.s.suggest_from_timeline(self.rows(1), 'test-key')
+        self.assertEqual(self.model.generate_content.call_count, 2)
+        sleep.assert_called_once_with(10)
+
+    @patch.object(module.time, 'sleep')
+    def test_overloaded_repair_keeps_first_pass_results(self, sleep):
+        self.model.generate_content.side_effect = [
+            SimpleNamespace(text=json.dumps([self.choice(0)])),
+            self.overloaded(), self.overloaded()]
+        result = self.s.suggest_from_timeline(self.rows(2), 'test-key')
+        self.assertEqual(result[0]['analysis_status'], 'complete')
+        self.assertEqual(result[1]['analysis_status'], 'error')
+        self.assertIn('503', result[1]['reason'])
+        self.assertEqual(self.model.generate_content.call_count, 3)
 
     def test_failed_repair_keeps_valid_first_pass_rows(self):
         self.model.generate_content.side_effect = [
@@ -259,6 +341,33 @@ class SuggesterTests(unittest.TestCase):
         self.assertIn('Câu trước', prompt)
         self.assertIn('Quy tắc tạm cho lượt này', prompt)
         self.assertEqual(Path(self.s.rules_path).read_text(encoding='utf-8'), original)
+
+    def test_api_quota_error_exposes_wait_metadata(self):
+        from google.genai.errors import ClientError
+        with patch.object(SourceSuggester, '__init__', return_value=None):
+            backend = importlib.import_module('main')
+        self.model.generate_content.side_effect = ClientError(429, {'error': {'status': 'RESOURCE_EXHAUSTED'}})
+        with patch.object(backend, 'source_suggester', self.s):
+            response = backend.app.test_client().post('/api/source-suggester/suggest', json={
+                'api_key': 'test-key', 'api_keys': ['test-key', 'backup-key'], 'rows': self.rows(1),
+                'model_priority': ['model-a', 'model-b']})
+        self.assertEqual(response.status_code, 429)
+        self.assertTrue(response.json['quota_wait'])
+        self.assertGreaterEqual(response.json['retry_after_seconds'], 60)
+
+    def test_api_partial_quota_reply_keeps_completed_rows(self):
+        from google.genai.errors import ClientError
+        with patch.object(SourceSuggester, '__init__', return_value=None):
+            backend = importlib.import_module('main')
+        self.model.generate_content.side_effect = [SimpleNamespace(text=json.dumps([self.choice(0)]))] + [
+            ClientError(429, {'error': {'status': 'RESOURCE_EXHAUSTED'}}) for _ in range(4)]
+        with patch.object(backend, 'source_suggester', self.s):
+            response = backend.app.test_client().post('/api/source-suggester/suggest', json={
+                'api_key': 'test-key', 'api_keys': ['test-key', 'backup-key'], 'rows': self.rows(2),
+                'model_priority': ['model-a', 'model-b']})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['quota_wait'])
+        self.assertEqual([row['analysis_status'] for row in response.json['rows']], ['complete', 'pending'])
 
     def test_invalid_export_does_not_truncate_existing_file(self):
         path = self.root / 'existing.csv'

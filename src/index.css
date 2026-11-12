@@ -3809,6 +3809,7 @@ body.is-resizing-v * {
 .sg-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #06c9e7, #a955ee 58%, #ff697b); transition: width 350ms ease; }
 .sg-progress-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--text-secondary); font-size: 12px; }
 #sg-progress-percent { margin-left: auto; font-weight: 600; }
+#sg-routing-notice { padding: 8px 10px; margin-bottom: 10px; border-left: 3px solid var(--accent-primary); background: var(--bg-card); border-radius: 6px; overflow-wrap: anywhere; }
 #token-key-select { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px; }
 @media (prefers-reduced-motion: reduce) { .sg-progress-bar { transition: none; } }
 
@@ -3819,5 +3820,27 @@ body.is-resizing-v * {
 .workflow-dialog::backdrop { background: #000b; }
 .workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; flex-shrink: 0; }
 .workflow-header h2 { font-size: 16px; margin: 0; }
-.workflow-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: var(--bg-secondary); }
+.workflow-dialog { min-width: min(360px, 92vw); min-height: 360px; container-type: inline-size; }
+.workflow-dialog [hidden] { display: none !important; }
+.workflow-actions, .workflow-format { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px 18px; border-bottom: 1px solid var(--border-subtle); flex-shrink: 0; }
+.workflow-format { max-height: 28vh; overflow-y: auto; }
+.workflow-format label { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; }
+.workflow-format select, .workflow-format input { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 5px; padding: 4px; max-width: 155px; }
+.workflow-format input[type="color"] { width: 40px; height: 30px; padding: 2px; }
+.workflow-shortcuts { margin: 8px 18px; padding: 10px; background: var(--bg-card); font-size: 12px; line-height: 1.6; max-height: 22vh; overflow-y: auto; flex-shrink: 0; }
+.workflow-shortcuts p { margin: 6px 0; }
+.workflow-status { padding: 6px 18px; margin: 0; color: var(--text-secondary); font-size: 12px; flex-shrink: 0; overflow-wrap: anywhere; }
+.workflow-document { flex: 1; min-height: 80px; overflow: auto; padding: 20px 28px 48px; color: #e4e4ef; background: var(--bg-secondary); font-family: system-ui, sans-serif; font-size: 16px; line-height: 1.75; overflow-wrap: anywhere; outline-offset: -3px; }
+.workflow-document[contenteditable="true"] { box-shadow: inset 0 0 0 1px var(--accent-primary); }
+.workflow-document h1 { font-size: 24px; color: #bba1ff; margin: 0 0 16px; }
+.workflow-document h2 { font-size: 19px; margin: 26px 0 12px; }
+.workflow-document h3 { font-size: 17px; margin: 18px 0 10px; }
+.workflow-document p { margin: 12px 0; }
+.workflow-document ul, .workflow-document ol { padding-left: 26px; list-style-position: outside; }
+.workflow-document ul { list-style-type: disc; } .workflow-document ol { list-style-type: decimal; }
+.workflow-document li { margin: 10px 0; }
+.workflow-document code { color: #d4c4ff; font-family: monospace; }
+.workflow-document blockquote { border-left: 3px solid var(--accent-primary); padding-left: 16px; margin-left: 8px; }
+.workflow-confirm { padding: 16px; margin: 8px 18px; border: 1px solid var(--accent-primary); border-radius: 8px; background: var(--bg-card); flex-shrink: 0; }
+@container (max-width: 500px) { .workflow-actions, .workflow-format { gap: 5px; padding: 6px 10px; } .workflow-document { padding: 14px; } .workflow-header h2 { font-size: 14px; } }
 @media (max-width: 600px) { .workflow-help-button { right: 12px; bottom: 10px; font-size: 12px; } .workflow-header { padding: 10px; } }

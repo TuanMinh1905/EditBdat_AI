@@ -66,6 +66,7 @@ const dom = {
   btnToggleKeyBackup: $('#btn-toggle-key-backup'),
   tokenKeySelect: $('#token-key-select'),
   geminiKeyStatus: $('#gemini-key-status'),
+  settingModelPriority: $('#setting-model-priority'),
   settingAePath: $('#setting-ae-path'),
   settingOutputDir: $('#setting-output-dir'),
   settingCompWidth: $('#setting-comp-width'),
@@ -465,6 +466,7 @@ async function generateProject() {
       settings: {
         geminiApiKey: settings.geminiApiKey,
         geminiApiKeyBackup: settings.geminiApiKeyBackup,
+        geminiModelPriority: settings.geminiModelPriority,
         afterEffectsPath: settings.afterEffectsPath,
         outputDir: BASE_OUTPUT_DIR,
         projectName: projectName,
@@ -566,6 +568,7 @@ async function exportJsxOnly() {
       settings: {
         geminiApiKey: settings.geminiApiKey,
         geminiApiKeyBackup: settings.geminiApiKeyBackup,
+        geminiModelPriority: settings.geminiModelPriority,
         outputDir: BASE_OUTPUT_DIR,
         projectName: projectName,
         compWidth: settings.compWidth || 1920,
@@ -610,6 +613,7 @@ async function previewTimeline() {
       settings: {
         geminiApiKey: settings.geminiApiKey,
         geminiApiKeyBackup: settings.geminiApiKeyBackup,
+        geminiModelPriority: settings.geminiModelPriority,
         compWidth: settings.compWidth || 1920,
         compHeight: settings.compHeight || 1080,
         compFps: settings.compFps || 30
@@ -652,6 +656,13 @@ function getGeminiApiKeys() {
   ];
 }
 
+function getGeminiModelPriority() {
+  const raw = (dom.settingModelPriority && dom.settingModelPriority.value.trim()) ||
+    (state.settings && state.settings.geminiModelPriority) || ['gemini-4-carbon', 'gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
+  const models = Array.isArray(raw) ? raw : raw.split(/[\s,;]+/);
+  return [...new Set(models.map(name => String(name).trim().replace(/^models\//, '')).filter(Boolean))];
+}
+
 function getTokenApiKey() {
   const keys = getGeminiApiKeys();
   const select = dom.tokenKeySelect;
@@ -670,15 +681,20 @@ function renderGeminiKeyStatus(status, logger) {
   state.geminiKeyStatus = status;
   const keys = status.keys || [];
   if (dom.geminiKeyStatus) {
-    const allLimited = keys.length && keys.every(key => key.state === 'cooldown');
-    const summary = allLimited ? 'Các key đều đang chạm hạn mức; phần đã lưu được giữ.' :
+    const allLimited = status.all_limited ?? (keys.length && keys.every(key => key.state === 'cooldown'));
+    const summary = allLimited ? 'Các model/key đều chạm hạn mức; chờ quota để tự chạy tiếp.' :
       status.active_slot ? `Đang dùng Key ${status.active_slot} · ${status.model}.` :
-      keys.length ? `Ưu tiên Key ${keys[0].slot}; tự chuyển khi API báo 429.` : 'Chưa nhập API key.';
+      keys.length ? 'Ưu tiên model trước, rồi Key 1 → Key 2; tự chuyển khi API báo 429.' : 'Chưa nhập API key.';
     const waiting = keys.filter(key => key.retry_after_seconds > 0).map(key => `Key ${key.slot}: chờ ít nhất ${key.retry_after_seconds}s`);
     dom.geminiKeyStatus.textContent = [summary, ...waiting].join(' ');
   }
-  if (logger && status.active_slot && (!previous || previous.active_slot !== status.active_slot)) {
+  if (logger && status.active_slot && (!previous || previous.active_slot !== status.active_slot || previous.model !== status.model)) {
     logger(`Đang dùng API Key ${status.active_slot} cho ${status.model}.`, 'info');
+    const notice = $('#sg-routing-notice');
+    if (notice) {
+      notice.hidden = false;
+      notice.textContent = `Đang dùng ${status.model} · Key ${status.active_slot}`;
+    }
   }
 }
 
@@ -686,6 +702,10 @@ async function loadSettings() {
   state.settings = await window.api.getSettings();
   dom.settingApiKey.value = state.settings.geminiApiKey || '';
   if (dom.settingApiKeyBackup) dom.settingApiKeyBackup.value = state.settings.geminiApiKeyBackup || '';
+  if (dom.settingModelPriority) {
+    dom.settingModelPriority.value = '';
+    dom.settingModelPriority.value = getGeminiModelPriority().join(', ');
+  }
   dom.settingAePath.value = state.settings.afterEffectsPath || '';
   dom.settingOutputDir.value = state.settings.outputDir || '';
   dom.settingCompWidth.value = state.settings.compWidth || 1920;
@@ -746,7 +766,7 @@ async function loadTokenUsage() {
   if (!window.api || !window.api.getTokenUsage) return;
   try {
     const apiKey = getTokenApiKey();
-    const res = await window.api.getTokenUsage({ api_key: apiKey, api_keys: getGeminiApiKeys() });
+    const res = await window.api.getTokenUsage({ api_key: apiKey, api_keys: getGeminiApiKeys(), model_priority: getGeminiModelPriority() });
     if (res && res.success) {
       renderTokenUsage(res.usage);
       renderGeminiKeyStatus(res.key_status);
@@ -785,9 +805,15 @@ async function saveSettings() {
   });
   if (!ok) return;
 
+  const modelPriority = getGeminiModelPriority();
+  if (!modelPriority.length || modelPriority.length > 8 || modelPriority.some(name => !/^[A-Za-z0-9][A-Za-z0-9._-]{0,119}$/.test(name))) {
+    addLog('Danh sách model không hợp lệ. Nhập tối đa 8 mã model API, cách nhau bằng dấu phẩy.', 'error');
+    return;
+  }
   const settings = {
     geminiApiKey: dom.settingApiKey.value.trim(),
     geminiApiKeyBackup: dom.settingApiKeyBackup ? dom.settingApiKeyBackup.value.trim() : '',
+    geminiModelPriority: modelPriority,
     afterEffectsPath: dom.settingAePath.value.trim(),
     outputDir: dom.settingOutputDir.value.trim(),
     compWidth: parseInt(dom.settingCompWidth.value) || 1920,
@@ -2136,6 +2162,9 @@ function initSourceSuggester() {
     isSuggesting: false,
     generation: 0,
     paused: false,
+    quotaWaitUntil: 0,
+    quotaWake: null,
+    runId: '',
     phase: 'idle',
     resumeWaiter: null
   };
@@ -3487,7 +3516,7 @@ function initSourceSuggester() {
 
   function saveAnalysis() {
     try {
-      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows, phase: sgState.phase, defaultThoiKy: sgState.defaultThoiKy, savedAt: new Date().toISOString() }));
+      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows, phase: sgState.phase, quotaWaitUntil: sgState.quotaWaitUntil || 0, defaultThoiKy: sgState.defaultThoiKy, savedAt: new Date().toISOString() }));
     } catch (err) { sgLog(`Không lưu được phiên phân tích: ${err.message}`, 'warn'); }
   }
 
@@ -3498,7 +3527,8 @@ function initSourceSuggester() {
       if (!saved || saved.schema_version !== '2' || !Array.isArray(saved.rows)) return;
       sgState.csvPath = saved.csvPath || '';
       sgState.rows = saved.rows.map(r => ({ ...r, analysis_status: r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status }));
-      sgState.phase = ['running', 'pausing', 'paused', 'loading'].includes(saved.phase) ? 'paused' : (saved.phase || 'idle');
+      sgState.phase = ['running', 'pausing', 'paused', 'loading', 'waiting_quota'].includes(saved.phase) ? 'paused' : (saved.phase || 'idle');
+      sgState.quotaWaitUntil = Number(saved.quotaWaitUntil) || 0;
       sgState.paused = sgState.phase === 'paused';
       if (typeof saved.defaultThoiKy === 'string') sgState.defaultThoiKy = saved.defaultThoiKy;
       if (sgDom.timelineCsv) sgDom.timelineCsv.value = sgState.csvPath;
@@ -3528,6 +3558,11 @@ function initSourceSuggester() {
       if (track) track.setAttribute('aria-valuenow', percent.toFixed(1));
       $('#sg-progress-percent').textContent = `Đã đi được ${percent.toFixed(1)}%`;
       const labels = { idle: 'Chưa phân tích', selected: 'Đã chọn file', loading: 'Đang tải CSV', running: 'Đang phân tích', pausing: 'Đang tạm dừng — giữ kết quả nhóm hiện tại', paused: 'Đã tạm dừng', complete: 'Hoàn tất', error: 'Có lỗi — có thể chạy tiếp', imported: 'Đã nạp file phân loại' };
+      if (sgState.phase === 'waiting_quota') {
+        const left = Math.max(0, Math.ceil((sgState.quotaWaitUntil - Date.now()) / 1000));
+        labels.waiting_quota = `Chờ quota · tự chạy tiếp sau ${Math.floor(left / 60)} phút ${left % 60} giây`;
+        if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = '⏳ Đang chờ quota tự phục hồi';
+      }
       $('#sg-progress-status').textContent = `${labels[sgState.phase] || 'Chưa phân tích'} · ${done}/${total} dòng`;
     }
   }
@@ -4434,6 +4469,7 @@ function initSourceSuggester() {
       sgState.csvPath = filePath;
       sgState.rows = [];
       sgState.phase = 'selected';
+      sgState.quotaWaitUntil = 0;
       sgState.paused = false;
       sgDom.timelineCsv.value = filePath;
       localStorage.setItem('sg_timeline_csv', filePath);
@@ -4466,7 +4502,12 @@ function initSourceSuggester() {
     if (!await askConfirm('Hủy phân tích và xóa dữ liệu phiên để bắt đầu lại? File trên ổ đĩa, quy tắc, kho ví dụ và API key vẫn được giữ.', { title: 'Làm mới phiên', confirmText: 'Làm mới' })) return;
     sgState.generation = (sgState.generation || 0) + 1;
     if (sgState.resumeWaiter) sgState.resumeWaiter();
+    if (sgState.quotaWake) sgState.quotaWake();
     Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, resumeWaiter: null, defaultThoiKy: '' });
+    sgState.quotaWaitUntil = 0;
+    sgState.runId = '';
+    const notice = $('#sg-routing-notice');
+    if (notice) { notice.hidden = true; notice.textContent = ''; }
     sgDom.timelineCsv.value = '';
     if (sgDom.defaultThoiKy) sgDom.defaultThoiKy.value = '';
     if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = false;
@@ -4486,6 +4527,38 @@ function initSourceSuggester() {
   }
 
   // Analyze bounded groups while retaining the entire script as context.
+  async function waitForQuota(seconds, generation) {
+    sgState.quotaWaitUntil = Date.now() + Math.max(1, Number(seconds) || 60) * 1000;
+    sgState.phase = 'waiting_quota';
+    saveAnalysis();
+    while (generation === sgState.generation) {
+      if (sgState.paused) {
+        sgState.phase = 'paused';
+        saveAnalysis(); updateRunControls();
+        await new Promise(resolve => { sgState.resumeWaiter = resolve; });
+        if (generation !== sgState.generation) return false;
+      }
+      const remaining = sgState.quotaWaitUntil - Date.now();
+      if (remaining <= 0) break;
+      sgState.phase = 'waiting_quota';
+      updateRunControls();
+      await new Promise(resolve => {
+        const wake = () => {
+          clearTimeout(timer);
+          if (sgState.quotaWake === wake) sgState.quotaWake = null;
+          resolve();
+        };
+        const timer = setTimeout(wake, Math.min(1000, remaining));
+        sgState.quotaWake = wake;
+      });
+    }
+    if (generation !== sgState.generation) return false;
+    sgState.quotaWaitUntil = 0;
+    sgState.phase = 'running';
+    saveAnalysis();
+    return true;
+  }
+
   async function runSuggestions({ automatic = false } = {}) {
       if (sgState.isSuggesting || sgState.isLoadingCsv) return;
       const generation = sgState.generation;
@@ -4497,6 +4570,7 @@ function initSourceSuggester() {
       }
 
       const apiKeys = getGeminiApiKeys();
+      const modelPriority = getGeminiModelPriority();
       const apiKey = apiKeys.find(Boolean) || '';
       if (!apiKey) {
         sgLog('Chưa có Gemini API Key! Vui lòng vào tab Cài đặt để nhập API Key.', 'error');
@@ -4515,6 +4589,7 @@ function initSourceSuggester() {
       if (!indices.length || generation !== sgState.generation) return;
 
       sgState.isSuggesting = true;
+      sgState.runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       sgState.paused = false;
       sgState.phase = 'running';
       saveAnalysis(); updateRunControls();
@@ -4531,6 +4606,8 @@ function initSourceSuggester() {
         const rulesText = sgDom.rulesInput ? sgDom.rulesInput.value : '';
         const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
         const contextRows = sgState.rows.map(r => ({ ...r }));
+        if (sgState.quotaWaitUntil > Date.now() &&
+            !await waitForQuota((sgState.quotaWaitUntil - Date.now()) / 1000, generation)) return;
         for (const i of indices) {
           Object.assign(sgState.rows[i], { loai_source: '', element: '', anim: '', bgm: '', sfx: '', si: '',
             confidence: null, reason: '', needs_review: false, analysis_status: 'pending' });
@@ -4544,29 +4621,42 @@ function initSourceSuggester() {
             if (generation !== sgState.generation) return;
           }
           const batchIndices = indices.slice(offset, offset + 8);
-          for (const i of batchIndices) sgState.rows[i].analysis_status = 'analyzing';
-          saveAnalysis();
-          renderTable();
-          if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = `⏳ AI đang phân tích ${offset + 1}–${offset + batchIndices.length}/${indices.length} câu, ý...`;
-          const res = await window.api.suggesterSuggest({
-            rows: batchIndices.map(i => sgState.rows[i]),
-            context_rows: contextRows,
-            previous_rows: sgState.rows.slice(Math.max(0, batchIndices[0] - 4), batchIndices[0]),
-            csv_path: sgState.csvPath, api_key: apiKey, api_keys: apiKeys, default_thoi_ky: defTk, rules: rulesText
-          });
-          if (generation !== sgState.generation) return;
-          renderGeminiKeyStatus(res.key_status, sgLog);
-          if (res.error) throw new Error(res.error);
-          if (!Array.isArray(res.rows) || res.rows.length !== batchIndices.length ||
-              res.rows.some((r, i) => r.row_index !== i || r.text !== sgState.rows[batchIndices[i]].text)) {
-            throw new Error('AI trả thiếu dòng hoặc sai thứ tự; giữ trống các dòng chưa có kết quả.');
+          let pendingBatch = [...batchIndices];
+          while (pendingBatch.length) {
+            for (const i of pendingBatch) sgState.rows[i].analysis_status = 'analyzing';
+            saveAnalysis();
+            renderTable();
+            if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = `⏳ AI đang phân tích ${offset + 1}–${offset + batchIndices.length}/${indices.length} câu, ý...`;
+            const res = await window.api.suggesterSuggest({
+              rows: pendingBatch.map(i => sgState.rows[i]),
+              context_rows: contextRows,
+              previous_rows: sgState.rows.slice(Math.max(0, pendingBatch[0] - 4), pendingBatch[0]),
+              csv_path: sgState.csvPath, api_key: apiKey, api_keys: apiKeys, model_priority: modelPriority, run_id: sgState.runId, default_thoi_ky: defTk, rules: rulesText
+            });
+            if (generation !== sgState.generation) return;
+            renderGeminiKeyStatus(res.key_status, sgLog);
+            if (res.error && !res.quota_wait) throw new Error(res.error);
+            if (res.quota_wait && res.error) {
+              for (const i of pendingBatch) Object.assign(sgState.rows[i], { analysis_status: 'pending', needs_review: false, confidence: null });
+            } else {
+              if (!Array.isArray(res.rows) || res.rows.length !== pendingBatch.length ||
+                  res.rows.some((r, i) => r.row_index !== i || r.text !== sgState.rows[pendingBatch[i]].text)) {
+                throw new Error('AI trả thiếu dòng hoặc sai thứ tự; giữ trống các dòng chưa có kết quả.');
+              }
+              res.rows.forEach((r, localIndex) => {
+                const i = pendingBatch[localIndex];
+                sgState.rows[i] = { ...sgState.rows[i], ...r, row_index: i };
+                if (!isUnanalyzed(sgState.rows[i])) delete sgState.rows[i].quota_retry_after_seconds;
+              });
+            }
+            saveAnalysis();
+            renderTable();
+            if (!res.quota_wait) break;
+            pendingBatch = pendingBatch.filter(i => isUnanalyzed(sgState.rows[i]));
+            if (!pendingBatch.length) break;
+            sgLog('Mọi model/key hiện đều chạm hạn mức. App giữ kết quả và chờ để tự chạy tiếp.', 'warn');
+            if (!await waitForQuota(res.retry_after_seconds, generation)) return;
           }
-          res.rows.forEach((r, localIndex) => {
-            const i = batchIndices[localIndex];
-            sgState.rows[i] = { ...sgState.rows[i], ...r, row_index: i };
-          });
-          saveAnalysis();
-          renderTable();
           sgLog(`Đã xử lý ${offset + batchIndices.length}/${indices.length} câu, ý.`, 'info');
         }
         sgState.phase = sgState.rows.some(isUnanalyzed) ? 'error' : 'complete';
@@ -4691,7 +4781,23 @@ function initSourceSuggester() {
     });
   }
 
-  // Khi backend kết nối xong, tự động tải rules + examples + csv (nếu có)
+  // Live Gemini routing notifications
+  window.api.onPythonLog?.(message => {
+    if (!sgState.isSuggesting) return;
+    for (const line of String(message).split('\n').filter(line => line.includes('[Gemini]'))) {
+      const tag = line.match(/\[GeminiRun:([A-Za-z0-9-]+)\]/);
+      if (!tag || tag[1] !== sgState.runId) continue;
+      const text = line.replace(/\[GeminiRun:[A-Za-z0-9-]+\]\s*/, '').trim();
+      sgLog(text, 'info');
+      const notice = $('#sg-routing-notice');
+      if (notice) {
+        notice.hidden = false;
+        notice.textContent = text;
+      }
+    }
+  });
+
+  // Restore backend state
   window.api.onBackendReady(async (ready) => {
     if (ready) {
       await loadBackendState();

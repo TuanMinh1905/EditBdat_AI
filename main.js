@@ -17,6 +17,71 @@ const PYTHON_PORT = 5599;
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
 const SESSION_PATH = path.join(app.getPath('userData'), 'session.json');
 
+// --- Workflow documents: fixed paths, structured rich text, revision checks ---
+const WORKFLOW_TABS = new Set(['create', 'rules', 'source-suggester', 'clip-splitter', 'premiere-gen', 'settings']);
+const WORKFLOW_TAGS = new Set(['h1', 'h2', 'h3', 'p', 'div', 'span', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 's', 'blockquote', 'pre', 'code', 'br', 'hr']);
+function workflowPath(tab) {
+  if (!WORKFLOW_TABS.has(tab)) throw new Error('Tab tài liệu không hợp lệ.');
+  return path.join(__dirname, 'doc', 'workflows', `${tab}.html`);
+}
+function workflowRevision(html) {
+  return require('crypto').createHash('sha256').update(html).digest('hex');
+}
+function workflowEscape(text) {
+  return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function workflowSerialize(nodes) {
+  let count = 0;
+  function render(items, depth) {
+    if (!Array.isArray(items) || depth > 40) throw new Error('Cấu trúc tài liệu không hợp lệ.');
+    return items.map(node => {
+      if (++count > 20000) throw new Error('Tài liệu có quá nhiều phần tử.');
+      if (typeof node === 'string') return workflowEscape(node);
+      if (!node || !WORKFLOW_TAGS.has(node.tag)) throw new Error('Định dạng tài liệu không được hỗ trợ.');
+      const styles = [];
+      const style = node.style || {};
+      if (style.color && /^(#[a-f\d]{3,8}|rgb\(\d{1,3}, ?\d{1,3}, ?\d{1,3}\))$/i.test(style.color)) styles.push(`color:${style.color}`);
+      if (['Arial', 'Calibri', 'Georgia', 'Times New Roman', 'Verdana', 'Courier New', 'system-ui'].includes(style.fontFamily)) styles.push(`font-family:${style.fontFamily}`);
+      if (/^(1[0-9]|[2-6][0-9]|7[0-2])px$/.test(style.fontSize || '')) styles.push(`font-size:${style.fontSize}`);
+      if (['left', 'center', 'right', 'justify'].includes(style.textAlign)) styles.push(`text-align:${style.textAlign}`);
+      const attrs = styles.length ? ` style="${styles.join(';')}"` : '';
+      if (['br', 'hr'].includes(node.tag)) return `<${node.tag}>`;
+      return `<${node.tag}${attrs}>${render(node.children || [], depth + 1)}</${node.tag}>`;
+    }).join('');
+  }
+  const result = render(nodes, 0);
+  if (Buffer.byteLength(result, 'utf8') > 1024 * 1024) throw new Error('Tài liệu vượt giới hạn 1 MB.');
+  return result;
+}
+ipcMain.handle('get-workflow-document', (event, { tab, previous = false } = {}) => {
+  try {
+    const file = workflowPath(tab);
+    const current = fs.readFileSync(file, 'utf8');
+    const backup = path.join(app.getPath('userData'), 'workflow-backups', `${tab}.html`);
+    return { html: previous ? fs.readFileSync(backup, 'utf8') : current, revision: workflowRevision(current) };
+  } catch (err) { return { error: `Không đọc được tài liệu: ${err.message}` }; }
+});
+ipcMain.handle('save-workflow-document', (event, { tab, revision, nodes } = {}) => {
+  let temporary;
+  try {
+    const file = workflowPath(tab);
+    const current = fs.readFileSync(file, 'utf8');
+    if (revision !== workflowRevision(current)) return { conflict: true, error: 'Tài liệu đã thay đổi bên ngoài. Bản đang sửa được giữ; đóng và mở lại để đọc bản mới trước khi lưu.' };
+    const body = workflowSerialize(nodes);
+    const html = `<!doctype html>\n<html lang="vi"><head><meta charset="utf-8"><link rel="stylesheet" href="../workflows.css"><title>Luồng hoạt động</title></head><body>\n${body}\n</body></html>\n`;
+    const backupDir = path.join(app.getPath('userData'), 'workflow-backups');
+    fs.mkdirSync(backupDir, { recursive: true });
+    fs.writeFileSync(path.join(backupDir, `${tab}.html`), current, 'utf8');
+    temporary = `${file}.tmp`;
+    fs.writeFileSync(temporary, html, 'utf8');
+    fs.renameSync(temporary, file);
+    return { success: true, revision: workflowRevision(html) };
+  } catch (err) {
+    if (temporary && fs.existsSync(temporary)) { try { fs.unlinkSync(temporary); } catch (_) { /* keep original error */ } }
+    return { error: `Không lưu được tài liệu: ${err.message}` };
+  }
+});
+
 // --- Settings ---
 function loadSettings() {
   try {
@@ -27,6 +92,7 @@ function loadSettings() {
   return {
     geminiApiKey: '',
     geminiApiKeyBackup: '',
+    geminiModelPriority: ['gemini-4-carbon', 'gemini-4-argon', 'gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'],
     afterEffectsPath: 'C:\\Program Files\\Adobe\\Adobe After Effects 2021\\Support Files\\AfterFX.exe',
     outputDir: 'C:\\\\Users\\\\GP\\\\Desktop\\\\Edit Bdat\\\\Video Demo\\\\Demo1\\\\Official',
     compWidth: 1920,
@@ -203,12 +269,8 @@ function callPython(endpoint, data, timeoutMs = 300000) {
       res.on('end', () => {
         try {
           const parsed = JSON.parse(body);
-          // If Flask returned an error status with JSON error message
-          if (res.statusCode >= 400 && parsed.error) {
-            resolve({ error: parsed.error });
-          } else {
-            resolve(parsed);
-          }
+          // Preserve structured error metadata, including automatic quota waits.
+          resolve(parsed);
         } catch (e) {
           // Non-JSON response (e.g. Flask HTML error page)
           if (res.statusCode >= 500) {

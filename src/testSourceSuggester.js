@@ -19,6 +19,7 @@ const script = new vm.Script([
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
   section('  // Chọn file Timeline CSV', '  // Lưu default thoi_ky'),
   section('  // Analyze bounded groups', '  // Bấm nút Lưu vào Kho ví dụ'),
+  section('  // Live Gemini routing notifications', '  // Restore backend state'),
 ].join('\n'));
 
 class Element {
@@ -27,6 +28,19 @@ class Element {
   addEventListener(name, fn) { this.listeners[name] = fn; }
   querySelectorAll() { return []; }
   async click() { if (!this.disabled) return this.listeners.click?.(); }
+}
+
+function quotaClock(h) {
+  let now = 1000, nextId = 0;
+  const timers = new Map();
+  h.context.Date = class extends Date { static now() { return now; } };
+  h.context.setTimeout = (fn, delay) => { const id = ++nextId; timers.set(id, { fn, at: now + delay }); return id; };
+  h.context.clearTimeout = id => timers.delete(id);
+  return { advance: async amount => {
+    now += amount;
+    for (const [id, timer] of [...timers]) if (timer.at <= now) { timers.delete(id); timer.fn(); }
+    await new Promise(resolve => setImmediate(resolve));
+  } };
 }
 function rows(n) {
   return Array.from({ length: n }, (_, i) => ({ doan: String(Math.floor(i / 4)), cau: String(Math.floor(i / 2)),
@@ -45,7 +59,7 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
   sgDom.rulesInput.value = 'Ưu tiên tv_retro + texture_2; video static.';
   const sgState = { rows: [], examples: [], csvPath: '', backendLoaded: true, isSuggesting: false, isLoadingCsv: false, generation: 0, phase: 'idle', paused: false };
   const progress = new Element();
-  const extras = Object.fromEntries(['sg-progress-bar', 'sg-progress-track', 'sg-progress-percent', 'sg-progress-status'].map(id => [id, new Element()]));
+  const extras = Object.fromEntries(['sg-progress-bar', 'sg-progress-track', 'sg-progress-percent', 'sg-progress-status', 'sg-routing-notice'].map(id => [id, new Element()]));
   const context = vm.createContext({
     sgState, sgDom, dom: { settingApiKey: { value: key } }, state: { settings: {} },
     $: id => extras[id.slice(1)] || progress,
@@ -59,6 +73,7 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
     getValidBgmsList: () => [{ code: 'bgm_default', label: 'BGM' }],
     getValidSfxsList: () => [{ code: 'none', label: 'Không' }],
     window: { api: {
+      onPythonLog: callback => { calls.pythonLog = callback; },
       selectCsvFile: async () => 'C:\\Project\\1_CSV_Timeline.csv',
       suggesterLoadCsv: async () => ({ rows: structuredClone(data) }),
       suggesterSuggest: async params => {
@@ -99,7 +114,7 @@ test('settings load old single-key data and persist the new backup across reload
     section('async function loadSettings(', 'function formatTokenNum('),
     section('async function saveSettings(', '// --- Tab Navigation ---')
   ].join('\n')).runInContext(h.context);
-  for (const name of ['settingApiKeyBackup', 'settingAePath', 'settingOutputDir', 'settingCompWidth',
+  for (const name of ['settingModelPriority', 'settingApiKeyBackup', 'settingAePath', 'settingOutputDir', 'settingCompWidth',
     'settingCompHeight', 'settingCompFps', 'btnSaveSettings']) h.context.dom[name] = new Element();
   let saved = { geminiApiKey: 'primary-test-key' };
   h.context.window.api.getSettings = async () => saved;
@@ -110,12 +125,14 @@ test('settings load old single-key data and persist the new backup across reload
   await h.context.loadSettings();
   assert.equal(h.context.dom.settingApiKeyBackup.value, '');
   h.context.dom.settingApiKeyBackup.value = 'backup-test-key';
+  h.context.dom.settingModelPriority.value = 'model-a, model-b';
   await h.context.saveSettings();
   h.context.state.settings = {};
   h.context.dom.settingApiKeyBackup.value = '';
   await h.context.loadSettings();
   assert.equal(h.context.getGeminiApiKeys()[0], 'primary-test-key');
   assert.equal(h.context.getGeminiApiKeys()[1], 'backup-test-key');
+  assert.equal(h.context.dom.settingModelPriority.value, 'model-a, model-b');
 });
 
 test('backup key alone can analyze and has its own token selector slot', async () => {
@@ -138,6 +155,95 @@ test('quota status identifies the active key without exposing either key', () =>
     keys: [{ slot: 1, state: 'cooldown', retry_after_seconds: 60 }, { slot: 2, state: 'ready', retry_after_seconds: 0 }] });
   assert.match(h.context.dom.geminiKeyStatus.textContent, /Key 2/);
   assert.match(h.context.dom.geminiKeyStatus.textContent, /60s/);
+});
+
+test('live switch notices ignore canceled runs and show current model/key', () => {
+  const h = harness();
+  h.sgState.isSuggesting = true;
+  h.sgState.runId = 'current-run';
+  h.calls.pythonLog('[GeminiRun:old-run] [Gemini] old model');
+  assert.equal(h.extras['sg-routing-notice'].textContent, '');
+  h.calls.pythonLog('[GeminiRun:current-run] [Gemini] model-b · Key 2');
+  assert.match(h.extras['sg-routing-notice'].textContent, /model-b.*Key 2/);
+});
+
+test('all model/key quota exhaustion waits automatically and retries the same group', async () => {
+  const h = harness({ suggest: (p, n) => n === 1 ? { error: 'quota', quota_wait: true, retry_after_seconds: 2 } : { rows: p.rows.map(complete) } });
+  const clock = quotaClock(h);
+  await h.sgDom.btnBrowseCsv.click();
+  const running = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.phase, 'waiting_quota');
+  assert.ok(h.sgState.rows.every(r => r.analysis_status === 'pending' && !r.needs_review));
+  assert.equal(h.sgState.isSuggesting, true);
+  await clock.advance(1000);
+  assert.equal(h.calls.ai.length, 1);
+  await clock.advance(1000);
+  await running;
+  assert.equal(h.calls.ai.length, 2);
+  assert.equal(h.sgState.phase, 'complete');
+  assert.deepEqual(h.calls.ai[0].rows.map(r => r.text), h.calls.ai[1].rows.map(r => r.text));
+});
+
+test('partial results survive quota wait and only missing rows are retried with continuity', async () => {
+  const h = harness({ suggest: (p, n) => n === 1 ? { quota_wait: true, retry_after_seconds: 1,
+    rows: p.rows.map((r, i) => i === 0 ? complete(r, i) : { ...r, row_index: i, analysis_status: 'pending' })
+  } : { rows: p.rows.map(complete) } });
+  const clock = quotaClock(h);
+  await h.sgDom.btnBrowseCsv.click();
+  const running = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.rows[0].analysis_status, 'complete');
+  assert.equal(h.sgState.phase, 'waiting_quota');
+  await clock.advance(1000);
+  await running;
+  assert.equal(h.calls.ai[1].rows.length, 2);
+  assert.equal(h.calls.ai[1].previous_rows.at(-1).bgm, 'bgm_default');
+  assert.equal(h.sgState.rows[0].analysis_status, 'complete');
+});
+
+test('Pause holds requests after quota timer expires until Continue', async () => {
+  const h = harness({ suggest: (p, n) => n === 1 ? { error: 'quota', quota_wait: true, retry_after_seconds: 1 } : { rows: p.rows.map(complete) } });
+  const clock = quotaClock(h);
+  await h.sgDom.btnBrowseCsv.click();
+  const running = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnPause.click();
+  await clock.advance(2000);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.calls.ai.length, 1);
+  await h.sgDom.btnPause.click();
+  await running;
+  assert.equal(h.calls.ai.length, 2);
+});
+
+test('Làm mới cancels quota timer without reviving the old session', async () => {
+  const h = harness({ suggest: () => ({ error: 'quota', quota_wait: true, retry_after_seconds: 60 }) });
+  const clock = quotaClock(h);
+  await h.sgDom.btnBrowseCsv.click();
+  const running = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnReset.click();
+  await running;
+  await clock.advance(60000);
+  assert.equal(h.calls.ai.length, 1);
+  assert.equal(h.sgState.rows.length, 0);
+  assert.equal(h.sgState.quotaWaitUntil, 0);
+});
+
+test('saved model priority reaches API in order and reopens with quota wait paused', async () => {
+  const h = harness();
+  h.context.state.settings.geminiModelPriority = ['model-a', 'model-b'];
+  await h.sgDom.btnBrowseCsv.click();
+  await h.sgDom.btnSuggest.click();
+  assert.deepEqual(h.calls.ai[0].model_priority, ['model-a', 'model-b']);
+  h.sgState.phase = 'waiting_quota';
+  h.sgState.quotaWaitUntil = 123456;
+  h.context.saveAnalysis();
+  const reopened = harness({ savedStorage: h.storage });
+  assert.equal(reopened.sgState.phase, 'paused');
+  assert.equal(reopened.sgState.quotaWaitUntil, 123456);
+  assert.equal(reopened.calls.ai.length, 0);
 });
 
 test('Pause retains the in-flight group, waits, and Continue processes remaining rows', async () => {

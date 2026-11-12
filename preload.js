@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  // Versioned, per-tab workflow documentation
+  getWorkflowDocument: (params) => ipcRenderer.invoke('get-workflow-document', params),
+  saveWorkflowDocument: (params) => ipcRenderer.invoke('save-workflow-document', params),
   // Settings
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (settings) => ipcRenderer.invoke('save-settings', settings),

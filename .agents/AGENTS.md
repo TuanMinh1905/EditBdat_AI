@@ -14,7 +14,7 @@
 | Frontend | HTML + Vanilla CSS + Vanilla JS | — | KHÔNG dùng framework (React, Vue...) |
 | Backend | Python | 3.13 | Chạy như child process của Electron |
 | Web server | Flask + waitress | Flask 3.1, waitress 3.0 | Chạy local tại `127.0.0.1:5599` |
-| AI API | Google Gemini | gemini-3.8-flash | Qua thư viện `google-genai` |
+| AI API | Google Gemini | Danh sách ưu tiên trong Cài đặt | Qua `google-genai`; mặc định Carbon → Argon → Flash/Flash-Lite |
 | Media analysis | FFprobe | 8.x | Đã cài sẵn trên máy |
 | After Effects | ExtendScript (.jsx) | AE 2021 | Path: `C:\Program Files\Adobe\Adobe After Effects 2021\Support Files\AfterFX.exe` |
 | OS | Windows | 10/11 | Encoding mặc định là `cp1252`, cần xử lý UTF-8 |
@@ -41,7 +41,7 @@ Code_AI/
 │   ├── main.py                      # Flask API server (entry point, port 5599)
 │   ├── media_analyzer.py            # Phân tích media bằng FFprobe
 │   ├── gemini_client.py             # Gọi Gemini API
-│   ├── gemini_key_pool.py           # Chuyển hai key khi HTTP 429, giữ nguyên model
+│   ├── gemini_key_pool.py           # Model ưu tiên trước, thử hai key trước model tiếp theo
 │   ├── test_gemini_key_pool.py      # Kiểm thử quota/key dự phòng, không gọi API thật
 │   ├── timeline_validator.py        # Validate timeline JSON
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
@@ -324,6 +324,8 @@ try {
 
 ## 9. Lịch sử thay đổi Rule
 
+Ngày 12/11/2026: user yêu cầu ưu tiên model trước key, tự chuyển A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2. Thay giới hạn model cố định bằng danh sách Cài đặt, thêm chờ quota tự tiếp tục và thông báo theo lượt chạy. Giữ nguyên tech stack Gemini/Electron/Flask.
+
 | Ngày | Thay đổi | Lý do |
 |---|---|---|
 | 2026-11-12 | Thêm quy tắc #15: đọc Rules + Summary đầu conversation, cập nhật Summary sau mỗi task và commit/push tài liệu bàn giao | Theo yêu cầu user để conversation sau tiếp tục đúng bối cảnh |
@@ -520,7 +522,11 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 ## 15. Phan loai Timeline bang AI (2026-11-11)
 
-- Hai key Gemini (2026-11-12): `geminiApiKey` + `geminiApiKeyBackup` trong settings, chuyển qua IPC bằng settings hoặc `api_keys` hai slot. `gemini_key_pool.py` chỉ đổi key khi HTTP 429, mỗi key khác nhau tối đa một lần/yêu cầu, nhớ key thành công và cooldown theo model trong bộ nhớ backend. Không tự đổi model, không đổi key do timeout/503/MAX_TOKENS. Chỉ log slot/key hint; usage ghi đúng key trả kết quả. Chi tiết: `doc/Gemini_API_Keys.md`; test mới `test_gemini_key_pool`.
+- User chốt 12/11/2026 thay chính sách chỉ đổi key bằng `geminiModelPriority`/`model_priority`: A/Key 1 → A/Key 2 → B/Key 1 → B/Key 2, tối đa 8 model. Cooldown theo cặp; bỏ qua 403/404 khi nhiều model, không coi timeout/503/MAX_TOKENS là quota. `quota_wait` + thời gian chờ phải đi nguyên vẹn qua HTTP/IPC để Source tự chờ/thử dòng thiếu, giữ phần hợp lệ khi AI bổ sung hết quota. Pause/Continue/Làm mới dùng được lúc chờ. Thông báo live `[GeminiRun:<run_id>]` lọc đúng lượt đang chạy; usage ghi model/key thực tế. Chi tiết `doc/Gemini_API_Keys.md`. Lý do đổi rule: user muốn tự chuyển model thay vì dừng sau khi hai key một model hết quota.
+
+- HTTP 503 khi phân tích: chờ 10 giây và thử lại một lần cùng model/payload/key; tối đa 2 lần gọi mỗi lượt phân tích/bổ sung, dùng chung giới hạn với retry TLS. Hết lượt báo model quá tải; giữ kết quả hợp lệ của lượt đầu nếu bổ sung thất bại.
+
+- Cập nhật 2026-11-12: `httpx.ConnectTimeout` khi kết nối/bắt tay TLS được thử lại đúng một lần sau 1 giây với cùng payload; không đổi key vì lỗi mạng, không tự thử lại ReadTimeout. Nếu vẫn lỗi, báo kiểm tra mạng/VPN/proxy/tường lửa và giữ kết quả đã lưu. Kiểm thử bằng mock, không coi là xác nhận kết nối Gemini thật.
 
 - Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
 - Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.

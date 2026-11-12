@@ -58,6 +58,16 @@ test('source analysis has a separate HTTP timeout and a recoverable timeout mess
   response.emit('data', '{"status":"ok"}');
   response.emit('end');
   assert.equal((await ordinary).status, 'ok');
+
+  const quotaRequest = handlers['suggester-suggest'](null, { rows: [] });
+  const quotaResponse = new EventEmitter();
+  quotaResponse.statusCode = 429;
+  requests[2].callback(quotaResponse);
+  quotaResponse.emit('data', '{"error":"quota","quota_wait":true,"retry_after_seconds":120}');
+  quotaResponse.emit('end');
+  const quota = await quotaRequest;
+  assert.equal(quota.quota_wait, true);
+  assert.equal(quota.retry_after_seconds, 120);
 });
 
 test('selects project venv and waits for HTTP health despite early/split ready output', async () => {

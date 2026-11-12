@@ -41,7 +41,7 @@ from source_metadata import parse_source_filename
 from premiere_xml_generator import generate_xml
 from source_suggester import SourceSuggester
 from token_tracker import get_usage, reset_usage
-from gemini_key_pool import get_key_status
+from gemini_key_pool import get_key_status, GeminiQuotaError, DEFAULT_MODEL_PRIORITY
 from asset_service import verify_assets, list_assets, MEDIA_EXTENSIONS
 
 app = Flask(__name__)
@@ -189,7 +189,7 @@ def generate_project():
         log("[PROGRESS] 30")
         log("Đang gọi Gemini AI sinh timeline...")
 
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -346,7 +346,7 @@ def preview_timeline():
                 "fps": info.get('fps'),
             })
 
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -413,7 +413,7 @@ def export_jsx_only():
         # Call Gemini
         log("[STEP] ai : active")
         log("[PROGRESS] 30")
-        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log)
+        gemini = GeminiClient(api_key, api_keys=_gemini_api_keys(settings), log=log, model_priority=settings.get('geminiModelPriority') or DEFAULT_MODEL_PRIORITY)
         timeline_json = gemini.generate_timeline(
             media_context=media_context,
             prompt=prompt,
@@ -878,18 +878,28 @@ def api_suggester_suggest():
             previous_rows=data.get('previous_rows'),
             rules_text=data.get('rules'),
             api_keys=data.get('api_keys'),
+            model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY,
+            run_id=data.get('run_id'),
         )
+        retry_after = min((row.get('quota_retry_after_seconds', 0) for row in results
+                           if row.get('quota_retry_after_seconds')), default=0)
         return jsonify({
             "success": True,
             "rows": results,
             "total": len(results),
-            "key_status": get_key_status(data.get('api_keys') or [api_key]),
+            "key_status": get_key_status(data.get('api_keys') or [api_key], model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY),
+            "quota_wait": bool(retry_after),
+            "retry_after_seconds": retry_after,
         })
     except Exception as e:
         log(f"Loi suggester-suggest: {str(e)}")
-        traceback.print_exc()
+        if not isinstance(e, GeminiQuotaError):
+            traceback.print_exc()
         keys = (data.get('api_keys') or [data.get('api_key', '')]) if isinstance(data, dict) else []
-        return jsonify({"error": str(e), "key_status": get_key_status(keys)}), 500
+        priority = (data.get('model_priority') or DEFAULT_MODEL_PRIORITY) if isinstance(data, dict) else DEFAULT_MODEL_PRIORITY
+        return jsonify({"error": str(e), "key_status": get_key_status(keys, model_priority=priority),
+                        "quota_wait": isinstance(e, GeminiQuotaError),
+                        "retry_after_seconds": getattr(e, 'retry_after_seconds', 0)}), 429 if isinstance(e, GeminiQuotaError) else 500
 
 
 @app.route('/api/source-suggester/save-examples', methods=['POST'])
@@ -969,7 +979,7 @@ def api_token_usage_get():
         api_key = data.get('api_key', '')
         usage = get_usage(api_key)
         return jsonify({"success": True, "usage": usage,
-                        "key_status": get_key_status(data.get('api_keys') or [api_key])})
+                        "key_status": get_key_status(data.get('api_keys') or [api_key], model_priority=data.get('model_priority') or DEFAULT_MODEL_PRIORITY)})
     except Exception as e:
         log(f"Loi token-usage-get: {str(e)}")
         return jsonify({"error": str(e)}), 500

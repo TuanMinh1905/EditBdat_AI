@@ -15,9 +15,10 @@ import base64
 import shutil
 import urllib.parse
 from datetime import datetime
+import httpx
 from google.genai import types
 from token_tracker import record_usage
-from gemini_key_pool import GeminiKeyClient
+from gemini_key_pool import GeminiKeyClient, GeminiQuotaError
 from source_metadata import (SOURCE_TYPES, SCHEMA_VERSION, CONTEXT_FIELDS, PLAN_META_FIELDS,
     migrate_classifications, normalize_plan_row, context_of, context_label, year_bounds)
 
@@ -1298,7 +1299,7 @@ class SourceSuggester:
     # ------------------------------------------------------------------
 
     def suggest_from_timeline(self, timeline_rows, api_key, default_thoi_ky="",
-                              context_rows=None, previous_rows=None, rules_text=None, api_keys=None):
+                              context_rows=None, previous_rows=None, rules_text=None, api_keys=None, model_priority=None, run_id=None):
         """
         Phan tich danh sach dong timeline (doi tuong Time) va goi y:
         `loai_source`, `element`, `anim`, `bgm`, `sfx`, `thoi_ky`, `confidence`, `reason`.
@@ -1321,12 +1322,14 @@ class SourceSuggester:
             for start in range(0, len(timeline_rows), 8):
                 batch = self.suggest_from_timeline(
                     timeline_rows[start:start + 8], api_key, default_thoi_ky,
-                    context_rows, results[-4:], rules_text, api_keys=keys)
+                    context_rows, results[-4:], rules_text, api_keys=keys, model_priority=model_priority, run_id=run_id)
                 for offset, row in enumerate(batch):
                     row["row_index"] = start + offset
                 results.extend(batch)
             return results
-        client = GeminiKeyClient(keys, log=self._log)
+        run_tag = re.sub(r"[^A-Za-z0-9-]", "", str(run_id or ""))[:64]
+        route_log = (lambda message: self._log(f"[GeminiRun:{run_tag}] {message}")) if run_tag else self._log
+        client = GeminiKeyClient(keys, log=route_log, model_priority=model_priority)
         rules_text = (self.get_rules() if rules_text is None else rules_text).strip()
         examples = self._load_examples_raw()
         loai_dict, element_dict, anim_dict, bgm_dict, sfx_dict = self._get_dynamic_dicts()
@@ -1524,7 +1527,7 @@ class SourceSuggester:
 
         full_prompt = "\n".join(prompt_parts)
         self._log(
-            f"[Suggester] Dang goi Gemini 3.8 Flash cho {len(timeline_rows)} dong Time (kho vi du: {len(examples)})..."
+            f"[Suggester] Dang goi Gemini theo thu tu uu tien cho {len(timeline_rows)} dong Time (kho vi du: {len(examples)})..."
         )
 
         config = types.GenerateContentConfig(
@@ -1538,6 +1541,7 @@ class SourceSuggester:
         fields = ("loai_source", "element", "anim", "bgm", "sfx")
         by_idx, errors = {}, {}
         remaining = set(range(len(timeline_rows)))
+        quota_retry_after = 0
         for attempt in range(2):
             request_prompt = full_prompt
             if attempt:
@@ -1549,11 +1553,39 @@ class SourceSuggester:
                 )
             self._log(f"[Suggester] Gửi nhóm {len(timeline_rows)} dòng, lượt {attempt + 1}/2; timeout Gemini 120 giây.")
             try:
-                response = client.models.generate_content(
-                    model="gemini-3.8-flash", contents=request_prompt, config=config)
+                # Bound transport retries separately from JSON repair. Two calls
+                # per pass keep both passes below the 600-second IPC timeout.
+                for connection_attempt in range(2):
+                    try:
+                        response = client.models.generate_content(
+                            model="gemini-3.8-flash", contents=request_prompt, config=config)
+                        break
+                    except httpx.ConnectTimeout as connection_error:
+                        if connection_attempt:
+                            raise RuntimeError(
+                                "Không thể thiết lập kết nối HTTPS tới Gemini sau 2 lần thử "
+                                "(timeout kết nối/bắt tay TLS). Kiểm tra mạng, VPN/proxy "
+                                "hoặc tường lửa rồi thử lại."
+                            ) from connection_error
+                        self._log("[Suggester] Kết nối HTTPS tới Gemini bị timeout; thử lại sau 1 giây (1/1).")
+                        time.sleep(1)
+                    except Exception as provider_error:
+                        if getattr(provider_error, 'code', None) != 503:
+                            raise
+                        if connection_attempt:
+                            raise RuntimeError(
+                                "Gemini vẫn đang quá tải (503 UNAVAILABLE) sau 2 lần thử. "
+                                "Hãy chờ một lúc rồi bấm Phân tích để tiếp tục."
+                            ) from provider_error
+                        self._log("[Suggester] Gemini đang quá tải (503); chờ 10 giây rồi thử lại (1/1).")
+                        time.sleep(10)
             except Exception as exc:
+                if isinstance(exc, GeminiQuotaError):
+                    quota_retry_after = exc.retry_after_seconds
                 self._log(f"[Suggester] Gemini không hoàn tất lượt {attempt + 1}: {exc}")
                 if not by_idx:
+                    if isinstance(exc, GeminiQuotaError):
+                        raise
                     raise RuntimeError(
                         "Gemini chưa trả được kết quả cho nhóm hiện tại: "
                         f"{exc}. Các nhóm đã lưu vẫn được giữ; bấm Phân tích để chạy tiếp."
@@ -1562,7 +1594,7 @@ class SourceSuggester:
                 for idx in remaining:
                     errors[idx] = f"Gemini không hoàn tất lượt bổ sung: {exc}"
                 break
-            record_usage(client.active_key, response, feature="source_suggester", model="gemini-3.8-flash")
+            record_usage(client.active_key, response, feature="source_suggester", model=client.active_model)
             try:
                 parsed_list = self._parse_json_array(response.text or "")
             except ValueError:
@@ -1626,8 +1658,11 @@ class SourceSuggester:
                 "confidence": round(float(item["confidence"]), 2) if item else 0.0,
                 "reason": item["reason"].strip() if item else errors.get(idx, "AI chưa phân tích dòng này."),
                 "needs_review": blank,
-                "analysis_status": "error" if item is None else "manual" if manual else "complete",
+                "analysis_status": ("pending" if quota_retry_after else "error") if item is None else "manual" if manual else "complete",
             })
+            if item is None and quota_retry_after:
+                result["quota_retry_after_seconds"] = quota_retry_after
+                result.update(needs_review=False, confidence=None)
             if item and manual and not item["needs_review"]:
                 result["reason"] = "Chưa xác định được thời điểm lịch sử; để trống để chọn thủ công."
             results.append(result)
