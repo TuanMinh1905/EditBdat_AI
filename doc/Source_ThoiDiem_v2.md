@@ -2,7 +2,15 @@
 
 ## Cách dùng
 
-Đóng hẳn ứng dụng rồi mở lại để nạp backend mới. Chọn `1_CSV_Timeline.csv` ở Gợi ý Source: AI đọc toàn bài, phân tích từng đoạn/câu/ý rồi điền Source, lớp phủ, Animation, BGM, SFX và bối cảnh lịch sử.
+Chọn `1_CSV_Timeline.csv` ở Gợi ý Source chỉ hiện tên file. Bấm **Phân tích** để nạp lời thoại lên bảng và chạy AI.
+
+Thanh tiến độ xanh → tím → hồng hiển thị phần trăm và số dòng đã xử lý. **Pause** giữ kết quả nhóm đang chạy (tối đa 32 dòng), rồi dừng gửi nhóm mới. **Continue** tiếp tục phần còn lại. Nếu nhóm cuối hoàn tất trong lúc yêu cầu Pause, phiên chuyển Hoàn tất.
+
+**Làm mới** có xác nhận: hủy phiên, bỏ file đã chọn, xóa bảng và cache phiên để chọn file mới ngay. Phản hồi cũ đến muộn bị bỏ qua. File trên ổ đĩa, API key, quy tắc và kho ví dụ được giữ. Yêu cầu AI đã gửi có thể vẫn hoàn tất ở dịch vụ, nhưng kết quả không được áp vào phiên mới.
+
+**Nạp 2_CSV_PhanLoaiSource** ngay trên bảng mở file phân loại có lời thoại để chỉnh sửa, không tự chạy AI. Nếu bảng đang có dữ liệu sẽ xác nhận trước khi thay bảng.
+
+Phiên phân tích tự lưu cục bộ bằng `localStorage.sg_analysis`: file đã chọn, bảng và chỉnh sửa, bối cảnh gợi ý, trạng thái và thời gian lưu. Mở lại app khôi phục trực tiếp snapshot, không cần đọc lại CSV và không tự gọi AI. Phiên đang chạy chuyển tạm dừng, chờ bấm Continue phân tích. Nhóm chưa nhận được kết quả khi đóng app được xử lý lại; các nhóm đã lưu được giữ. Lưu phiên gần nhất không thay cho xuất CSV hoặc sao lưu.
 
 | Mã | Nội dung |
 |---|---|

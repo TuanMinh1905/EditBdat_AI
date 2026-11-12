@@ -2079,7 +2079,11 @@ function initSourceSuggester() {
     examples: [],
     backendLoaded: false,
     isLoadingCsv: false,
-    isSuggesting: false
+    isSuggesting: false,
+    generation: 0,
+    paused: false,
+    phase: 'idle',
+    resumeWaiter: null
   };
 
   const sgDom = {
@@ -2153,6 +2157,9 @@ function initSourceSuggester() {
     // Timeline & Examples DOM
     timelineCsv: $('#sg-timeline-csv'),
     btnBrowseCsv: $('#sg-btn-browse-csv'),
+    btnImportPlan: $('#sg-btn-import-plan'),
+    btnPause: $('#sg-btn-pause'),
+    btnReset: $('#sg-btn-reset'),
     defaultThoiKy: $('#sg-default-thoiky'),
     btnSuggest: $('#sg-btn-suggest'),
     btnSuggestText: $('#sg-btn-suggest-text'),
@@ -3426,8 +3433,49 @@ function initSourceSuggester() {
 
   function saveAnalysis() {
     try {
-      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows }));
+      localStorage.setItem('sg_analysis', JSON.stringify({ schema_version: '2', csvPath: sgState.csvPath, rows: sgState.rows, phase: sgState.phase, defaultThoiKy: sgState.defaultThoiKy, savedAt: new Date().toISOString() }));
     } catch (err) { sgLog(`Không lưu được phiên phân tích: ${err.message}`, 'warn'); }
+  }
+
+  function restoreAnalysis() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sg_analysis') || 'null');
+      if (saved && saved.schema_version !== '2') localStorage.setItem('sg_analysis_v1_backup', JSON.stringify(saved));
+      if (!saved || saved.schema_version !== '2' || !Array.isArray(saved.rows)) return;
+      sgState.csvPath = saved.csvPath || '';
+      sgState.rows = saved.rows.map(r => ({ ...r, analysis_status: r.analysis_status === 'analyzing' ? 'pending' : r.analysis_status }));
+      sgState.phase = ['running', 'pausing', 'paused', 'loading'].includes(saved.phase) ? 'paused' : (saved.phase || 'idle');
+      sgState.paused = sgState.phase === 'paused';
+      if (typeof saved.defaultThoiKy === 'string') sgState.defaultThoiKy = saved.defaultThoiKy;
+      if (sgDom.timelineCsv) sgDom.timelineCsv.value = sgState.csvPath;
+      renderTable();
+      sgLog('Đã khôi phục phiên gần nhất. Phần đang xử lý dở sẽ chờ bạn bấm Continue.', 'info');
+    } catch (err) { sgLog(`Không khôi phục được phiên: ${err.message}`, 'warn'); }
+  }
+
+  function updateRunControls() {
+    const busy = sgState.isSuggesting || sgState.isLoadingCsv;
+    if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = busy;
+    if (sgDom.btnImportPlan) sgDom.btnImportPlan.disabled = busy;
+    if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = busy || !sgState.csvPath;
+    if (sgDom.btnPause) {
+      sgDom.btnPause.disabled = !sgState.isSuggesting;
+      sgDom.btnPause.textContent = sgState.paused ? '▶ Continue' : '⏸ Pause';
+    }
+    if (sgDom.btnSuggestText && !busy) sgDom.btnSuggestText.textContent =
+      sgState.phase === 'paused' ? '▶ Continue phân tích' : '🤖 Phân tích';
+    const total = sgState.rows.length;
+    const done = total - sgState.rows.filter(isUnanalyzed).length;
+    const percent = total ? 100 * done / total : 0;
+    const bar = $('#sg-progress-bar');
+    if (bar && bar.style) {
+      bar.style.width = `${percent}%`;
+      const track = $('#sg-progress-track');
+      if (track) track.setAttribute('aria-valuenow', percent.toFixed(1));
+      $('#sg-progress-percent').textContent = `Đã đi được ${percent.toFixed(1)}%`;
+      const labels = { idle: 'Chưa phân tích', selected: 'Đã chọn file', loading: 'Đang tải CSV', running: 'Đang phân tích', pausing: 'Đang tạm dừng — giữ kết quả nhóm hiện tại', paused: 'Đã tạm dừng', complete: 'Hoàn tất', error: 'Có lỗi — có thể chạy tiếp', imported: 'Đã nạp file phân loại' };
+      $('#sg-progress-status').textContent = `${labels[sgState.phase] || 'Chưa phân tích'} · ${done}/${total} dòng`;
+    }
   }
 
   function markRowEdited(index) {
@@ -3442,6 +3490,7 @@ function initSourceSuggester() {
 
   function updateStats() {
     if (!sgDom.statTotal || !sgDom.statLow) return;
+    updateRunControls();
     const total = sgState.rows.length;
     const lowCount = sgState.rows.filter(r => r.needs_review || (typeof r.confidence === 'number' && r.confidence < 0.7)).length;
     sgDom.statTotal.textContent = total;
@@ -3461,7 +3510,7 @@ function initSourceSuggester() {
       sgDom.tbody.innerHTML = `
         <tr>
           <td colspan="12" class="sg-empty-row">
-            Chọn <code>1_CSV_Timeline.csv</code> ở phía trên để AI tự phân tích từng đoạn, câu và ý.
+            Chọn <code>1_CSV_Timeline.csv</code> rồi bấm Phân tích để bắt đầu.
           </td>
         </tr>
       `;
@@ -3750,13 +3799,17 @@ function initSourceSuggester() {
     }
   }
 
-  async function loadCsvFile(csvPath, { autoAnalyze = false } = {}) {
+  async function loadCsvFile(csvPath, { autoAnalyze = false, fresh = false } = {}) {
     if (!csvPath || sgState.isSuggesting || sgState.isLoadingCsv) return;
+    const generation = sgState.generation;
     sgState.isLoadingCsv = true;
+    sgState.phase = 'loading';
+    updateRunControls();
     if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
     if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = true;
     try {
       const res = await window.api.suggesterLoadCsv({ csv_path: csvPath });
+      if (generation !== sgState.generation) return;
       if (res.error) throw new Error(res.error);
       sgState.csvPath = csvPath;
       localStorage.setItem('sg_timeline_csv', csvPath);
@@ -3774,13 +3827,13 @@ function initSourceSuggester() {
         thoi_ky: r.thoi_ky || '',
         schema_version: '2',
         allow_rai_2: r.allow_rai_2 || 'yes',
-        confidence: null,
+        confidence: r.confidence ?? null,
         analysis_status: r.is_source_plan ? (r.analysis_status || (r.loai_source ? 'edited' : 'manual')) : 'pending',
         needs_review: r.is_source_plan ? (!r.loai_source || r.analysis_status === 'manual') : false,
         reason: r.reason || '',
-        note: ''
+        note: r.note || ''
       }));
-      if (!autoAnalyze) {
+      if (!autoAnalyze && !fresh) {
         try {
           const saved = JSON.parse(localStorage.getItem('sg_analysis') || 'null');
           const signature = rows => JSON.stringify(rows.map(r => [r.doan, r.cau, r.y, r.start, r.text]));
@@ -3790,18 +3843,25 @@ function initSourceSuggester() {
           }
         } catch (err) { /* A stale cache never replaces the selected CSV. */ }
       }
+      sgState.phase = sgState.rows.every(r => r.is_source_plan) ? 'imported' : 'idle';
       renderTable();
       saveAnalysis();
       sgLog(`Đã tải ${sgState.rows.length} câu thoại từ ${csvPath.split(/[\\/]/).pop()}`, 'success');
       if (autoAnalyze && !sgState.rows.every(r => r.is_source_plan)) await runSuggestions({ automatic: true });
     } catch (err) {
+      if (generation !== sgState.generation) return;
+      sgState.phase = 'error';
       sgLog(`Lỗi đọc CSV: ${err.message}`, 'error');
     } finally {
+      if (generation !== sgState.generation) return;
       sgState.isLoadingCsv = false;
       if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = false;
       if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = false;
+      updateRunControls();
     }
   }
+
+  restoreAnalysis();
 
   // Khôi phục giá trị đã lưu
   if (sgDom.defaultThoiKy && sgState.defaultThoiKy) {
@@ -4314,21 +4374,69 @@ function initSourceSuggester() {
     sgDom.btnBrowseCsv.addEventListener('click', async () => {
       const filePath = await window.api.selectCsvFile();
       if (!filePath) return;
-      await loadCsvFile(filePath, { autoAnalyze: true });
+      if (sgState.isSuggesting || sgState.isLoadingCsv) return;
+      if (sgState.rows.length && !await askConfirm('Thay file sẽ bỏ kết quả trên bảng hiện tại. Tiếp tục?', { title: 'Đổi Timeline', confirmText: 'Đổi file' })) return;
+      sgState.generation = (sgState.generation || 0) + 1;
+      sgState.csvPath = filePath;
+      sgState.rows = [];
+      sgState.phase = 'selected';
+      sgState.paused = false;
+      sgDom.timelineCsv.value = filePath;
+      localStorage.setItem('sg_timeline_csv', filePath);
+      saveAnalysis();
+      renderTable();
     });
   }
+
+  if (sgDom.btnImportPlan) sgDom.btnImportPlan.addEventListener('click', async () => {
+    try {
+      const filePath = await window.api.selectCsvFile();
+      if (!filePath || sgState.isSuggesting || sgState.isLoadingCsv) return;
+      if (sgState.rows.length && !await askConfirm('Nạp file phân loại sẽ thay bảng hiện tại. Tiếp tục?', { title: 'Nạp phân loại', confirmText: 'Nạp file' })) return;
+      await loadCsvFile(filePath, { fresh: true });
+    } catch (err) { sgLog(`Không nạp được file: ${err.message}`, 'error'); }
+  });
+
+  if (sgDom.btnPause) sgDom.btnPause.addEventListener('click', () => {
+    if (!sgState.isSuggesting) return;
+    sgState.paused = !sgState.paused;
+    sgState.phase = sgState.paused ? 'pausing' : 'running';
+    if (!sgState.paused && sgState.resumeWaiter) {
+      sgState.resumeWaiter();
+      sgState.resumeWaiter = null;
+    }
+    saveAnalysis(); updateRunControls();
+  });
+
+  if (sgDom.btnReset) sgDom.btnReset.addEventListener('click', async () => {
+    if (!await askConfirm('Hủy phân tích và xóa dữ liệu phiên để bắt đầu lại? File trên ổ đĩa, quy tắc, kho ví dụ và API key vẫn được giữ.', { title: 'Làm mới phiên', confirmText: 'Làm mới' })) return;
+    sgState.generation = (sgState.generation || 0) + 1;
+    if (sgState.resumeWaiter) sgState.resumeWaiter();
+    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, resumeWaiter: null, defaultThoiKy: '' });
+    sgDom.timelineCsv.value = '';
+    if (sgDom.defaultThoiKy) sgDom.defaultThoiKy.value = '';
+    if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = false;
+    localStorage.setItem('sg_timeline_csv', '');
+    localStorage.setItem('sg_default_thoiky', '');
+    saveAnalysis(); renderTable();
+    sgLog('Đã làm mới. Bạn có thể chọn file khác ngay.', 'info');
+  });
 
   // Lưu default thoi_ky
   if (sgDom.defaultThoiKy) {
     sgDom.defaultThoiKy.addEventListener('input', () => {
       sgState.defaultThoiKy = sgDom.defaultThoiKy.value;
       localStorage.setItem('sg_default_thoiky', sgState.defaultThoiKy);
+      saveAnalysis();
     });
   }
 
   // Analyze bounded groups while retaining the entire script as context.
   async function runSuggestions({ automatic = false } = {}) {
-      if (sgState.isSuggesting) return;
+      if (sgState.isSuggesting || sgState.isLoadingCsv) return;
+      const generation = sgState.generation;
+      if (!sgState.rows.length && sgState.csvPath) await loadCsvFile(sgState.csvPath, { fresh: true });
+      if (generation !== sgState.generation) return;
       if (!sgState.rows.length) {
         sgLog('Vui lòng chọn file 1_CSV_Timeline.csv trước!', 'error');
         return;
@@ -4349,9 +4457,12 @@ function initSourceSuggester() {
         if (!ok) return;
         indices = sgState.rows.map((_, i) => i);
       }
-      if (!indices.length) return;
+      if (!indices.length || generation !== sgState.generation) return;
 
       sgState.isSuggesting = true;
+      sgState.paused = false;
+      sgState.phase = 'running';
+      saveAnalysis(); updateRunControls();
       sgDom.btnSuggest.disabled = true;
       if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
       if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = true;
@@ -4360,6 +4471,7 @@ function initSourceSuggester() {
 
       try {
         if (!sgState.backendLoaded) await loadBackendState();
+        if (generation !== sgState.generation) return;
         if (!sgState.backendLoaded) throw new Error('Chưa tải được bảng phân loại và quy tắc. Kiểm tra kết nối backend rồi chạy lại.');
         const rulesText = sgDom.rulesInput ? sgDom.rulesInput.value : '';
         const defTk = sgDom.defaultThoiKy ? sgDom.defaultThoiKy.value.trim() : '';
@@ -4369,8 +4481,16 @@ function initSourceSuggester() {
             confidence: null, reason: '', needs_review: false, analysis_status: 'pending' });
         }
         for (let offset = 0; offset < indices.length; offset += 32) {
+          if (generation !== sgState.generation) return;
+          if (sgState.paused) {
+            sgState.phase = 'paused';
+            saveAnalysis(); updateRunControls();
+            await new Promise(resolve => { sgState.resumeWaiter = resolve; });
+            if (generation !== sgState.generation) return;
+          }
           const batchIndices = indices.slice(offset, offset + 32);
           for (const i of batchIndices) sgState.rows[i].analysis_status = 'analyzing';
+          saveAnalysis();
           renderTable();
           if (sgDom.btnSuggestText) sgDom.btnSuggestText.textContent = `⏳ AI đang phân tích ${offset + 1}–${offset + batchIndices.length}/${indices.length} câu, ý...`;
           const res = await window.api.suggesterSuggest({
@@ -4379,6 +4499,7 @@ function initSourceSuggester() {
             previous_rows: sgState.rows.slice(Math.max(0, batchIndices[0] - 4), batchIndices[0]),
             csv_path: sgState.csvPath, api_key: apiKey, default_thoi_ky: defTk, rules: rulesText
           });
+          if (generation !== sgState.generation) return;
           if (res.error) throw new Error(res.error);
           if (!Array.isArray(res.rows) || res.rows.length !== batchIndices.length ||
               res.rows.some((r, i) => r.row_index !== i || r.text !== sgState.rows[batchIndices[i]].text)) {
@@ -4392,11 +4513,14 @@ function initSourceSuggester() {
           renderTable();
           sgLog(`Đã xử lý ${offset + batchIndices.length}/${indices.length} câu, ý.`, 'info');
         }
+        sgState.phase = sgState.rows.some(isUnanalyzed) ? 'error' : 'complete';
         const unresolved = sgState.rows.filter(isUnanalyzed).length;
         const manual = sgState.rows.filter(r => r.analysis_status === 'manual').length;
         sgLog(unresolved ? `Còn ${unresolved} dòng chưa có kết quả hợp lệ. Bấm AI để chạy tiếp các dòng này.` :
           `Đã phân tích đủ ${sgState.rows.length} câu, ý; ${manual} dòng cần làm thủ công được để trống và tô vàng.`, unresolved ? 'warn' : 'success');
       } catch (err) {
+        if (generation !== sgState.generation) return;
+        sgState.phase = 'error';
         sgState.rows.forEach(r => {
           if (['pending', 'analyzing'].includes(r.analysis_status)) {
             Object.assign(r, { analysis_status: 'error', needs_review: true, confidence: null,
@@ -4405,6 +4529,8 @@ function initSourceSuggester() {
         });
         sgLog(`Lỗi AI gợi ý: ${err.message}`, 'error');
       } finally {
+        if (generation !== sgState.generation) return;
+        sgState.paused = false;
         sgState.isSuggesting = false;
         sgDom.btnSuggest.disabled = false;
         if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = false;
@@ -4512,9 +4638,7 @@ function initSourceSuggester() {
   window.api.onBackendReady(async (ready) => {
     if (ready) {
       await loadBackendState();
-      if (sgState.csvPath && !sgState.rows.length && !sgState.isSuggesting) {
-        await loadCsvFile(sgState.csvPath);
-      }
+      renderTable();
     } else {
       sgLog('Backend Python chưa chạy nên chưa tải được preview. Hãy xem nhật ký lỗi Python ở tab Tạo mới.', 'error');
     }
@@ -4523,7 +4647,7 @@ function initSourceSuggester() {
   // Wait for the health-checked backend-ready event before making API calls.
   if (state.backendReady) {
     loadBackendState().then(() => {
-      if (sgState.csvPath && !sgState.rows.length) return loadCsvFile(sgState.csvPath);
+      renderTable();
     });
   }
 }

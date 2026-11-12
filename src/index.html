@@ -1395,8 +1395,19 @@
               </div>
               <div class="sg-ai-run-btn-col">
                 <button class="btn-generate sg-ai-run-btn" id="sg-btn-suggest">
-                  <span id="sg-btn-suggest-text">🤖 Phân tích / chạy tiếp theo quy tắc hiện tại</span>
+                  <span id="sg-btn-suggest-text">🤖 Phân tích</span>
                 </button>
+                <button class="btn-secondary" id="sg-btn-pause" disabled>⏸ Pause</button>
+                <button class="btn-secondary" id="sg-btn-reset">↺ Làm mới</button>
+              </div>
+            </div>
+            <div class="sg-run-progress">
+              <div id="sg-progress-track" class="sg-progress-track" role="progressbar" aria-label="Tiến độ phân tích" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <div id="sg-progress-bar" class="sg-progress-bar"></div>
+              </div>
+              <div class="sg-progress-caption" role="status" aria-live="polite">
+                <span id="sg-progress-status">Chưa phân tích · 0/0 dòng</span>
+                <span id="sg-progress-percent">Đã đi được 0.0%</span>
               </div>
             </div>
           </div>
@@ -1415,6 +1426,7 @@
                 </span>
               </div>
               <div class="sg-toolbar-actions">
+                <button class="btn-secondary" id="sg-btn-import-plan">📂 Nạp 2_CSV_PhanLoaiSource</button>
                 <button class="btn-secondary" id="sg-btn-learn" disabled
                   title="Lưu các dòng hiện tại vào kho ví dụ bên trái để AI học cho lần sau">
                   🧠 Lưu vào Kho ví dụ (Dạy AI)

@@ -3801,3 +3801,12 @@ body.is-resizing-v * {
 .sg-context-actions { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
 .sg-broll-toggle { display: block; min-width: 95px; margin-top: 8px; font: 10px var(--font-sans); }
 .sg-mark-manual { display: block; margin-top: 7px; }
+
+/* Analysis session progress. */
+.sg-ai-run-btn-col { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.sg-run-progress { margin-top: 16px; flex-shrink: 0; }
+.sg-progress-track { height: 8px; border-radius: 99px; background: #211a2c; overflow: hidden; }
+.sg-progress-bar { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #06c9e7, #a955ee 58%, #ff697b); transition: width 350ms ease; }
+.sg-progress-caption { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; margin-top: 8px; color: var(--text-secondary); font-size: 12px; }
+#sg-progress-percent { margin-left: auto; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .sg-progress-bar { transition: none; } }

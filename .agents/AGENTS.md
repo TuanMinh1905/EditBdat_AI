@@ -503,7 +503,9 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 ## 15. Phan loai Timeline bang AI (2026-11-11)
 
-- Chon CSV phai goi AI tu dong. Dong chua phan tich de trong, khong gan rai_1/auto hoac confidence mac dinh.
+- Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
+- Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.
+- `sg_analysis` lưu cả file chọn chưa phân tích, bảng/chỉnh sửa/bối cảnh và phase. Khôi phục snapshot trực tiếp; phiên chạy dở chuyển paused, không tự gọi AI; nhóm chưa trả kết quả chuyển pending. Nạp phân loại dùng dữ liệu file, không lấy cache đè lên.
 - Moi request toi da 32 dong, kem context_rows (toan bai) va previous_rows de giu ngu canh doan/cau/y va BGM. rules la snapshot cho request, khong tu ghi de file.
 - AI chon ma cu the tu 5 bang; element ho tro nhieu ma ghep bang +. needs_review=true danh dau dong lam thu cong: de trong cac lua chon va to vang.
 - Kiem tra tung row_index, trung/thiếu dong, ma phan loai, confidence va reason; yeu cau bo sung mot lan. Loi con lai giu trong, analysis_status=error; khong gia lap ket qua AI.

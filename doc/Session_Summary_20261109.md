@@ -1,6 +1,15 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
-## Trạng thái bàn giao mới nhất (2026-11-12)
+## Quản lý phiên phân tích mới (2026-11-12)
+
+- Thay luồng tự chạy cũ: chọn Timeline chỉ hiện tên file; Phân tích mới nạp bảng và gọi AI.
+- Thanh tiến độ xanh/tím/hồng theo ảnh user, có phần trăm và số dòng. Pause giữ nhóm đang chạy rồi dừng; Continue tiếp tục. Làm mới có xác nhận, xóa phiên và bỏ qua phản hồi cũ, giữ file vật lý/cấu hình/kho ví dụ.
+- Nút nạp CSV phân loại riêng trên bảng, mở chỉnh sửa không gọi AI; cache cũ không ghi đè file vừa nạp.
+- Tự lưu/khôi phục trực tiếp từ localStorage: file đã chọn, bảng, chỉnh sửa, bối cảnh và tiến độ. Phiên đang chạy khi đóng app khôi phục tạm dừng; nhóm chưa nhận kết quả cần xử lý lại. Không tự gọi AI khi mở app.
+- Kiểm thử JS: 43 đạt, 1 smoke bỏ qua; gồm chọn file, Pause/Continue, reset khi đang chạy/tạm dừng/đọc CSV, phản hồi đến muộn, khôi phục và nạp phân loại. Chưa kiểm tra trực tiếp Electron/Gemini thật cho thay đổi này.
+- Chỉ đổi frontend: Ctrl+R để nạp giao diện mới. Hướng dẫn tại `Source_ThoiDiem_v2.md`.
+
+## Trạng thái bàn giao trước đó (2026-11-12)
 
 - Refactor Source và Thời điểm đã hoàn tất, commit [`7e4791d`](https://github.com/TuanMinh1905/EditBdat_AI/commit/7e4791d) đã push thành công lên nhánh `main` của repo [`TuanMinh1905/EditBdat_AI`](https://github.com/TuanMinh1905/EditBdat_AI). User đã xác nhận trực tiếp repo này và yêu cầu push; bước đồng bộ mã không còn bị chặn.
 - Chốt yêu cầu: **phân loại video dựa vào tên file**; không thêm bước AI xem/kiểm chứng video khi nhập kho. Nội dung quá chi tiết hoặc không xử lý được thì **để trống, tô vàng và ghi lý do** để user làm thủ công.
