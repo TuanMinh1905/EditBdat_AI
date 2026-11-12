@@ -306,6 +306,12 @@ try {
     - **Kéo rộng từng cột bảng (`.th-col-resizer`)**: Mọi bảng dữ liệu (`.sg-cls-table`, `.sg-table`, `.sp-catalog-table`, `.rules-table`) đều tự động gắn `.th-col-resizer` trên `thead th` để kéo rộng/hẹp từng cột.
     - **Responsive theo kích thước Container (`@container` & `@media`)**: Các cột lớn (`.sg-right`, `.sg-left`, `.splitter-left`, `.splitter-right`, `.pgen-left`, `.pgen-right`, `.rules-container`) phải bật `container-type: inline-size` để khi người dùng kéo hẹp một cột, các container nhỏ bên trong tự động chuyển sang xếp chồng dọc (`flex-direction: column`), không bao giờ làm khuất hay cắt mất nội dung.
 
+16. **Cập nhật tài liệu luồng hoạt động theo tab sau mỗi task:**
+    - Kiểm tra `doc/workflows/*.html` của mọi tab bị ảnh hưởng; cập nhật nếu đổi thao tác, đầu vào/đầu ra, lưu/khôi phục, API/model/key, retry hoặc xử lý lỗi. Không ảnh hưởng luồng thì ghi rõ trong Summary.
+    - Viết quy trình và lưu ý sử dụng theo code hiện hành, không viết nhật ký task hoặc coi tính năng chưa có là đã hoạt động. Phân biệt quota 429, MAX_TOKENS và lỗi mạng. Không ghi bí mật.
+    - Nút trong tab đọc trực tiếp HTML tương ứng, giữ một nguồn nội dung và ngày cập nhật. Tab mới phải có tài liệu và nút đọc; nội dung chỉ hiện khi người dùng mở.
+    - Bàn giao gồm kiểm tra/cập nhật tài liệu tab liên quan, cập nhật Summary, kiểm tra phù hợp, commit và push thay đổi thuộc task.
+
 15. **Bàn giao bối cảnh qua Summary sau mỗi task:**
     - Đầu mỗi conversation, **BẮT BUỘC** đọc `.agents/AGENTS.md` và `doc/Session_Summary_20261109.md` trước khi thực hiện task. Giữ tên Summary cố định dù ngày cập nhật thay đổi.
     - Sau mỗi task, **BẮT BUỘC** cập nhật Summary trước khi trả lời kết thúc, kể cả task chỉ kiểm tra hoặc sửa tài liệu. Task chưa xong phải ghi tiến độ và nguyên nhân.

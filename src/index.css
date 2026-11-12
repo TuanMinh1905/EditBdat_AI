@@ -3811,3 +3811,13 @@ body.is-resizing-v * {
 #sg-progress-percent { margin-left: auto; font-weight: 600; }
 #token-key-select { color: var(--text-primary); background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 6px; padding: 4px 8px; }
 @media (prefers-reduced-motion: reduce) { .sg-progress-bar { transition: none; } }
+
+/* Per-tab workflow reader */
+.workflow-help-button { position: fixed; right: 24px; bottom: 18px; z-index: 100; box-shadow: 0 3px 16px #0008; }
+.workflow-dialog { width: min(960px, 92vw); height: 82vh; max-height: 92vh; padding: 0; border: 1px solid var(--accent-primary); border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); resize: both; overflow: hidden; }
+.workflow-dialog[open] { display: flex; flex-direction: column; }
+.workflow-dialog::backdrop { background: #000b; }
+.workflow-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 18px; flex-shrink: 0; }
+.workflow-header h2 { font-size: 16px; margin: 0; }
+.workflow-dialog iframe { width: 100%; flex: 1; min-height: 0; border: 0; background: var(--bg-secondary); }
+@media (max-width: 600px) { .workflow-help-button { right: 12px; bottom: 10px; font-size: 12px; } .workflow-header { padding: 10px; } }

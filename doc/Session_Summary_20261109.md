@@ -1,6 +1,15 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-12)
 
-## Hai API key Gemini dự phòng (2026-11-12)
+## Tài liệu luồng hoạt động từng tab (2026-11-12)
+
+- Thêm nút “Luồng hoạt động” cho cả 6 tab; chỉ mở cửa sổ đọc khi bấm, có nút đóng, Escape, cuộn và kéo kích thước. Nội dung lưu trong `doc/workflows/{tab}.html`, dùng chung `doc/workflows.css`; không cần gọi AI/backend để đọc.
+- Tài liệu mô tả quy trình, đầu vào/đầu ra, quan hệ giữa tab, lưu/khôi phục và lưu ý xử lý lỗi. Không yêu cầu user tự ghi note. Cài đặt phân biệt quota 429, MAX_TOKENS, lỗi mạng và thứ tự model/key.
+- Thêm `src/workflowHelp.js`, tích hợp trước renderer, khởi tạo độc lập trong init; bổ sung CSS. `.agents/AGENTS.md` có quy tắc #16 kiểm tra/cập nhật tài liệu tab liên quan sau mỗi task, cùng Summary và commit/push.
+- Workspace đã có thay đổi chưa commit về nhiều model/key và retry từ trước; giữ nguyên ngoài commit task này. Tài liệu Cài đặt ghi rõ phần nhiều model mô tả workspace hiện tại, không phải mọi bản cũ. Mục hai key bên dưới là lịch sử cơ chế cũ.
+- Kiểm tra: syntax JS đạt; bộ kiểm thử JS hiện có 48 đạt, 1 smoke bỏ qua. Chưa kiểm tra trực tiếp cửa sổ Electron hoặc gọi Gemini thật. Kiểm tra file tài liệu và diff trước commit; commit/push riêng phần task này.
+- Sử dụng: Ctrl+R để nạp giao diện, vào tab bất kỳ rồi bấm nút ở góc dưới bên phải. Cần đóng/mở lại nếu muốn nạp cả backend thay đổi sẵn trong workspace.
+
+## Hai API key Gemini dự phòng (2026-11-12, lịch sử trước thay đổi nhiều model)
 
 - User muốn dùng thêm key từ Gmail Google AI Pro thứ hai: key đang dùng chạm quota thì chuyển key còn lại. Đã giải thích Google AI Pro không tự cấp quota API cho ứng dụng ngoài; hạn mức API tính theo Cloud project, hai key cùng project dùng chung quota. Không tự đổi model phân tích.
 - Cài đặt có Key 1 ưu tiên, Key 2 dự phòng, hiện/ẩn và lưu lại khi mở app. Request chuyển hai slot qua IPC/backend; cấu hình cũ một key vẫn tương thích. Có thể chỉ nhập Key 2.

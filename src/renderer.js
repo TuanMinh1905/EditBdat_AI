@@ -1044,6 +1044,7 @@ function initEvents() {
 // --- Init ---
 async function init() {
   const steps = [
+    ['initWorkflowHelp', initWorkflowHelp],
     ['initEvents', initEvents],
     ['initSplitResizers', initSplitResizers],
     ['initClipSplitter', initClipSplitter],
