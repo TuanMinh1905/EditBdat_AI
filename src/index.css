@@ -2281,6 +2281,15 @@ a:hover { color: #c4b5fd; }
   gap: 8px;
 }
 
+.sg-toolbar-actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  filter: saturate(0.4);
+}
+
+.sg-toolbar-actions button:disabled:hover { transform: none; }
+
 .sg-stat-pill {
   font-size: 0.78rem;
   padding: 4px 10px;

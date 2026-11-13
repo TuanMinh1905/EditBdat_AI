@@ -2339,6 +2339,8 @@ function initSourceSuggester() {
     isLoadingCsv: false,
     isSuggesting: false,
     isExportingCsv: false,
+    isImportingPlan: false,
+    isLearningExamples: false,
     generation: 0,
     paused: false,
     quotaWaitUntil: 0,
@@ -2435,7 +2437,6 @@ function initSourceSuggester() {
     statLow: $('#sg-stat-low'),
     btnLearn: $('#sg-btn-learn'),
     btnExport: $('#sg-btn-export'),
-    btnExportDraft: $('#sg-btn-export-draft'),
     btnFillThoiKy: $('#sg-btn-fill-thoiky'),
     tbody: $('#sg-tbody')
   };
@@ -3718,13 +3719,21 @@ function initSourceSuggester() {
     } catch (err) { sgLog(`Không khôi phục được phiên: ${err.message}`, 'warn'); }
   }
 
+  function isAnalysisActive() {
+    return sgState.isSuggesting && sgState.phase !== 'paused';
+  }
+
   function updateRunControls() {
-    const busy = Boolean(sgState.isSuggesting || sgState.isLoadingCsv || sgState.isExportingCsv);
+    const busy = Boolean(sgState.isSuggesting || sgState.isLoadingCsv || sgState.isExportingCsv || sgState.isImportingPlan || sgState.isLearningExamples);
     if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = busy;
-    if (sgDom.btnImportPlan) sgDom.btnImportPlan.disabled = busy;
+    if (sgDom.btnImportPlan) {
+      sgDom.btnImportPlan.disabled = Boolean(isAnalysisActive() || sgState.isLoadingCsv || sgState.isExportingCsv || sgState.isImportingPlan || sgState.isLearningExamples);
+      sgDom.btnImportPlan.textContent = sgState.isImportingPlan ? '⏳ Đang nạp / chọn file…' : '📂 Nạp 2_CSV_PhanLoaiSource';
+      sgDom.btnImportPlan.title = isAnalysisActive() ? 'Bấm Pause và chờ nhóm hiện tại xong trước khi nạp file khác.' : 'Nạp file phân loại để chỉnh sửa; xác nhận trước khi thay phiên hiện tại.';
+    }
     if (sgDom.btnSuggest) sgDom.btnSuggest.disabled = busy || !sgState.csvPath;
     if (sgDom.btnPause) {
-      sgDom.btnPause.disabled = !sgState.isSuggesting;
+      sgDom.btnPause.disabled = !sgState.isSuggesting || Boolean(sgState.isImportingPlan || sgState.isLearningExamples);
       sgDom.btnPause.textContent = sgState.paused ? '▶ Continue' : '⏸ Pause';
     }
     if (sgDom.btnSuggestText && !busy) sgDom.btnSuggestText.textContent =
@@ -3771,9 +3780,21 @@ function initSourceSuggester() {
     const unresolved = sgState.rows.filter(isUnanalyzed).length;
     const progress = $('#sg-analysis-progress');
     if (progress) progress.textContent = `Đã phân tích: ${total - unresolved}/${total}`;
-    if (sgDom.btnLearn) sgDom.btnLearn.disabled = sgState.isSuggesting || !sgState.rows.some(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
-    if (sgDom.btnExport) sgDom.btnExport.disabled = sgState.isSuggesting || sgState.isLoadingCsv || sgState.isExportingCsv || total === 0 || unresolved > 0;
-    if (sgDom.btnExportDraft) sgDom.btnExportDraft.disabled = sgState.isLoadingCsv || sgState.isExportingCsv || total === 0;
+    if (sgDom.btnLearn) {
+      const hasExamples = sgState.rows.some(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
+      sgDom.btnLearn.disabled = Boolean(isAnalysisActive() || sgState.isLoadingCsv || sgState.isLearningExamples || sgState.isImportingPlan || !hasExamples);
+      sgDom.btnLearn.textContent = sgState.isLearningExamples ? '⏳ Đang xử lý kho ví dụ…' : '🧠 Lưu vào Kho ví dụ (Dạy AI)';
+      sgDom.btnLearn.title = isAnalysisActive() ? 'Bấm Pause và chờ nhóm hiện tại xong để lưu các dòng đã có kết quả.' :
+        !hasExamples ? 'Chưa có dòng hoàn tất đủ điều kiện lưu vào kho ví dụ.' : 'Lưu các dòng đã hoàn tất/đã chỉnh sửa; bỏ qua dòng thủ công, chờ và lỗi.';
+    }
+    if (sgDom.btnExport) {
+      const draft = sgState.isSuggesting || unresolved > 0;
+      sgDom.btnExport.disabled = Boolean(sgState.isLoadingCsv || sgState.isExportingCsv || sgState.isImportingPlan || total === 0);
+      sgDom.btnExport.textContent = sgState.isExportingCsv ? '⏳ Đang xuất CSV…' :
+        draft ? `📤 Xuất bản nháp CSV (${total - unresolved}/${total})` : '📤 Xuất 2_CSV_PhanLoaiSource.csv';
+      sgDom.btnExport.title = total === 0 ? 'Chưa có dữ liệu trên bảng để xuất.' :
+        draft ? `Xuất đủ ${total} dòng; giữ ${total - unresolved} dòng đã xử lý, phần chưa xong để trống.` : 'Xuất CSV hoàn chỉnh và chuyển sang Gen XML.';
+    }
   }
 
   function renderTable() {
@@ -4672,12 +4693,31 @@ function initSourceSuggester() {
   }
 
   if (sgDom.btnImportPlan) sgDom.btnImportPlan.addEventListener('click', async () => {
+    if (isAnalysisActive() || sgState.isLoadingCsv || sgState.isExportingCsv || sgState.isImportingPlan || sgState.isLearningExamples) return;
+    let generation = sgState.generation;
+    sgState.isImportingPlan = true;
+    updateStats();
     try {
       const filePath = await window.api.selectCsvFile();
-      if (!filePath || sgState.isSuggesting || sgState.isLoadingCsv) return;
+      if (!filePath || generation !== sgState.generation) return;
       if (sgState.rows.length && !await askConfirm('Nạp file phân loại sẽ thay bảng hiện tại. Tiếp tục?', { title: 'Nạp phân loại', confirmText: 'Nạp file' })) return;
+      if (generation !== sgState.generation) return;
+      sgState.generation = (sgState.generation || 0) + 1;
+      generation = sgState.generation;
+      const resume = sgState.resumeWaiter;
+      const wake = sgState.quotaWake;
+      Object.assign(sgState, { isSuggesting: false, paused: false, resumeWaiter: null, quotaWake: null, quotaWaitUntil: 0, runId: '' });
+      resume?.();
+      wake?.();
       await loadCsvFile(filePath, { fresh: true });
-    } catch (err) { sgLog(`Không nạp được file: ${err.message}`, 'error'); }
+    } catch (err) {
+      if (generation === sgState.generation) sgLog(`Không nạp được file: ${err.message}`, 'error');
+    } finally {
+      if (generation === sgState.generation) {
+        sgState.isImportingPlan = false;
+        updateStats();
+      }
+    }
   });
 
   if (sgDom.btnPause) sgDom.btnPause.addEventListener('click', () => {
@@ -4688,7 +4728,7 @@ function initSourceSuggester() {
       sgState.resumeWaiter();
       sgState.resumeWaiter = null;
     }
-    saveAnalysis(); updateRunControls();
+    saveAnalysis(); updateStats();
   });
 
   if (sgDom.btnReset) sgDom.btnReset.addEventListener('click', async () => {
@@ -4696,7 +4736,7 @@ function initSourceSuggester() {
     sgState.generation = (sgState.generation || 0) + 1;
     if (sgState.resumeWaiter) sgState.resumeWaiter();
     if (sgState.quotaWake) sgState.quotaWake();
-    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, isExportingCsv: false, resumeWaiter: null, defaultThoiKy: '', preferredProvider: '' });
+    Object.assign(sgState, { rows: [], csvPath: '', phase: 'idle', paused: false, isSuggesting: false, isLoadingCsv: false, isExportingCsv: false, isImportingPlan: false, isLearningExamples: false, resumeWaiter: null, defaultThoiKy: '', preferredProvider: '' });
     sgState.quotaWaitUntil = 0;
     sgState.runId = '';
     const notice = $('#sg-routing-notice');
@@ -4727,7 +4767,7 @@ function initSourceSuggester() {
     while (generation === sgState.generation) {
       if (sgState.paused) {
         sgState.phase = 'paused';
-        saveAnalysis(); updateRunControls();
+        saveAnalysis(); updateStats();
         await new Promise(resolve => { sgState.resumeWaiter = resolve; });
         if (generation !== sgState.generation) return false;
       }
@@ -4785,7 +4825,7 @@ function initSourceSuggester() {
       sgState.runId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
       sgState.paused = false;
       sgState.phase = 'running';
-      saveAnalysis(); updateRunControls();
+      saveAnalysis(); updateStats();
       sgDom.btnSuggest.disabled = true;
       if (sgDom.btnBrowseCsv) sgDom.btnBrowseCsv.disabled = true;
       if (sgDom.btnFillThoiKy) sgDom.btnFillThoiKy.disabled = true;
@@ -4809,7 +4849,7 @@ function initSourceSuggester() {
           if (generation !== sgState.generation) return;
           if (sgState.paused) {
             sgState.phase = 'paused';
-            saveAnalysis(); updateRunControls();
+            saveAnalysis(); updateStats();
             await new Promise(resolve => { sgState.resumeWaiter = resolve; });
             if (generation !== sgState.generation) return;
           }
@@ -4858,7 +4898,7 @@ function initSourceSuggester() {
               sgLog(message, 'warn');
               const notice = $('#sg-routing-notice');
               if (notice) { notice.hidden = false; notice.textContent = message; }
-              saveAnalysis(); updateRunControls();
+              saveAnalysis(); updateStats();
               await new Promise(resolve => { sgState.resumeWaiter = resolve; });
               if (generation !== sgState.generation) return;
               continue;
@@ -4904,30 +4944,39 @@ function initSourceSuggester() {
   // Bấm nút Lưu vào Kho ví dụ (Dạy AI)
   if (sgDom.btnLearn) {
     sgDom.btnLearn.addEventListener('click', async () => {
-      if (sgState.isSuggesting) return;
-      const learnRows = sgState.rows.filter(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review);
-      if (!learnRows.length) return;
-      const ok = await askConfirm(`Bạn có muốn lưu ${learnRows.length} câu đã phân loại vào Kho ví dụ (source_examples.json) để dạy AI không?`, {
-        title: '🧠 Xác nhận lưu vào Kho ví dụ',
-        confirmText: 'Có, lưu để dạy AI'
-      });
-      if (!ok) return;
-
-      sgDom.btnLearn.disabled = true;
-      sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ...`, 'info');
+      if (isAnalysisActive() || sgState.isLoadingCsv || sgState.isLearningExamples || sgState.isImportingPlan) return;
+      const generation = sgState.generation;
+      const learnRows = sgState.rows.filter(r => ['complete', 'edited'].includes(r.analysis_status) && !r.needs_review).map(row => ({ ...row }));
+      if (!learnRows.length) {
+        sgLog('Chưa có dòng đã hoàn tất đủ điều kiện lưu vào kho ví dụ.', 'warn');
+        return;
+      }
+      sgState.isLearningExamples = true;
+      updateStats();
       try {
+        const ok = await askConfirm(`Bạn có muốn lưu ${learnRows.length} câu đã phân loại vào Kho ví dụ (source_examples.json) để dạy AI không?`, {
+          title: '🧠 Xác nhận lưu vào Kho ví dụ',
+          confirmText: 'Có, lưu để dạy AI'
+        });
+        if (!ok) return;
+        if (generation !== sgState.generation) return;
+        sgLog(`Đang lưu ${learnRows.length} câu vào kho ví dụ...`, 'info');
         const res = await window.api.suggesterSaveExamples({
           items: learnRows,
           ...getAiRequestConfig()
         });
+        if (generation !== sgState.generation) return;
         if (res.error) throw new Error(res.error);
         sgState.examples = res.examples || [];
         renderExamples();
         sgLog(`Đã dạy AI thành công! (+${res.added} mẫu mới, cập nhật ${res.updated} mẫu, tổng kho: ${res.total} mẫu).`, 'success');
       } catch (err) {
-        sgLog(`Lỗi lưu kho ví dụ: ${err.message}`, 'error');
+        if (generation === sgState.generation) sgLog(`Lỗi lưu kho ví dụ: ${err.message}`, 'error');
       } finally {
-        sgDom.btnLearn.disabled = false;
+        if (generation === sgState.generation) {
+          sgState.isLearningExamples = false;
+          updateStats();
+        }
       }
     });
   }
@@ -4956,7 +5005,7 @@ function initSourceSuggester() {
 
   // Xuất file 2_CSV_PhanLoaiSource.csv
   async function exportCsv(draft = false) {
-    if (!sgState.rows.length || sgState.isLoadingCsv || sgState.isExportingCsv ||
+    if (!sgState.rows.length || sgState.isLoadingCsv || sgState.isExportingCsv || sgState.isImportingPlan ||
         (!draft && (sgState.isSuggesting || sgState.rows.some(isUnanalyzed)))) return;
     const generation = sgState.generation;
     const snapshot = sgState.rows.map(row => ({ ...row }));
@@ -5003,8 +5052,7 @@ function initSourceSuggester() {
       }
     }
   }
-  if (sgDom.btnExport) sgDom.btnExport.addEventListener('click', () => exportCsv(false));
-  if (sgDom.btnExportDraft) sgDom.btnExportDraft.addEventListener('click', () => exportCsv(true));
+  if (sgDom.btnExport) sgDom.btnExport.addEventListener('click', () => exportCsv(Boolean(sgState.isSuggesting || sgState.rows.some(isUnanalyzed))));
 
   // Live provider routing notifications scoped to the active run.
   window.api.onPythonLog?.(message => {

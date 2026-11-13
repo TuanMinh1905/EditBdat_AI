@@ -19,6 +19,7 @@ const script = new vm.Script([
   section('  async function loadCsvFile(', '  // Khôi phục giá trị đã lưu'),
   section('  // Chọn file Timeline CSV', '  // Lưu default thoi_ky'),
   section('  // Analyze bounded groups', '  // Bấm nút Lưu vào Kho ví dụ'),
+  section('  // Bấm nút Lưu vào Kho ví dụ', '  // Xóa toàn bộ kho ví dụ'),
   section('  // Xuất file 2_CSV_PhanLoaiSource.csv', '  // Live provider routing notifications'),
   section('  // Live provider routing notifications', '  // Restore backend state'),
 ].join('\n'));
@@ -54,10 +55,10 @@ function complete(input, localIndex) {
 }
 function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
   const data = rows(count);
-  const calls = { ai: [], log: [], confirm: 0, saveCsv: [], exports: [] };
+  const calls = { ai: [], log: [], confirm: 0, saveCsv: [], exports: [], learned: [] };
   const storage = new Map(savedStorage);
   const sgDom = Object.fromEntries(['btnBrowseCsv', 'btnSuggest', 'btnSuggestText', 'btnLearn', 'btnExport', 'btnFillThoiKy',
-    'btnImportPlan', 'btnPause', 'btnReset', 'btnExportDraft', 'tbody', 'statTotal', 'statLow', 'timelineCsv', 'defaultThoiKy', 'rulesInput'].map(key => [key, new Element()]));
+    'btnImportPlan', 'btnPause', 'btnReset', 'tbody', 'statTotal', 'statLow', 'timelineCsv', 'defaultThoiKy', 'rulesInput'].map(key => [key, new Element()]));
   sgDom.rulesInput.value = 'Ưu tiên tv_retro + texture_2; video static.';
   const sgState = { rows: [], examples: [], csvPath: '', backendLoaded: true, isSuggesting: false, isLoadingCsv: false, generation: 0, phase: 'idle', paused: false };
   const progress = new Element();
@@ -70,6 +71,7 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
     sgLog: (...args) => calls.log.push(args),
     askConfirm: async () => { calls.confirm++; return true; },
     loadBackendState: async () => { sgState.backendLoaded = true; },
+    renderExamples() {},
     getValidLoaiList: () => [{ code: 'rai_1_3', label: 'Highlight chung' }, { code: 'rai_2', label: 'Bối cảnh' }],
     getValidElementsList: () => ['auto', 'none', 'tv_retro', 'texture_2'].map(code => ({ code, label: code })),
     getValidAnimsList: () => ['auto', 'static'].map(code => ({ code, label: code })),
@@ -81,6 +83,7 @@ function harness({ count = 3, key = 'test-key', suggest, savedStorage } = {}) {
       suggesterLoadCsv: async () => ({ rows: structuredClone(data) }),
       saveCsvFile: async suggested => { calls.saveCsv.push(suggested); return suggested; },
       suggesterExportCsv: async params => { calls.exports.push(structuredClone(params)); return { success: true, output_path: params.output_path }; },
+      suggesterSaveExamples: async params => { calls.learned.push(structuredClone(params)); return { examples: params.items, added: params.items.length, updated: 0, total: params.items.length }; },
       suggesterSuggest: async params => {
         calls.ai.push(structuredClone(params));
         return suggest ? suggest(params, calls.ai.length, { sgState, sgDom }) : { rows: params.rows.map(complete) };
@@ -483,7 +486,7 @@ test('explicit Analyze processes 406 rows in groups with full context', async ()
   assert.equal(h.progress.textContent, 'Đã phân tích: 406/406');
 });
 
-test('blank pending rows and disabled export are visible while AI is working', async () => {
+test('blank pending rows and draft export are available while AI is working', async () => {
   let resolve;
   const h = harness({ suggest: params => new Promise(done => { resolve = () => done({ rows: params.rows.map(complete) }); }) });
   await h.sgDom.btnBrowseCsv.click();
@@ -491,7 +494,8 @@ test('blank pending rows and disabled export are visible while AI is working', a
   await new Promise(done => setImmediate(done));
   assert.ok(h.sgState.rows.every(r => r.loai_source === '' && r.element === '' && r.confidence === null));
   assert.equal(h.sgDom.btnBrowseCsv.disabled, true);
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
+  assert.match(h.sgDom.btnExport.textContent, /bản nháp/);
   assert.equal(h.sgDom.btnLearn.disabled, true);
   assert.match(h.sgDom.tbody.innerHTML, /Đang phân tích/);
   assert.doesNotMatch(h.sgDom.tbody.innerHTML, /value="rai_1"[^>]* selected/);
@@ -508,7 +512,8 @@ test('API failure preserves completed rows and retry only sends unresolved rows'
   assert.equal(h.sgState.rows.filter(r => r.analysis_status === 'error').length, 8);
   assert.equal(h.sgState.rows.filter(r => r.analysis_status === 'pending').length, 49);
   assert.equal(h.sgDom.statLow.textContent, 8);
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
+  assert.match(h.sgDom.btnExport.textContent, /bản nháp/);
   await h.sgDom.btnSuggest.click();
   assert.equal(h.calls.confirm, 0);
   assert.equal(h.calls.ai[2].rows[0].text, 'Câu 8');
@@ -536,7 +541,7 @@ test('missing API key leaves unclassified rows and gives an actionable message',
   await h.sgDom.btnSuggest.click();
   assert.equal(h.calls.ai.length, 0);
   assert.ok(h.sgState.rows.every(r => r.loai_source === '' && r.analysis_status === 'pending'));
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
   assert.ok(h.calls.log.some(([message]) => /API Key/.test(message)));
 });
 
@@ -556,7 +561,7 @@ test('missing or reordered API results cannot become successful rows', async () 
     await h.sgDom.btnBrowseCsv.click();
   await h.sgDom.btnSuggest.click();
     assert.ok(h.sgState.rows.every(r => r.analysis_status === 'error' && r.loai_source === ''));
-    assert.equal(h.sgDom.btnExport.disabled, true);
+    assert.equal(h.sgDom.btnExport.disabled, false);
   }
 });
 
@@ -572,7 +577,7 @@ test('startup restores saved results without running AI; changed CSV invalidates
   h.data[0].text = 'Kịch bản đã đổi';
   await h.context.loadCsvFile(file);
   assert.ok(h.sgState.rows.every(r => r.analysis_status === 'pending'));
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
 });
 
 test('editing one field never marks an otherwise blank row complete', async () => {
@@ -583,7 +588,7 @@ test('editing one field never marks an otherwise blank row complete', async () =
   h.context.markRowEdited(0);
   assert.equal(h.sgState.rows[0].analysis_status, 'pending');
   assert.equal(h.sgState.rows[0].confidence, null);
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
 });
 
 test('paragraph context respects explicit row and sentence overrides and survives reruns', async () => {
@@ -615,7 +620,7 @@ test('turning off broll affects only its paragraph and requires reanalysis for e
   assert.equal(h.sgState.rows[2].loai_source, 'rai_1_3');
   assert.equal(h.sgState.rows[3].allow_rai_2, 'no');
   assert.equal(h.sgState.rows[4].allow_rai_2, 'yes');
-  assert.equal(h.sgDom.btnExport.disabled, true);
+  assert.equal(h.sgDom.btnExport.disabled, false);
 });
 
 test('legacy analysis cache is archived and cannot reinterpret old rai_2', async () => {
@@ -667,9 +672,9 @@ test('draft export at 296 of 406 includes every row without changing paused data
   Object.assign(h.sgState, { csvPath: 'C:\\Project\\1_CSV_Timeline.csv', isSuggesting: true, paused: true, phase: 'paused' });
   h.context.renderTable();
   const before = structuredClone(h.sgState.rows);
-  assert.equal(h.sgDom.btnExport.disabled, true);
-  assert.equal(h.sgDom.btnExportDraft.disabled, false);
-  await h.sgDom.btnExportDraft.click();
+  assert.equal(h.sgDom.btnExport.disabled, false);
+  assert.match(h.sgDom.btnExport.textContent, /bản nháp CSV \(296\/406\)/);
+  await h.sgDom.btnExport.click();
   assert.equal(h.calls.exports.length, 1);
   assert.equal(h.calls.exports[0].draft, true);
   assert.equal(h.calls.exports[0].rows.length, 406);
@@ -694,8 +699,8 @@ test('live draft snapshot stays at 288 while the in-flight group completes and C
   assert.equal(h.sgState.rows.filter(row => row.analysis_status === 'complete').length, 288);
   await h.sgDom.btnPause.click();
   h.context.window.api.saveCsvFile = () => new Promise(resolve => { finishSave = resolve; });
-  const exporting = h.sgDom.btnExportDraft.click();
-  await h.sgDom.btnExportDraft.click(); // A second click cannot open another save dialog.
+  const exporting = h.sgDom.btnExport.click();
+  await h.sgDom.btnExport.click(); // A second click cannot open another save dialog.
   finishGroup();
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(h.sgState.rows.filter(row => row.analysis_status === 'complete').length, 296);
@@ -717,14 +722,14 @@ test('canceling or failing draft export keeps rows and allows another attempt', 
   await h.context.loadCsvFile('timeline.csv', { fresh: true });
   const before = structuredClone(h.sgState.rows);
   h.context.window.api.saveCsvFile = async () => null;
-  await h.sgDom.btnExportDraft.click();
+  await h.sgDom.btnExport.click();
   assert.equal(h.calls.exports.length, 0);
-  assert.equal(h.sgDom.btnExportDraft.disabled, false);
+  assert.equal(h.sgDom.btnExport.disabled, false);
   h.context.window.api.saveCsvFile = async () => 'draft.csv';
   h.context.window.api.suggesterExportCsv = async () => ({ error: 'fake disk failure' });
-  await h.sgDom.btnExportDraft.click();
+  await h.sgDom.btnExport.click();
   assert.deepEqual(structuredClone(h.sgState.rows), before);
-  assert.equal(h.sgDom.btnExportDraft.disabled, false);
+  assert.equal(h.sgDom.btnExport.disabled, false);
   assert.ok(h.calls.log.some(([text]) => /fake disk failure/.test(text)));
 });
 
@@ -733,7 +738,7 @@ test('reset while choosing a draft path prevents an old export from writing the 
   let choose;
   await h.context.loadCsvFile('timeline.csv', { fresh: true });
   h.context.window.api.saveCsvFile = () => new Promise(resolve => { choose = resolve; });
-  const exporting = h.sgDom.btnExportDraft.click();
+  const exporting = h.sgDom.btnExport.click();
   await h.sgDom.btnReset.click();
   choose('old-draft.csv');
   await exporting;
@@ -773,4 +778,134 @@ test('importing a draft preserves completed metadata and Continue analyzes only 
   assert.equal(h.sgState.rows[1].analysis_status, 'manual');
   assert.equal(h.sgState.rows[0].note, 'Giữ khung TV');
   assert.equal(h.sgState.phase, 'complete');
+});
+
+test('all three toolbar actions work after an actual Pause; importing retires the old waiting run', async () => {
+  let finish;
+  const h = harness({ count: 10, suggest: (params, n) => n === 1 ? new Promise(resolve => {
+    finish = () => resolve({ rows: params.rows.map(complete) });
+  }) : { rows: params.rows.map(complete) } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnPause.click();
+  assert.equal(h.sgState.phase, 'pausing');
+  assert.equal(h.sgDom.btnImportPlan.disabled, true);
+  assert.equal(h.sgDom.btnLearn.disabled, true);
+  finish();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgDom.btnImportPlan.disabled, false);
+  assert.equal(h.sgDom.btnLearn.disabled, false);
+  assert.equal(h.sgDom.btnExport.disabled, false);
+  assert.match(h.sgDom.btnExport.textContent, /bản nháp CSV \(8\/10\)/);
+  await h.sgDom.btnExport.click();
+  assert.equal(h.calls.exports[0].draft, true);
+  assert.equal(h.calls.exports[0].rows.length, 10);
+  await h.sgDom.btnLearn.click();
+  assert.equal(h.calls.learned.length, 1);
+  assert.equal(h.calls.learned[0].items.length, 8);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.calls.ai.length, 1);
+  const oldGeneration = h.sgState.generation;
+  h.context.window.api.suggesterLoadCsv = async () => ({ rows: [{ ...complete(h.data[0], 0),
+    text: 'Lời thoại trong file mới', is_source_plan: true, analysis_status: 'edited' }] });
+  await h.sgDom.btnImportPlan.click();
+  await run;
+  assert.ok(h.sgState.generation > oldGeneration);
+  assert.equal(h.sgState.isSuggesting, false);
+  assert.equal(h.sgState.rows.length, 1);
+  assert.equal(h.sgState.rows[0].text, 'Lời thoại trong file mới');
+  assert.equal(h.sgState.rows[0].analysis_status, 'edited');
+  assert.equal(h.calls.ai.length, 1, 'the old paused run must not analyze or overwrite the imported file');
+});
+
+test('canceling import keeps the paused run and its Continue available', async () => {
+  let finish;
+  const h = harness({ count: 9, suggest: (params, n) => n === 1 ? new Promise(resolve => {
+    finish = () => resolve({ rows: params.rows.map(complete) });
+  }) : { rows: params.rows.map(complete) } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnPause.click(); finish();
+  await new Promise(resolve => setImmediate(resolve));
+  const before = structuredClone(h.sgState.rows), generation = h.sgState.generation;
+  h.context.askConfirm = async () => false;
+  await h.sgDom.btnImportPlan.click();
+  assert.equal(h.sgState.generation, generation);
+  assert.deepEqual(structuredClone(h.sgState.rows), before);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgDom.btnPause.disabled, false);
+  await h.sgDom.btnPause.click();
+  await run;
+  assert.equal(h.sgState.phase, 'complete');
+});
+
+test('learning while paused saves only eligible rows and preserves the session when the save fails', async () => {
+  const h = harness({ count: 4 });
+  h.sgState.rows = [complete(h.data[0], 0), { ...complete(h.data[1], 1), analysis_status: 'edited' },
+    { ...h.data[2], analysis_status: 'manual', needs_review: true }, { ...h.data[3], analysis_status: 'pending' }];
+  Object.assign(h.sgState, { csvPath: 'timeline.csv', isSuggesting: true, paused: true, phase: 'paused' });
+  h.context.renderTable();
+  const before = structuredClone(h.sgState.rows);
+  let fail;
+  h.context.window.api.suggesterSaveExamples = async params => {
+    h.calls.learned.push(structuredClone(params));
+    return new Promise(resolve => { fail = () => resolve({ error: 'fake examples save failed' }); });
+  };
+  const learning = h.sgDom.btnLearn.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnLearn.click();
+  assert.equal(h.calls.learned.length, 1);
+  assert.equal(h.calls.learned[0].items.length, 2);
+  assert.equal(h.sgDom.btnPause.disabled, true);
+  fail(); await learning;
+  assert.deepEqual(structuredClone(h.sgState.rows), before);
+  assert.equal(h.sgState.phase, 'paused');
+  assert.equal(h.sgDom.btnLearn.disabled, false);
+  assert.equal(h.sgDom.btnPause.disabled, false);
+  assert.ok(h.calls.log.some(([text]) => /fake examples save failed/.test(text)));
+});
+
+test('failed import releases the old pause but preserves its completed rows for retry', async () => {
+  let finish;
+  const h = harness({ count: 9, suggest: (params, n) => n === 1 ? new Promise(resolve => {
+    finish = () => resolve({ rows: params.rows.map(complete) });
+  }) : { rows: params.rows.map(complete) } });
+  await h.sgDom.btnBrowseCsv.click();
+  const run = h.sgDom.btnSuggest.click();
+  await new Promise(resolve => setImmediate(resolve));
+  await h.sgDom.btnPause.click(); finish();
+  await new Promise(resolve => setImmediate(resolve));
+  const before = structuredClone(h.sgState.rows);
+  h.context.window.api.suggesterLoadCsv = async () => ({ error: 'fake invalid CSV' });
+  await h.sgDom.btnImportPlan.click(); await run;
+  assert.deepEqual(structuredClone(h.sgState.rows), before);
+  assert.equal(h.sgState.isSuggesting, false);
+  assert.equal(h.sgDom.btnSuggest.disabled, false);
+  await h.sgDom.btnSuggest.click();
+  assert.equal(h.calls.ai[1].rows.length, 1);
+  assert.equal(h.sgState.phase, 'complete');
+});
+
+test('learning from an idle table locks competing actions until the examples save returns', async () => {
+  const h = harness({ count: 2 });
+  h.sgState.rows = h.data.map(complete);
+  h.sgState.csvPath = 'timeline.csv';
+  h.context.renderTable();
+  assert.equal(h.sgDom.btnSuggest.disabled, false);
+  let finish;
+  h.context.window.api.suggesterSaveExamples = async () => new Promise(resolve => {
+    finish = () => resolve({ examples: [], added: 2, updated: 0, total: 2 });
+  });
+  const learning = h.sgDom.btnLearn.click();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(h.sgDom.btnSuggest.disabled, true);
+  assert.equal(h.sgDom.btnBrowseCsv.disabled, true);
+  assert.equal(h.sgDom.btnImportPlan.disabled, true);
+  finish(); await learning;
+  assert.equal(h.sgDom.btnSuggest.disabled, false);
+  assert.equal(h.sgDom.btnBrowseCsv.disabled, false);
+  assert.equal(h.sgDom.btnImportPlan.disabled, false);
 });

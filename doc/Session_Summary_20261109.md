@@ -1,5 +1,15 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-13)
 
+## Sửa ba nút không phản hồi khi Pause (2026-11-13, hiện hành)
+
+- User báo bấm Xuất không thấy gì rồi xác nhận cả Nạp/Lưu kho/Xuất đều không phản hồi ở paused 296/406; yêu cầu continue. Code cũ giữ isSuggesting=true lúc paused nên cả ba nút bị khóa, CSS khiến vẫn trông như bấm được. Ảnh cũng còn banner/nút bản cũ, chưa có nút nháp riêng; tiến trình Electron đang chạy từ trước bản 6a52262. Không đóng/reload app đang chạy hoặc đổi dữ liệu của user trong task.
+- Đã tách request đang chạy khỏi phiên đang giữ Pause. Khi phase paused thật, Nạp và Lưu kho mở theo điều kiện dữ liệu; trong pausing còn request thì khóa. Cập nhật updateStats ngay ở chuyển phase để không để Learn bị khóa sót. Nút bận làm mờ/tooltip, có nhãn xử lý khi mở file/lưu kho/xuất.
+- Gộp lại một nút Xuất: còn dòng chưa xong/phiên đang chạy thì tự xuất nháp, nhãn Xuất bản nháp CSV (296/406); hết bài chuyển xuất hoàn chỉnh. Bỏ nút nháp riêng để người dùng bấm đúng nút Xuất quen thuộc. Snapshot/draft backend 6a52262 vẫn giữ, không đổi API/Python.
+- Nạp trong paused mở file/xác nhận; sau đồng ý mới tăng generation, wake/retire waiter cũ rồi tải, ngăn run cũ ghi nhầm dữ liệu file mới. Hủy chọn/xác nhận giữ phiên/Continue; đọc file lỗi giữ bảng cũ và có thể chạy phần chưa xong. Lưu kho dùng snapshot các dòng complete/edited đủ điều kiện, giữ phiên khi lỗi; khóa thao tác xung đột và chống bấm lặp trong lúc xác nhận/lưu.
+- Kiểm thử: **82 test JavaScript đạt, 1 smoke bỏ qua**, trong đó Source **48/48 đạt**. Có test Pause thực tế rồi bấm cả ba nút, nạp file retire run cũ, hủy nạp vẫn Continue, nạp lỗi giữ kết quả, học chỉ dòng đủ điều kiện/lưu lỗi/bấm lặp, khóa thao tác cạnh tranh khi học từ bảng idle; giữ test 296/406 và live snapshot 288→296→406. Không đổi backend nên không chạy lại Python (lượt trước 98 đạt). Chưa kiểm tra trực tiếp GUI Electron/AI thật, toàn bộ gọi dịch vụ được mô phỏng.
+- File sửa: renderer, HTML/CSS toolbar, test Source JS; AGENTS, Source v2 và workflow Gợi ý Source. Các tab/backend khác không đổi luồng. Cú pháp/diff kiểm tra trước commit/push; giữ doc/aaa ngoài task.
+- Bước dùng: app của user đang paused 296/406 nên đóng hẳn rồi chạy npm start lại để nạp cả frontend/backend các bản mới; snapshot đã lưu giữ nguyên, **không bấm Làm mới**. Bấm Xuất bản nháp CSV (296/406) để mở hộp thoại lưu file đủ 406 dòng, hoặc dùng Nạp/Lưu kho theo nhu cầu.
+
 ## Xuất bản nháp toàn bộ CSV khi phân tích chưa xong (2026-11-13)
 
 - User hỏi bảng cập nhật đến đâu và có xuất được kết quả ở 296/406 không. Xác minh code cũ: bảng cập nhật sau từng nhóm tối đa 8 dòng, CSV hoàn chỉnh chặn khi còn pending/analyzing/error. Trong ảnh 288 đã nhận kết quả, nhóm 289–296 đang chờ. User đã chọn rõ: **xuất bản nháp đủ 406 dòng, giữ kết quả đã xử lý, các dòng chưa xử lý để trống**.

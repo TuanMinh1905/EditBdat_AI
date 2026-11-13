@@ -326,6 +326,8 @@ try {
 
 ## 9. Lịch sử thay đổi Rule
 
+Ngày 13/11/2026: user báo cả ba nút Nạp/Lưu kho/Xuất không phản hồi ở paused 296/406. Tách phiên còn sống khỏi request đang chạy; chỉ cho Nạp/Lưu kho khi phase paused thật, cập nhật đủ toolbar khi đổi phase. Gộp nút Xuất tự chọn nháp khi chưa xong, hoàn chỉnh khi xong; thay nút nháp riêng. Nạp thay phiên phải xác nhận, tăng generation và giải phóng waiter cũ để không ghi nhầm file mới.
+
 Ngày 13/11/2026: user chọn xuất bản nháp đủ mọi dòng tại tiến độ bất kỳ (ví dụ 296/406), giữ kết quả đã xử lý và để trống phần chưa xong. Thêm ngoại lệ draft cho CSV, giữ chặn CSV hoàn chỉnh; bản nháp không tự gắn vào Gen XML. Lý do đổi rule: user cần lưu và nạp lại tiến độ dở dang ra file riêng.
 
 Ngày 13/11/2026: user báo log tiếng Việt lỗi ở Terminal VS Code và không biết vì sao chưa chuyển OpenAI. Thêm khởi động terminal/stream UTF-8, ghép trọn dòng log, phân biệt Key3 chưa lưu với đang tắt và giữ thông báo cuối khi Source paused; lý do là lỗi bảng mã và thiếu thông tin trạng thái thực tế.
@@ -545,6 +547,7 @@ Response: `{ "output_path": "...", "total_clips": N, "total_elements": N, "total
 
 - Cập nhật 2026-11-12: chọn Timeline chỉ lưu tên file; bấm Phân tích mới nạp bảng và chạy AI. Thay thế yêu cầu tự chạy trước đây. Dòng chưa phân tích để trống, không gán rai_1/auto hoặc confidence mặc định.
 - Pause giữ nhóm đang chạy rồi dừng, Continue tiếp tục. Làm mới phải xác nhận và tăng generation để bỏ qua phản hồi cũ kể cả đọc CSV; không xóa file vật lý/cấu hình/kho ví dụ.
+- `isSuggesting` vẫn true trong khi giữ waiter ở paused, không dùng riêng cờ này để khóa toolbar. Nạp phân loại/Lưu kho ví dụ mở khi phase paused (không mở khi pausing còn request). Nạp file sau xác nhận phải tăng generation, kết thúc/wake run cũ rồi mới tải, hủy chọn giữ nguyên phiên. Lưu kho dùng snapshot các dòng complete/edited không needs_review, không học pending/error/manual; khóa thao tác xung đột khi đang chờ. Nút Xuất luôn dùng được khi có bảng và không bận I/O, tự gọi draft=true nếu còn phiên AI hoặc dòng chưa xong, đổi nhãn kèm xong/tổng. Nút bị khóa phải có màu mờ và tooltip lý do. `updateStats` cập nhật toolbar ngay khi đổi paused/running để không sót trạng thái nút.
 - `sg_analysis` lưu cả file chọn chưa phân tích, bảng/chỉnh sửa/bối cảnh và phase. Khôi phục snapshot trực tiếp; phiên chạy dở chuyển paused, không tự gọi AI; nhóm chưa trả kết quả chuyển pending. Nạp phân loại dùng dữ liệu file, không lấy cache đè lên.
 - Mỗi request tối đa 8 dòng (giảm từ 32 sau lỗi timeout ngày 2026-11-12), kèm context_rows toàn bài và previous_rows để giữ ngữ cảnh đoạn/câu/ý và BGM. rules là snapshot cho request, không tự ghi đè file.
 - Khi request lỗi chỉ nhóm đang analyzing chuyển error; nhóm chưa gửi giữ pending. Với hết provider, nhóm chưa xong chuyển pending và phiên paused. Lượt bổ sung lỗi phải giữ các dòng hợp lệ từ lượt đầu. Log phân biệt lỗi provider với timeout backend; timeout hiện hành nêu ở gateway bên trên.
