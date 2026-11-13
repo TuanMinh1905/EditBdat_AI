@@ -63,6 +63,9 @@ contextBridge.exposeInMainWorld('api', {
   suggesterDeleteExample: (params) => ipcRenderer.invoke('suggester-delete-example', params),
   suggesterExportCsv: (params) => ipcRenderer.invoke('suggester-export-csv', params),
 
+  // Silver Source (Xem Yêu cầu Source & Đối chiếu độ bao phủ)
+  silverSourceLoad: (params) => ipcRenderer.invoke('silver-source-load', params),
+
   // Token Usage Tracker & External Links
   getTokenUsage: (params) => ipcRenderer.invoke('get-token-usage', params),
   resetTokenUsage: (params) => ipcRenderer.invoke('reset-token-usage', params),

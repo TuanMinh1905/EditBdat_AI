@@ -1024,9 +1024,13 @@ function switchTab(tabName) {
   if (tabRules) tabRules.style.display = tabName === 'rules' ? 'flex' : 'none';
   const tabSuggester = $('#tab-source-suggester');
   if (tabSuggester) tabSuggester.style.display = tabName === 'source-suggester' ? 'flex' : 'none';
+  const tabSilver = $('#tab-silver-source');
+  if (tabSilver) tabSilver.style.display = tabName === 'silver-source' ? 'flex' : 'none';
 
   if (tabName === 'settings') {
     loadTokenUsage();
+  } else if (tabName === 'silver-source') {
+    window.__svEnsureLoaded?.();
   }
 }
 // --- Event Bindings ---
@@ -1214,6 +1218,7 @@ function initEvents() {
       label.textContent = 'Sẵn sàng';
       addLog('Backend Python đã kết nối', 'success');
       loadTokenUsage();
+      window.__svEnsureLoaded?.();
     } else {
       dot.className = 'status-dot error';
       label.textContent = 'Lỗi';
@@ -1254,6 +1259,7 @@ async function init() {
     ['initClipSplitter', initClipSplitter],
     ['initPremiereGen', initPremiereGen],
     ['initSourceSuggester', initSourceSuggester],
+    ['initSilverSource', initSilverSource],
     ['initKyNangDropdown', initKyNangDropdown],
     ['initRules', initRules]
   ];
@@ -5089,6 +5095,711 @@ function initSourceSuggester() {
 }
 
 // ============================================================
+// SILVER SOURCE — Xem & Đối chiếu 3_YeuCauSource & 3_DoiChieuDoBaoPhu
+// ============================================================
+
+function svEscapeHtml(text) {
+  return String(text ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function svPriorityClass(priority) {
+  const p = String(priority || '').trim().toLowerCase();
+  if (p === 'cao') return 'sv-prio-high';
+  if (p.includes('cao')) return 'sv-prio-high-pending';
+  if (p === 'vừa' || p === 'trung bình') return 'sv-prio-med';
+  return 'sv-prio-med-pending';
+}
+
+function svStep3Class(status) {
+  const s = String(status || '').trim().toLowerCase();
+  if (s === 'có yêu cầu silver') return 'sv-step3-silver';
+  if (s.includes('chờ duyệt') || s.includes('đề xuất')) return 'sv-step3-pending';
+  if (s.includes('tự thiết kế')) return 'sv-step3-design';
+  if (s.includes('chưa đủ thông tin')) return 'sv-step3-missing';
+  return 'sv-step3-none';
+}
+
+function svSplitLines(raw) {
+  return String(raw || '')
+    .split(/\r?\n/)
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function svSplitKeywords(raw) {
+  return String(raw || '')
+    .split('|')
+    .map(s => s.trim())
+    .filter(Boolean);
+}
+
+function initSilverSource() {
+  const svDom = {
+    btnBrowseFolder: $('#sv-btn-browse-folder'),
+    btnReload: $('#sv-btn-reload'),
+    reqPath: $('#sv-req-path'),
+    btnBrowseReq: $('#sv-btn-browse-req'),
+    btnOpenReq: $('#sv-btn-open-req'),
+    covPath: $('#sv-cov-path'),
+    btnBrowseCov: $('#sv-btn-browse-cov'),
+    btnOpenCov: $('#sv-btn-open-cov'),
+    statusBanner: $('#sv-status-banner'),
+    viewBtnReq: $('#sv-view-btn-req'),
+    viewBtnCov: $('#sv-view-btn-cov'),
+    reqCountBadge: $('#sv-req-count-badge'),
+    covCountBadge: $('#sv-cov-count-badge'),
+    summaryPills: $('#sv-summary-pills'),
+    panelRequests: $('#sv-panel-requests'),
+    panelCoverage: $('#sv-panel-coverage'),
+    reqSearch: $('#sv-req-search'),
+    reqFilterPriority: $('#sv-req-filter-priority'),
+    reqFilterLoai: $('#sv-req-filter-loai'),
+    reqFilterDone: $('#sv-req-filter-done'),
+    reqListMeta: $('#sv-req-list-meta'),
+    reqTbody: $('#sv-req-tbody'),
+    reqDetailEmpty: $('#sv-req-detail-empty'),
+    reqDetailBody: $('#sv-req-detail-body'),
+    covSearch: $('#sv-cov-search'),
+    covFilterStep3: $('#sv-cov-filter-step3'),
+    covFilterStep2: $('#sv-cov-filter-step2'),
+    covFilterLoai: $('#sv-cov-filter-loai'),
+    covFilterDoan: $('#sv-cov-filter-doan'),
+    covSrFilterWrap: $('#sv-cov-sr-filter-wrap'),
+    covSrFilterLabel: $('#sv-cov-sr-filter-label'),
+    covSrFilterClear: $('#sv-cov-sr-filter-clear'),
+    covListMeta: $('#sv-cov-list-meta'),
+    covTbody: $('#sv-cov-tbody'),
+    covDetailCard: $('#sv-cov-detail-card'),
+  };
+
+  const svState = {
+    reqPath: localStorage.getItem('sv_req_csv') || '',
+    covPath: localStorage.getItem('sv_cov_csv') || '',
+    requests: [],
+    coverage: [],
+    stats: {},
+    selectedRequestId: '',
+    selectedCoverageRow: null,
+    activeView: 'requests',
+    covSrFilter: '',
+    doneMap: {},
+    loadedOnce: false,
+    isLoading: false,
+  };
+
+  function doneStorageKey() {
+    return `sv_done_${svState.reqPath || 'default'}`;
+  }
+
+  function loadDoneMap() {
+    try {
+      const raw = localStorage.getItem(doneStorageKey());
+      svState.doneMap = raw ? JSON.parse(raw) : {};
+    } catch (_) {
+      svState.doneMap = {};
+    }
+  }
+
+  function saveDoneMap() {
+    try {
+      localStorage.setItem(doneStorageKey(), JSON.stringify(svState.doneMap));
+    } catch (_) { /* ignore */ }
+  }
+
+  function setStatus(message, isError = false) {
+    if (!svDom.statusBanner) return;
+    if (!message) {
+      svDom.statusBanner.hidden = true;
+      svDom.statusBanner.textContent = '';
+      svDom.statusBanner.classList.remove('is-error');
+      return;
+    }
+    svDom.statusBanner.hidden = false;
+    svDom.statusBanner.textContent = message;
+    svDom.statusBanner.classList.toggle('is-error', Boolean(isError));
+  }
+
+  function setActiveView(view) {
+    svState.activeView = view === 'coverage' ? 'coverage' : 'requests';
+    const isReq = svState.activeView === 'requests';
+    if (svDom.panelRequests) svDom.panelRequests.hidden = !isReq;
+    if (svDom.panelCoverage) svDom.panelCoverage.hidden = isReq;
+    if (svDom.viewBtnReq) {
+      svDom.viewBtnReq.classList.toggle('active', isReq);
+      svDom.viewBtnReq.setAttribute('aria-selected', String(isReq));
+    }
+    if (svDom.viewBtnCov) {
+      svDom.viewBtnCov.classList.toggle('active', !isReq);
+      svDom.viewBtnCov.setAttribute('aria-selected', String(!isReq));
+    }
+  }
+
+  function copyToClipboard(text, btnEl) {
+    if (!text) return;
+    const markCopied = () => {
+      if (!btnEl) return;
+      btnEl.classList.add('copied');
+      const prev = btnEl.dataset.origLabel || btnEl.textContent;
+      btnEl.dataset.origLabel = prev;
+      btnEl.textContent = '✅ Đã copy!';
+      setTimeout(() => {
+        btnEl.classList.remove('copied');
+        btnEl.textContent = prev;
+      }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(markCopied).catch(() => {});
+    }
+  }
+
+  function populateSelectOptions(selectEl, values, allLabel) {
+    if (!selectEl) return;
+    const prev = selectEl.value;
+    selectEl.innerHTML = `<option value="">${svEscapeHtml(allLabel)}</option>`
+      + values.map(v => `<option value="${svEscapeHtml(v)}">${svEscapeHtml(v)}</option>`).join('');
+    if (prev && values.includes(prev)) selectEl.value = prev;
+  }
+
+  function updateSummaryPills() {
+    if (svDom.reqCountBadge) svDom.reqCountBadge.textContent = String(svState.requests.length);
+    if (svDom.covCountBadge) svDom.covCountBadge.textContent = String(svState.coverage.length);
+    if (!svDom.summaryPills) return;
+
+    if (!svState.requests.length && !svState.coverage.length) {
+      svDom.summaryPills.innerHTML = '<span class="sv-stat-pill">Chưa nạp dữ liệu Silver Source</span>';
+      return;
+    }
+
+    const pills = [];
+    if (svState.requests.length) {
+      const doneCount = svState.requests.filter(r => Boolean(svState.doneMap[r.request_id])).length;
+      const highCount = svState.requests.filter(r => String(r.muc_uu_tien || '').trim().toLowerCase() === 'cao').length;
+      pills.push(`<span class="sv-stat-pill pill-done">Đã tìm: <strong>${doneCount}/${svState.requests.length}</strong></span>`);
+      if (highCount) pills.push(`<span class="sv-stat-pill pill-high">Ưu tiên Cao: <strong>${highCount}</strong></span>`);
+    }
+    const step3 = svState.stats?.by_step3_status || {};
+    if (svState.coverage.length) {
+      const silverCount = step3['Có yêu cầu Silver'] || 0;
+      const pendingApprove = Object.entries(step3)
+        .filter(([k]) => k.toLowerCase().includes('chờ duyệt'))
+        .reduce((sum, [, v]) => sum + v, 0);
+      const selfDesign = Object.entries(step3)
+        .filter(([k]) => k.toLowerCase().includes('tự thiết kế'))
+        .reduce((sum, [, v]) => sum + v, 0);
+      pills.push(`<span class="sv-stat-pill">Có yêu cầu Silver: <strong>${silverCount}</strong></span>`);
+      if (pendingApprove) pills.push(`<span class="sv-stat-pill pill-warn">Chờ duyệt: <strong>${pendingApprove}</strong></span>`);
+      if (selfDesign) pills.push(`<span class="sv-stat-pill">Tự thiết kế: <strong>${selfDesign}</strong></span>`);
+    }
+    svDom.summaryPills.innerHTML = pills.join('');
+  }
+
+  function populateFilters() {
+    const priorities = [...new Set(svState.requests.map(r => (r.muc_uu_tien || '').trim()).filter(Boolean))];
+    const reqLoai = [...new Set(svState.requests.map(r => (r.ma_loai_source || '').trim()).filter(Boolean))];
+    populateSelectOptions(svDom.reqFilterPriority, priorities, 'Tất cả ưu tiên');
+    populateSelectOptions(svDom.reqFilterLoai, reqLoai, 'Tất cả loại');
+
+    const step3List = [...new Set(svState.coverage.map(r => (r.trang_thai_buoc_3 || '').trim()).filter(Boolean))];
+    const step2List = [...new Set(svState.coverage.map(r => (r.analysis_status_buoc_2 || '').trim()).filter(Boolean))];
+    const covLoai = [...new Set(svState.coverage.map(r => (r.ma_loai_source || '').trim()).filter(Boolean))];
+    const doanList = svState.stats?.doan_list || [...new Set(svState.coverage.map(r => (r.doan || '').trim()).filter(Boolean))];
+
+    populateSelectOptions(svDom.covFilterStep3, step3List, 'Tất cả trạng thái Bước 3');
+    populateSelectOptions(svDom.covFilterStep2, step2List, 'Tất cả Bước 2');
+    populateSelectOptions(svDom.covFilterLoai, covLoai, 'Tất cả loại Source');
+    populateSelectOptions(svDom.covFilterDoan, doanList, 'Tất cả đoạn');
+  }
+
+  function getFilteredRequests() {
+    const q = (svDom.reqSearch?.value || '').trim().toLowerCase();
+    const prio = svDom.reqFilterPriority?.value || '';
+    const loai = svDom.reqFilterLoai?.value || '';
+    const doneFilter = svDom.reqFilterDone?.value || '';
+
+    return svState.requests.filter(row => {
+      if (prio && (row.muc_uu_tien || '').trim() !== prio) return false;
+      if (loai && (row.ma_loai_source || '').trim() !== loai) return false;
+      const isDone = Boolean(svState.doneMap[row.request_id]);
+      if (doneFilter === 'done' && !isDone) return false;
+      if (doneFilter === 'todo' && isDone) return false;
+      if (!q) return true;
+      const hay = [
+        row.request_id, row.nhan_vat, row.doi_bong, row.thoi_diem_lich_su,
+        row.tran_dau_hoac_su_kien, row.noi_dung_can_thay, row.tu_khoa_tim_kiem,
+        row.loi_thoai_lien_quan, row.timeline_refs, row.ma_loai_source,
+      ].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function openCoverageForRequest(requestId) {
+    if (!requestId) return;
+    svState.covSrFilter = requestId;
+    if (svDom.covSrFilterWrap && svDom.covSrFilterLabel) {
+      svDom.covSrFilterWrap.hidden = false;
+      svDom.covSrFilterLabel.textContent = `Lọc: ${requestId}`;
+    }
+    setActiveView('coverage');
+    renderCoverageTable();
+  }
+
+  function openRequestDetail(requestId) {
+    if (!requestId) return;
+    svState.selectedRequestId = requestId;
+    if (!getFilteredRequests().some(r => r.request_id === requestId)) {
+      if (svDom.reqSearch) svDom.reqSearch.value = '';
+      if (svDom.reqFilterPriority) svDom.reqFilterPriority.value = '';
+      if (svDom.reqFilterLoai) svDom.reqFilterLoai.value = '';
+      if (svDom.reqFilterDone) svDom.reqFilterDone.value = '';
+    }
+    setActiveView('requests');
+    renderRequestsTable();
+    renderRequestDetail(requestId);
+    const safeId = (typeof CSS !== 'undefined' && CSS.escape) ? CSS.escape(requestId) : requestId;
+    const activeRow = svDom.reqTbody?.querySelector(`tr[data-sr="${safeId}"]`);
+    activeRow?.scrollIntoView?.({ block: 'nearest' });
+  }
+
+  function renderRequestDetail(requestId) {
+    if (!svDom.reqDetailEmpty || !svDom.reqDetailBody) return;
+    const req = svState.requests.find(r => r.request_id === requestId);
+    if (!req) {
+      svDom.reqDetailEmpty.hidden = false;
+      svDom.reqDetailBody.hidden = true;
+      svDom.reqDetailBody.innerHTML = '';
+      return;
+    }
+
+    svDom.reqDetailEmpty.hidden = true;
+    svDom.reqDetailBody.hidden = false;
+
+    const isDone = Boolean(svState.doneMap[req.request_id]);
+    const keywords = svSplitKeywords(req.tu_khoa_tim_kiem);
+    const refLines = svSplitLines(req.timeline_refs);
+    const dialogLines = svSplitLines(req.loi_thoai_lien_quan);
+    const linkedCov = svState.coverage.filter(c => Array.isArray(c.linked_request_ids) && c.linked_request_ids.includes(req.request_id));
+
+    svDom.reqDetailBody.innerHTML = `
+      <div class="sv-detail-header">
+        <div class="sv-detail-title-group">
+          <span class="sv-sr-chip">${svEscapeHtml(req.request_id)}</span>
+          <span class="sv-prio-badge ${svPriorityClass(req.muc_uu_tien)}">${svEscapeHtml(req.muc_uu_tien || 'Chưa rõ')}</span>
+          ${req.ma_loai_source ? `<span class="sv-stat-pill"><code>${svEscapeHtml(req.ma_loai_source)}</code></span>` : ''}
+        </div>
+        <div class="sv-detail-actions">
+          <button type="button" class="btn-secondary sv-btn-sm sv-done-btn ${isDone ? 'is-done' : ''}" id="sv-detail-toggle-done">
+            ${isDone ? '✅ Đã tìm xong' : '⏳ Đánh dấu đã tìm'}
+          </button>
+          ${svState.coverage.length ? `
+            <button type="button" class="btn-secondary sv-btn-sm" id="sv-detail-jump-cov">
+              📊 Xem ${linkedCov.length} dòng đối chiếu
+            </button>` : ''}
+        </div>
+      </div>
+
+      <div class="sv-meta-grid">
+        <div class="sv-meta-box">
+          <div class="sv-meta-label">👤 Nhân vật</div>
+          <div class="sv-meta-val">${svEscapeHtml(req.nhan_vat || '—')}</div>
+        </div>
+        <div class="sv-meta-box">
+          <div class="sv-meta-label">🛡️ Đội bóng</div>
+          <div class="sv-meta-val">${svEscapeHtml(req.doi_bong || '—')}</div>
+        </div>
+        <div class="sv-meta-box">
+          <div class="sv-meta-label">🗓️ Thời điểm lịch sử</div>
+          <div class="sv-meta-val">${svEscapeHtml(req.thoi_diem_lich_su || '—')}</div>
+        </div>
+        <div class="sv-meta-box">
+          <div class="sv-meta-label">🏆 Trận đấu / Sự kiện</div>
+          <div class="sv-meta-val">${svEscapeHtml(req.tran_dau_hoac_su_kien || '—')}</div>
+        </div>
+      </div>
+
+      <div class="sv-section-card tone-cyan">
+        <div class="sv-section-head">
+          <span>🎯 Nội dung cần thấy</span>
+          ${req.muc_chinh_xac ? `<span class="sv-stat-pill">Mức chính xác: <strong>${svEscapeHtml(req.muc_chinh_xac)}</strong></span>` : ''}
+        </div>
+        <div class="sv-section-text">${svEscapeHtml(req.noi_dung_can_thay || '—')}</div>
+        ${req.nhu_cau_thoi_luong ? `<div class="sp-hint" style="margin-top:8px;">⏱️ <strong>Nhu cầu thời lượng:</strong> ${svEscapeHtml(req.nhu_cau_thoi_luong)}</div>` : ''}
+      </div>
+
+      <div class="sv-section-card">
+        <div class="sv-section-head">
+          <span>🔍 Từ khóa tìm kiếm (bấm để copy)</span>
+          ${keywords.length ? `<button type="button" class="btn-secondary sv-btn-sm" id="sv-copy-all-kw">📋 Copy tất cả</button>` : ''}
+        </div>
+        <div class="sv-kw-list">
+          ${keywords.length
+            ? keywords.map(kw => `<button type="button" class="sv-kw-chip" data-kw="${svEscapeHtml(kw)}">📋 ${svEscapeHtml(kw)}</button>`).join('')
+            : '<span class="sp-hint">Không có từ khóa gợi ý.</span>'}
+        </div>
+      </div>
+
+      <div class="sv-constraints-grid">
+        <div class="sv-section-card tone-green">
+          <div class="sv-section-head"><span>✅ Điều kiện bắt buộc</span></div>
+          <div class="sv-section-text">${svEscapeHtml(req.dieu_kien_bat_buoc || '—')}</div>
+        </div>
+        <div class="sv-section-card tone-blue">
+          <div class="sv-section-head"><span>🔄 Phương án thay thế</span></div>
+          <div class="sv-section-text">${svEscapeHtml(req.phuong_an_thay_the || '—')}</div>
+        </div>
+        <div class="sv-section-card tone-red">
+          <div class="sv-section-head"><span>⛔ Không chấp nhận</span></div>
+          <div class="sv-section-text">${svEscapeHtml(req.khong_chap_nhan || '—')}</div>
+        </div>
+      </div>
+
+      <div class="sv-section-card">
+        <div class="sv-section-head"><span>🕒 Mốc Timeline &amp; Lời thoại liên quan (${Math.max(refLines.length, dialogLines.length)} mốc)</span></div>
+        <div class="sv-ref-list">
+          ${(dialogLines.length || refLines.length)
+            ? Array.from({ length: Math.max(refLines.length, dialogLines.length) }, (_, idx) => `
+              <div class="sv-ref-item">
+                ${refLines[idx] ? `<div style="color:#67e8f9; font-family:var(--font-mono, monospace); font-size:0.72rem; margin-bottom:2px;">${svEscapeHtml(refLines[idx])}</div>` : ''}
+                ${dialogLines[idx] ? `<div>${svEscapeHtml(dialogLines[idx])}</div>` : ''}
+              </div>
+            `).join('')
+            : '<span class="sp-hint">Không có mốc timeline liên quan.</span>'}
+        </div>
+      </div>
+
+      ${req.thong_tin_can_lam_ro ? `
+        <div class="sv-section-card tone-amber">
+          <div class="sv-section-head"><span>⚠️ Thông tin cần làm rõ</span></div>
+          <div class="sv-section-text">${svEscapeHtml(req.thong_tin_can_lam_ro)}</div>
+        </div>
+      ` : ''}
+    `;
+
+    $('#sv-detail-toggle-done')?.addEventListener('click', () => {
+      svState.doneMap[req.request_id] = !svState.doneMap[req.request_id];
+      saveDoneMap();
+      updateSummaryPills();
+      renderRequestsTable();
+      renderRequestDetail(req.request_id);
+    });
+
+    $('#sv-detail-jump-cov')?.addEventListener('click', () => {
+      openCoverageForRequest(req.request_id);
+    });
+
+    $('#sv-copy-all-kw')?.addEventListener('click', (e) => {
+      copyToClipboard(req.tu_khoa_tim_kiem || '', e.currentTarget);
+    });
+
+    svDom.reqDetailBody.querySelectorAll('.sv-kw-chip').forEach(chip => {
+      chip.addEventListener('click', () => copyToClipboard(chip.dataset.kw || '', chip));
+    });
+  }
+
+  function renderRequestsTable() {
+    if (!svDom.reqTbody) return;
+    if (!svState.requests.length) {
+      svDom.reqTbody.innerHTML = '<tr><td colspan="7" class="sg-empty-row">Chọn thư mục CSV hoặc file <code>3_YeuCauSource.csv</code> ở trên để xem danh sách yêu cầu đẹp và rõ ràng.</td></tr>';
+      if (svDom.reqListMeta) svDom.reqListMeta.textContent = '0 yêu cầu';
+      return;
+    }
+
+    const filtered = getFilteredRequests();
+    if (svDom.reqListMeta) {
+      svDom.reqListMeta.textContent = `Hiển thị ${filtered.length}/${svState.requests.length} yêu cầu`;
+    }
+
+    if (!filtered.length) {
+      svDom.reqTbody.innerHTML = '<tr><td colspan="7" class="sg-empty-row">Không có yêu cầu nào khớp bộ lọc hiện tại.</td></tr>';
+      return;
+    }
+
+    svDom.reqTbody.innerHTML = filtered.map(row => {
+      const isSelected = row.request_id === svState.selectedRequestId;
+      const isDone = Boolean(svState.doneMap[row.request_id]);
+      const refCount = svSplitLines(row.timeline_refs).length;
+      const who = [row.nhan_vat, row.doi_bong, row.thoi_diem_lich_su].filter(Boolean).join(' · ');
+      return `
+        <tr data-sr="${svEscapeHtml(row.request_id)}" class="${isSelected ? 'is-selected' : ''} ${isDone ? 'is-done' : ''}">
+          <td><span class="sv-sr-chip">${svEscapeHtml(row.request_id)}</span></td>
+          <td><span class="sv-prio-badge ${svPriorityClass(row.muc_uu_tien)}">${svEscapeHtml(row.muc_uu_tien || '—')}</span></td>
+          <td><code>${svEscapeHtml(row.ma_loai_source || '—')}</code></td>
+          <td><div class="sv-clamp-3">${svEscapeHtml(who || '—')}</div></td>
+          <td><div class="sv-clamp-3">${svEscapeHtml(row.noi_dung_can_thay || '—')}</div></td>
+          <td style="text-align:center;">${refCount || row.linked_coverage_count || 0}</td>
+          <td style="text-align:center;">
+            <input type="checkbox" class="sv-done-checkbox" data-done-sr="${svEscapeHtml(row.request_id)}" ${isDone ? 'checked' : ''} aria-label="Đánh dấu đã tìm xong ${svEscapeHtml(row.request_id)}" />
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    svDom.reqTbody.querySelectorAll('tr[data-sr]').forEach(tr => {
+      tr.addEventListener('click', (e) => {
+        if (e.target && e.target.classList?.contains('sv-done-checkbox')) return;
+        const srId = tr.dataset.sr;
+        svState.selectedRequestId = srId;
+        renderRequestsTable();
+        renderRequestDetail(srId);
+      });
+    });
+
+    svDom.reqTbody.querySelectorAll('.sv-done-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const srId = e.target.dataset.doneSr;
+        svState.doneMap[srId] = Boolean(e.target.checked);
+        saveDoneMap();
+        updateSummaryPills();
+        renderRequestsTable();
+        if (svState.selectedRequestId === srId) renderRequestDetail(srId);
+      });
+    });
+  }
+
+  function getFilteredCoverage() {
+    const q = (svDom.covSearch?.value || '').trim().toLowerCase();
+    const step3 = svDom.covFilterStep3?.value || '';
+    const step2 = svDom.covFilterStep2?.value || '';
+    const loai = svDom.covFilterLoai?.value || '';
+    const doan = svDom.covFilterDoan?.value || '';
+    const srFilter = svState.covSrFilter;
+
+    return svState.coverage.filter(row => {
+      if (srFilter && !(Array.isArray(row.linked_request_ids) && row.linked_request_ids.includes(srFilter))) return false;
+      if (step3 && (row.trang_thai_buoc_3 || '').trim() !== step3) return false;
+      if (step2 && (row.analysis_status_buoc_2 || '').trim() !== step2) return false;
+      if (loai && (row.ma_loai_source || '').trim() !== loai) return false;
+      if (doan && (row.doan || '').trim() !== doan) return false;
+      if (!q) return true;
+      const hay = [
+        row.dong_timeline_csv, row.dong_phan_loai_csv, row.doan, row.cau, row.y,
+        row.start_timeline, row.moc_start_ke_tiep, row.loi_thoai,
+        row.ma_loai_source, row.request_ids, row.trang_thai_buoc_3,
+        row.ghi_chu, row.reason_buoc_2,
+      ].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  function renderCoverageDetail(row) {
+    if (!svDom.covDetailCard) return;
+    if (!row) {
+      svDom.covDetailCard.innerHTML = '<div class="sp-hint">Bấm vào một dòng bất kỳ trong bảng đối chiếu để đọc đầy đủ lời thoại, ghi chú, lý do bước 2 và mở nhanh <code>SR_xxx</code> tương ứng.</div>';
+      return;
+    }
+    const srIds = Array.isArray(row.linked_request_ids) ? row.linked_request_ids : [];
+    svDom.covDetailCard.innerHTML = `
+      <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;">
+        <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+          <span class="sv-stat-pill">TL dòng <strong>${svEscapeHtml(row.dong_timeline_csv)}</strong> · PL dòng <strong>${svEscapeHtml(row.dong_phan_loai_csv)}</strong></span>
+          <span class="sv-stat-pill">Đoạn ${svEscapeHtml(row.doan)} / Câu ${svEscapeHtml(row.cau)}${row.y ? ` / Ý ${svEscapeHtml(row.y)}` : ''}</span>
+          <span class="sv-stat-pill"><code>${svEscapeHtml(row.start_timeline)} → ${svEscapeHtml(row.moc_start_ke_tiep)}</code></span>
+          <span class="sv-step-badge ${svStep3Class(row.trang_thai_buoc_3)}">${svEscapeHtml(row.trang_thai_buoc_3 || '—')}</span>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${srIds.map(id => `<button type="button" class="sv-sr-chip sv-cov-jump-sr" data-jump-sr="${svEscapeHtml(id)}">Mở ${svEscapeHtml(id)}</button>`).join('')}
+        </div>
+      </div>
+      <div style="font-size:0.82rem; color:#f8fafc; margin-bottom:6px;"><strong>Lời thoại:</strong> ${svEscapeHtml(row.loi_thoai || '—')}</div>
+      ${row.ghi_chu ? `<div style="font-size:0.78rem; color:#93c5fd; margin-bottom:4px;"><strong>Ghi chú bước 3:</strong> ${svEscapeHtml(row.ghi_chu)}</div>` : ''}
+      ${row.reason_buoc_2 ? `<div style="font-size:0.78rem; color:#cbd5e1; line-height:1.45;"><strong>Lý do bước 2:</strong> ${svEscapeHtml(row.reason_buoc_2)}</div>` : ''}
+    `;
+
+    svDom.covDetailCard.querySelectorAll('.sv-cov-jump-sr').forEach(btn => {
+      btn.addEventListener('click', () => openRequestDetail(btn.dataset.jumpSr));
+    });
+  }
+
+  function renderCoverageTable() {
+    if (!svDom.covTbody) return;
+    if (!svState.coverage.length) {
+      svDom.covTbody.innerHTML = '<tr><td colspan="9" class="sg-empty-row">Chọn thư mục CSV hoặc file <code>3_DoiChieuDoBaoPhu.csv</code> để xem bảng đối chiếu độ bao phủ.</td></tr>';
+      if (svDom.covListMeta) svDom.covListMeta.textContent = '0 dòng đối chiếu';
+      return;
+    }
+
+    const filtered = getFilteredCoverage();
+    if (svDom.covListMeta) {
+      svDom.covListMeta.textContent = `Hiển thị ${filtered.length}/${svState.coverage.length} dòng đối chiếu`;
+    }
+
+    if (!filtered.length) {
+      svDom.covTbody.innerHTML = '<tr><td colspan="9" class="sg-empty-row">Không có dòng đối chiếu nào khớp bộ lọc hiện tại.</td></tr>';
+      return;
+    }
+
+    svDom.covTbody.innerHTML = filtered.map(row => {
+      const isSelected = svState.selectedCoverageRow && svState.selectedCoverageRow._row_num === row._row_num;
+      const srIds = Array.isArray(row.linked_request_ids) ? row.linked_request_ids : [];
+      const noteParts = [row.ghi_chu, row.reason_buoc_2].filter(Boolean).join(' — ');
+      return `
+        <tr data-cov-row="${row._row_num}" class="${isSelected ? 'is-selected' : ''}">
+          <td>TL ${svEscapeHtml(row.dong_timeline_csv)}<br><span style="color:var(--text-tertiary);">PL ${svEscapeHtml(row.dong_phan_loai_csv)}</span></td>
+          <td>${svEscapeHtml(row.doan)}/${svEscapeHtml(row.cau)}${row.y ? `/${svEscapeHtml(row.y)}` : ''}</td>
+          <td><code>${svEscapeHtml(row.start_timeline)}</code><br><span style="color:var(--text-tertiary);">→ ${svEscapeHtml(row.moc_start_ke_tiep)}</span></td>
+          <td>${svEscapeHtml(row.loi_thoai || '')}</td>
+          <td><code>${svEscapeHtml(row.analysis_status_buoc_2 || '')}</code></td>
+          <td><code>${svEscapeHtml(row.ma_loai_source || '—')}</code></td>
+          <td>
+            <div style="display:flex; flex-wrap:wrap; gap:4px;">
+              ${srIds.length
+                ? srIds.map(id => `<button type="button" class="sv-sr-chip sv-cov-sr-btn" data-jump-sr="${svEscapeHtml(id)}">${svEscapeHtml(id)}</button>`).join('')
+                : '<span style="color:var(--text-tertiary);">—</span>'}
+            </div>
+          </td>
+          <td><span class="sv-step-badge ${svStep3Class(row.trang_thai_buoc_3)}">${svEscapeHtml(row.trang_thai_buoc_3 || '—')}</span></td>
+          <td><div class="sv-clamp-3">${svEscapeHtml(noteParts || '—')}</div></td>
+        </tr>
+      `;
+    }).join('');
+
+    svDom.covTbody.querySelectorAll('.sv-cov-sr-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openRequestDetail(btn.dataset.jumpSr);
+      });
+    });
+
+    svDom.covTbody.querySelectorAll('tr[data-cov-row]').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const rowNum = parseInt(tr.dataset.covRow, 10);
+        const found = svState.coverage.find(r => r._row_num === rowNum) || null;
+        svState.selectedCoverageRow = found;
+        renderCoverageTable();
+        renderCoverageDetail(found);
+      });
+    });
+  }
+
+  async function loadSilverData(opts = {}) {
+    if (svState.isLoading) return;
+    const reqCsv = opts.req_csv ?? svState.reqPath;
+    const covCsv = opts.cov_csv ?? svState.covPath;
+    const folderPath = opts.folder_path || '';
+    if (!folderPath && !reqCsv && !covCsv) return;
+
+    svState.isLoading = true;
+    setStatus('');
+    try {
+      const result = await window.api.silverSourceLoad({
+        req_csv: reqCsv,
+        cov_csv: covCsv,
+        folder_path: folderPath,
+      });
+      if (!result || result.error) {
+        throw new Error(result?.error || 'Không đọc được dữ liệu Silver Source');
+      }
+      svState.loadedOnce = true;
+      svState.reqPath = result.req_path || '';
+      svState.covPath = result.cov_path || '';
+      if (svState.reqPath) localStorage.setItem('sv_req_csv', svState.reqPath);
+      if (svState.covPath) localStorage.setItem('sv_cov_csv', svState.covPath);
+      if (svDom.reqPath) svDom.reqPath.value = svState.reqPath;
+      if (svDom.covPath) svDom.covPath.value = svState.covPath;
+
+      svState.requests = Array.isArray(result.requests) ? result.requests : [];
+      svState.coverage = Array.isArray(result.coverage) ? result.coverage : [];
+      svState.stats = result.stats || {};
+      loadDoneMap();
+
+      if (svState.requests.length && !svState.requests.some(r => r.request_id === svState.selectedRequestId)) {
+        svState.selectedRequestId = svState.requests[0].request_id || '';
+      }
+      if (!svState.requests.length) svState.selectedRequestId = '';
+      svState.selectedCoverageRow = svState.coverage[0] || null;
+
+      populateFilters();
+      updateSummaryPills();
+      renderRequestsTable();
+      renderRequestDetail(svState.selectedRequestId);
+      renderCoverageTable();
+      renderCoverageDetail(svState.selectedCoverageRow);
+
+      if (Array.isArray(result.warnings) && result.warnings.length) {
+        setStatus(result.warnings.join(' '), false);
+      }
+      if (!svState.requests.length && svState.coverage.length) {
+        setActiveView('coverage');
+      }
+    } catch (err) {
+      setStatus(`Lỗi nạp Silver Source: ${err.message}`, true);
+    } finally {
+      svState.isLoading = false;
+    }
+  }
+
+  window.__svEnsureLoaded = () => {
+    if (svState.loadedOnce || !state.backendReady) return;
+    if (svState.reqPath || svState.covPath) {
+      loadSilverData();
+    }
+  };
+
+  if (svDom.reqPath && svState.reqPath) svDom.reqPath.value = svState.reqPath;
+  if (svDom.covPath && svState.covPath) svDom.covPath.value = svState.covPath;
+
+  svDom.btnBrowseFolder?.addEventListener('click', async () => {
+    const dir = await window.api.selectDirectory();
+    if (!dir) return;
+    await loadSilverData({ folder_path: dir, req_csv: '', cov_csv: '' });
+  });
+
+  svDom.btnBrowseReq?.addEventListener('click', async () => {
+    const file = await window.api.selectCsvFile();
+    if (!file) return;
+    svState.reqPath = file;
+    localStorage.setItem('sv_req_csv', file);
+    if (svDom.reqPath) svDom.reqPath.value = file;
+    await loadSilverData();
+  });
+
+  svDom.btnBrowseCov?.addEventListener('click', async () => {
+    const file = await window.api.selectCsvFile();
+    if (!file) return;
+    svState.covPath = file;
+    localStorage.setItem('sv_cov_csv', file);
+    if (svDom.covPath) svDom.covPath.value = file;
+    await loadSilverData();
+  });
+
+  svDom.btnOpenReq?.addEventListener('click', () => {
+    if (svState.reqPath) window.api.openFile(svState.reqPath);
+  });
+
+  svDom.btnOpenCov?.addEventListener('click', () => {
+    if (svState.covPath) window.api.openFile(svState.covPath);
+  });
+
+  svDom.btnReload?.addEventListener('click', () => loadSilverData());
+
+  svDom.viewBtnReq?.addEventListener('click', () => setActiveView('requests'));
+  svDom.viewBtnCov?.addEventListener('click', () => setActiveView('coverage'));
+
+  [svDom.reqSearch, svDom.reqFilterPriority, svDom.reqFilterLoai, svDom.reqFilterDone].forEach(el => {
+    el?.addEventListener('input', renderRequestsTable);
+    el?.addEventListener('change', renderRequestsTable);
+  });
+
+  [svDom.covSearch, svDom.covFilterStep3, svDom.covFilterStep2, svDom.covFilterLoai, svDom.covFilterDoan].forEach(el => {
+    el?.addEventListener('input', renderCoverageTable);
+    el?.addEventListener('change', renderCoverageTable);
+  });
+
+  svDom.covSrFilterClear?.addEventListener('click', () => {
+    svState.covSrFilter = '';
+    if (svDom.covSrFilterWrap) svDom.covSrFilterWrap.hidden = true;
+    renderCoverageTable();
+  });
+
+  if (state.backendReady) {
+    window.__svEnsureLoaded();
+  }
+}
+
+// ============================================================
 // SPLIT RESIZER — Kéo rộng (ngang), kéo dài (dọc) & kéo cột bảng cho toàn Project
 // ============================================================
 
@@ -5236,7 +5947,7 @@ function initSplitResizers() {
   });
 
   // 3. Table Column Resizers (.th-col-resizer) — Cho phép kéo rộng từng cột trong mọi bảng
-  const tables = $$('.sg-cls-table, .sg-table, .sp-catalog-table, .rules-table');
+  const tables = $$('.sg-cls-table, .sg-table, .sp-catalog-table, .rules-table, .sv-table');
   tables.forEach((table, tIdx) => {
     const ths = table.querySelectorAll('thead th');
     ths.forEach((th, cIdx) => {

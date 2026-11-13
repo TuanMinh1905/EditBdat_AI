@@ -89,7 +89,15 @@
         </svg>
         <span>Gợi ý Source - Animation</span>
       </button>
-      <button class="nav-btn" data-tab="clip-splitter" title="Cắt Clip (Tool B)">
+      <button class="nav-btn" data-tab="silver-source" title="Silver Source — Xem Yêu cầu tìm Source &amp; Đối chiếu độ bao phủ">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+          <line x1="9" y1="10" x2="9" y2="20" />
+        </svg>
+        <span>Silver Source</span>
+      </button>
+      <button class="nav-btn" data-tab="clip-splitter" title="Gold Source — Cắt Clip (Tool B)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
           <circle cx="6" cy="6" r="3" />
           <circle cx="6" cy="18" r="3" />
@@ -97,7 +105,7 @@
           <line x1="14.47" y1="14.48" x2="20" y2="20" />
           <line x1="8.12" y1="8.12" x2="12" y2="12" />
         </svg>
-        <span>Cắt Clip</span>
+        <span>Gold Source</span>
       </button>
       <button class="nav-btn" data-tab="premiere-gen" title="Gen Premiere XML (Tool A)">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -1115,7 +1123,7 @@
             <div class="rules-workflow">
               <div class="rules-step">
                 <div class="rules-step-num">1</div>
-                <div class="rules-step-text"><strong>Tool B — Cắt Clip</strong><br>Chọn video nguồn → Điền Cầu thủ, Đội
+                <div class="rules-step-text"><strong>Tool B — Gold Source (Cắt Clip)</strong><br>Chọn video nguồn → Điền Cầu thủ, Đội
                   bóng, Kỹ năng, Loại → Cắt → Sinh catalog.csv</div>
               </div>
               <div class="rules-step-arrow">↓</div>
@@ -1522,6 +1530,173 @@
           </div>
 
         </div>
+
+      </div>
+    </main>
+
+    <!-- =================================================================
+         TAB: SILVER SOURCE (Xem 3_YeuCauSource & 3_DoiChieuDoBaoPhu)
+         ================================================================= -->
+    <main class="main-content silver-content" id="tab-silver-source" style="display: none;">
+      <div class="sv-container">
+
+        <!-- Banner + Chọn file CSV -->
+        <div class="sp-card sv-topbar-card">
+          <div class="sv-header-row">
+            <div class="sv-title-block">
+              <div class="sv-title">🥈 SILVER SOURCE — HỒ SƠ YÊU CẦU TÌM SOURCE &amp; ĐỐI CHIẾU ĐỘ BAO PHỦ</div>
+              <div class="sv-subtitle">Đọc trực quan <code>3_YeuCauSource.csv</code> và <code>3_DoiChieuDoBaoPhu.csv</code> thay Excel — tách rõ từng điều kiện, copy nhanh từ khóa, liên kết chéo theo <code>SR_xxx</code>.</div>
+            </div>
+            <div class="sv-header-actions">
+              <button class="btn-primary sv-btn-sm" id="sv-btn-browse-folder" title="Chọn thư mục 2_CSV_PhanTich để tự nhận cả 2 file">📂 Chọn thư mục CSV</button>
+              <button class="btn-secondary sv-btn-sm" id="sv-btn-reload" title="Đọc lại hai file CSV từ ổ đĩa">🔄 Tải lại</button>
+            </div>
+          </div>
+
+          <div class="sv-files-grid">
+            <div class="sv-file-box">
+              <label class="sv-file-label">📋 File Yêu cầu Source (<code>3_YeuCauSource.csv</code>)</label>
+              <div class="sp-file-row">
+                <input type="text" class="sp-path-input" id="sv-req-path" placeholder="Chọn file 3_YeuCauSource.csv..." readonly />
+                <button class="btn-secondary sv-btn-sm" id="sv-btn-browse-req">Chọn CSV</button>
+                <button class="btn-icon" id="sv-btn-open-req" title="Mở file ngoài">📄</button>
+              </div>
+            </div>
+            <div class="sv-file-box">
+              <label class="sv-file-label">📊 File Đối chiếu độ bao phủ (<code>3_DoiChieuDoBaoPhu.csv</code>)</label>
+              <div class="sp-file-row">
+                <input type="text" class="sp-path-input" id="sv-cov-path" placeholder="Chọn file 3_DoiChieuDoBaoPhu.csv..." readonly />
+                <button class="btn-secondary sv-btn-sm" id="sv-btn-browse-cov">Chọn CSV</button>
+                <button class="btn-icon" id="sv-btn-open-cov" title="Mở file ngoài">📄</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="sv-status-banner" class="sv-status-banner" role="status" aria-live="polite" hidden></div>
+
+          <div class="sv-mode-bar">
+            <div class="sv-view-tabs" role="tablist" aria-label="Chế độ xem Silver Source">
+              <button type="button" class="sv-view-tab active" id="sv-view-btn-req" role="tab" aria-selected="true">
+                📋 Yêu cầu Source <span class="sv-tab-badge" id="sv-req-count-badge">0</span>
+              </button>
+              <button type="button" class="sv-view-tab" id="sv-view-btn-cov" role="tab" aria-selected="false">
+                📊 Đối chiếu độ bao phủ <span class="sv-tab-badge" id="sv-cov-count-badge">0</span>
+              </button>
+            </div>
+            <div class="sv-summary-pills" id="sv-summary-pills">
+              <span class="sv-stat-pill">Chưa nạp dữ liệu Silver Source</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- VIEW 1: YÊU CẦU SOURCE (Master - Detail) -->
+        <section class="sv-panel sv-panel-requests" id="sv-panel-requests">
+          <div class="sv-split-row">
+
+            <!-- Cột trái: Bộ lọc & Danh sách SR -->
+            <div class="sv-req-list-pane sp-card">
+              <div class="sv-filter-bar">
+                <input type="text" id="sv-req-search" class="sp-search-input sv-search-input" placeholder="Tìm SR_001, nhân vật, đội, thời điểm, từ khóa..." />
+                <select id="sv-req-filter-priority" class="sv-select" aria-label="Lọc theo mức ưu tiên">
+                  <option value="">Tất cả ưu tiên</option>
+                </select>
+                <select id="sv-req-filter-loai" class="sv-select" aria-label="Lọc theo loại Source">
+                  <option value="">Tất cả loại</option>
+                </select>
+                <select id="sv-req-filter-done" class="sv-select" aria-label="Lọc theo tiến độ tìm">
+                  <option value="">Tất cả tiến độ</option>
+                  <option value="todo">⏳ Chưa tìm</option>
+                  <option value="done">✅ Đã tìm xong</option>
+                </select>
+              </div>
+              <div class="sv-list-meta" id="sv-req-list-meta">0 yêu cầu</div>
+              <div class="sv-table-wrap" id="sv-req-table-wrap">
+                <table class="sv-table" id="sv-req-table">
+                  <thead>
+                    <tr>
+                      <th style="width:76px;">Mã SR</th>
+                      <th style="width:105px;">Ưu tiên</th>
+                      <th style="width:105px;">Loại</th>
+                      <th style="min-width:150px;">Nhân vật · Đội · Thời điểm</th>
+                      <th style="min-width:190px;">Nội dung cần thấy</th>
+                      <th style="width:54px;">Mốc</th>
+                      <th style="width:52px; text-align:center;">Xong</th>
+                    </tr>
+                  </thead>
+                  <tbody id="sv-req-tbody">
+                    <tr><td colspan="7" class="sg-empty-row">Chọn thư mục CSV hoặc file <code>3_YeuCauSource.csv</code> ở trên để xem danh sách yêu cầu đẹp và rõ ràng.</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="split-resizer" data-tab-key="silver-req-detail" data-min-w="320" title="Kéo để chỉnh độ rộng danh sách &amp; khung chi tiết (Nhấp đúp để đặt lại)"></div>
+
+            <!-- Cột phải: Khung Chi tiết Formatted Inspector -->
+            <div class="sv-req-detail-pane sp-card" id="sv-req-detail-pane">
+              <div class="sv-detail-empty" id="sv-req-detail-empty">
+                <div style="font-size:2rem; margin-bottom:8px;">🥈</div>
+                <div style="font-weight:600; margin-bottom:4px;">Chọn một yêu cầu <code>SR_xxx</code> bên trái để xem hồ sơ chi tiết</div>
+                <div class="sp-hint">Toàn bộ điều kiện bắt buộc, phương án thay thế, điều cần tránh, từ khóa tìm kiếm (copy 1 click) và các mốc lời thoại sẽ được trình bày tách bạch tại đây.</div>
+              </div>
+              <div class="sv-detail-body" id="sv-req-detail-body" hidden></div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- VIEW 2: ĐỐI CHIẾU ĐỘ BAO PHỦ -->
+        <section class="sv-panel sv-panel-coverage" id="sv-panel-coverage" hidden>
+          <div class="sp-card sv-cov-main-card">
+            <div class="sv-filter-bar">
+              <input type="text" id="sv-cov-search" class="sp-search-input sv-search-input" placeholder="Tìm lời thoại, dòng TL/PL, SR_xxx, ghi chú, lý do..." />
+              <select id="sv-cov-filter-step3" class="sv-select" aria-label="Lọc trạng thái bước 3">
+                <option value="">Tất cả trạng thái Bước 3</option>
+              </select>
+              <select id="sv-cov-filter-step2" class="sv-select" aria-label="Lọc trạng thái bước 2">
+                <option value="">Tất cả Bước 2</option>
+              </select>
+              <select id="sv-cov-filter-loai" class="sv-select" aria-label="Lọc mã loại Source">
+                <option value="">Tất cả loại Source</option>
+              </select>
+              <select id="sv-cov-filter-doan" class="sv-select" aria-label="Lọc theo đoạn">
+                <option value="">Tất cả đoạn</option>
+              </select>
+              <div class="sv-sr-filter-chip" id="sv-cov-sr-filter-wrap" hidden>
+                <span id="sv-cov-sr-filter-label">Lọc: SR_001</span>
+                <button type="button" class="sv-chip-clear" id="sv-cov-sr-filter-clear" title="Bỏ lọc theo SR">✕</button>
+              </div>
+            </div>
+            <div class="sv-list-meta" id="sv-cov-list-meta">0 dòng đối chiếu</div>
+
+            <div class="sv-cov-table-wrap" id="sv-cov-table-wrap">
+              <table class="sv-table sv-cov-table" id="sv-cov-table">
+                <thead>
+                  <tr>
+                    <th style="width:74px;">TL / PL</th>
+                    <th style="width:82px;">Đoạn/Câu</th>
+                    <th style="width:152px;">Timecode</th>
+                    <th style="min-width:220px;">Lời thoại</th>
+                    <th style="width:88px;">Bước 2</th>
+                    <th style="width:110px;">Mã Source</th>
+                    <th style="width:118px;">Request ID</th>
+                    <th style="width:175px;">Trạng thái Bước 3</th>
+                    <th style="min-width:210px;">Ghi chú &amp; Lý do Bước 2</th>
+                  </tr>
+                </thead>
+                <tbody id="sv-cov-tbody">
+                  <tr><td colspan="9" class="sg-empty-row">Chọn thư mục CSV hoặc file <code>3_DoiChieuDoBaoPhu.csv</code> để xem bảng đối chiếu độ bao phủ.</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="v-split-resizer" data-vkey="sv-cov-table-h" data-target="#sv-cov-table-wrap" data-min-h="160" data-max-h="650" title="Kéo lên/xuống để chỉnh chiều cao bảng Đối chiếu (Nhấp đúp để đặt lại)"></div>
+
+            <!-- Khung chi tiết dòng đối chiếu đang chọn -->
+            <div class="sv-cov-detail-card" id="sv-cov-detail-card">
+              <div class="sp-hint">Bấm vào một dòng bất kỳ trong bảng đối chiếu để đọc đầy đủ lời thoại, ghi chú, lý do bước 2 và mở nhanh <code>SR_xxx</code> tương ứng.</div>
+            </div>
+          </div>
+        </section>
 
       </div>
     </main>

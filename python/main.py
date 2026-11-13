@@ -44,6 +44,7 @@ from token_tracker import get_usage, reset_usage
 from gemini_key_pool import GeminiQuotaError, DEFAULT_MODEL_PRIORITY
 from ai_provider_router import get_ai_status, AllProvidersUnavailable, DEFAULT_OPENAI_MODEL
 from asset_service import verify_assets, list_assets, MEDIA_EXTENSIONS
+from silver_source import load_silver_bundle
 
 app = Flask(__name__)
 CORS(app)
@@ -1005,6 +1006,28 @@ def api_suggester_export_csv():
         })
     except Exception as e:
         log(f"Loi suggester-export-csv: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+# =============================================================================
+# SILVER SOURCE (XEM YEU CAU & DOI CHIEU DO BAO PHU)
+# =============================================================================
+
+@app.route('/api/silver-source/load', methods=['POST'])
+def api_silver_source_load():
+    """Doc 3_YeuCauSource.csv va 3_DoiChieuDoBaoPhu.csv (hoac scan thu muc)."""
+    try:
+        data = request.get_json() or {}
+        result = load_silver_bundle(
+            req_csv=data.get('req_csv', ''),
+            cov_csv=data.get('cov_csv', ''),
+            folder_path=data.get('folder_path', ''),
+        )
+        return jsonify(result)
+    except (FileNotFoundError, ValueError) as e:
+        return jsonify({"error": str(e)}), 400
+    except Exception as e:
+        log(f"Loi silver-source-load: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 

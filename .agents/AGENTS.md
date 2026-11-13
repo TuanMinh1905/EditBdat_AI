@@ -33,9 +33,10 @@ Code_AI/
 ├── main.js                          # Electron main process
 ├── preload.js                       # IPC bridge (contextBridge)
 ├── src/                             # ── FRONTEND ──
-│   ├── index.html                   # UI chính (6 tab: Tạo mới, Quy tắc, Gợi ý Source - Animation, Cắt Clip, Gen XML, Cài đặt)
+│   ├── index.html                   # UI chính (7 tab: Tạo mới, Quy tắc, Gợi ý Source - Animation, Silver Source, Gold Source, Gen XML, Cài đặt)
 │   ├── index.css                    # CSS duy nhất (design system)
-│   └── renderer.js                  # UI logic chính
+│   ├── renderer.js                  # UI logic chính
+│   └── testSilverSource.js          # Kiểm thử tab Silver Source & đổi tên Gold Source (không mở Electron)
 ├── python/                          # ── BACKEND ──
 │   ├── requirements.txt             # Python dependencies
 │   ├── main.py                      # Flask API server (entry point, port 5599)
@@ -49,6 +50,8 @@ Code_AI/
 │   ├── jsx_generator.py             # Sinh script .jsx cho After Effects
 │   ├── clip_splitter.py             # Tool B: cắt highlight → clip nhỏ + catalog.csv
 │   ├── source_suggester.py          # Tool 1: AI gợi ý phân loại 5 bảng (Source/Element/Anim/BGM/SFX) theo phong cách (RAG Embedding + Rules)
+│   ├── silver_source.py             # Đọc & tổng hợp CSV Silver Source (3_YeuCauSource & 3_DoiChieuDoBaoPhu)
+│   ├── test_silver_source.py        # Kiểm thử đọc CSV Silver Source & endpoint /api/silver-source/load
 │   ├── token_tracker.py             # Đếm & lưu số lượng Token Gemini API đã sử dụng theo từng API Key
 │   ├── subject_isolator.py          # Subject Isolation: tách người khỏi nền ảnh bằng rembg (U2-Net) → PNG trong suốt
 │   └── premiere_xml_generator.py    # Tool A: sinh FCP XML (xmeml v4) cho Premiere Pro — V1/V2 Source, V3 Element, V_Subject (SI), V4 Texture, A1 Voice, A2 BGM, A3 SFX
@@ -325,6 +328,8 @@ try {
 ---
 
 ## 9. Lịch sử thay đổi Rule
+
+Ngày 13/11/2026: user yêu cầu thêm tab **Silver Source** nằm giữa `Gợi ý Source - Animation` và `Cắt Clip`, đồng thời đổi tên tab `Cắt Clip` thành **Gold Source** để xem và đối chiếu `3_YeuCauSource.csv` + `3_DoiChieuDoBaoPhu.csv` trực quan thay vì mở Excel. Bổ sung `python/silver_source.py` + endpoint `/api/silver-source/load` + IPC `silver-source-load`, giao diện Master-Detail + bảng Đối chiếu có liên kết chéo `SR_xxx`, bộ lọc và đánh dấu tiến độ lưu ở `localStorage`; cập nhật `doc/workflows/silver-source.html` và tài liệu các tab liên quan.
 
 Ngày 13/11/2026: user báo cả ba nút Nạp/Lưu kho/Xuất không phản hồi ở paused 296/406. Tách phiên còn sống khỏi request đang chạy; chỉ cho Nạp/Lưu kho khi phase paused thật, cập nhật đủ toolbar khi đổi phase. Gộp nút Xuất tự chọn nháp khi chưa xong, hoàn chỉnh khi xong; thay nút nháp riêng. Nạp thay phiên phải xác nhận, tăng generation và giải phóng waiter cũ để không ghi nhầm file mới.
 

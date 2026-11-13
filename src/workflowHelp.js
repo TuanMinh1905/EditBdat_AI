@@ -46,7 +46,7 @@ class WorkflowHistory {
   }
 }
 function initWorkflowHelp() {
-  const tabs = { create: 'Tạo mới', rules: 'Quy tắc', 'source-suggester': 'Gợi ý Source - Animation', 'clip-splitter': 'Cắt Clip', 'premiere-gen': 'Gen XML', settings: 'Cài đặt' };
+  const tabs = { create: 'Tạo mới', rules: 'Quy tắc', 'source-suggester': 'Gợi ý Source - Animation', 'silver-source': 'Silver Source', 'clip-splitter': 'Gold Source', 'premiere-gen': 'Gen XML', settings: 'Cài đặt' };
   const dialog = document.createElement('dialog');
   dialog.className = 'workflow-dialog'; dialog.setAttribute('aria-labelledby', 'workflow-title');
   dialog.innerHTML = `

@@ -18,7 +18,7 @@ const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
 const SESSION_PATH = path.join(app.getPath('userData'), 'session.json');
 
 // --- Workflow documents: fixed paths, structured rich text, revision checks ---
-const WORKFLOW_TABS = new Set(['create', 'rules', 'source-suggester', 'clip-splitter', 'premiere-gen', 'settings']);
+const WORKFLOW_TABS = new Set(['create', 'rules', 'source-suggester', 'silver-source', 'clip-splitter', 'premiere-gen', 'settings']);
 const WORKFLOW_TAGS = new Set(['h1', 'h2', 'h3', 'p', 'div', 'span', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 's', 'blockquote', 'pre', 'code', 'br', 'hr']);
 function workflowPath(tab) {
   if (!WORKFLOW_TABS.has(tab)) throw new Error('Tab tài liệu không hợp lệ.');
@@ -834,6 +834,15 @@ ipcMain.handle('suggester-delete-example', async (event, params) => {
 ipcMain.handle('suggester-export-csv', async (event, params) => {
   try {
     return await callPython('/api/source-suggester/export-csv', params);
+  } catch (e) {
+    return { error: e.message };
+  }
+});
+
+// Silver Source (Xem Yêu cầu Source & Đối chiếu độ bao phủ)
+ipcMain.handle('silver-source-load', async (event, params) => {
+  try {
+    return await callPython('/api/silver-source/load', params || {});
   } catch (e) {
     return { error: e.message };
   }

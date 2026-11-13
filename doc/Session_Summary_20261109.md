@@ -1,6 +1,17 @@
 # AE AI Tool — Session Summary (Cập nhật 2026-11-13)
 
-## Sửa ba nút không phản hồi khi Pause (2026-11-13, hiện hành)
+## Thêm tab Silver Source & đổi tên tab Cắt Clip thành Gold Source (2026-11-13, hiện hành)
+
+- User báo xem `3_YeuCauSource.csv` và `3_DoiChieuDoBaoPhu.csv` bằng Excel khó nhìn và khó format; yêu cầu thêm tab **Silver Source** nằm giữa **Gợi ý Source - Animation** và **Cắt Clip**, đồng thời đổi tên tab **Cắt Clip** thành **Gold Source**.
+- Đã thêm module `python/silver_source.py`, route `POST /api/silver-source/load` trong `python/main.py`, IPC `silver-source-load` (`main.js` + `preload.js`) để đọc UTF-8 BOM/ô nhiều dòng, tự quét thư mục CSV (`2_CSV_PhanTich`), tách `request_ids` (`SR_008 | SR_009`) và tính thống kê. Không tự sửa hoặc ghi đè file CSV gốc của user.
+- Giao diện `#tab-silver-source` (`src/index.html`, `src/index.css`, `src/renderer.js`): nằm đúng giữa `Gợi ý Source - Animation` và `Gold Source`; hỗ trợ chọn thư mục CSV hoặc từng file riêng, nhớ đường dẫn + tiến độ đánh dấu đã tìm xong theo từng file trong `localStorage`, nút Tải lại và Mở file ngoài. Hai chế độ xem:
+  1. **Yêu cầu Source (`3_YeuCauSource`)**: Master-Detail có `.split-resizer`, lọc theo từ khóa/ưu tiên/loại/tiến độ; panel chi tiết tách rõ nhân vật, đội bóng, thời điểm, trận đấu, nội dung cần thấy, thời lượng, chip từ khóa copy 1 click, 3 khối điều kiện bắt buộc / thay thế / không chấp nhận, danh sách mốc timeline + lời thoại và thông tin cần làm rõ.
+  2. **Đối chiếu độ bao phủ (`3_DoiChieuDoBaoPhu`)**: Lọc theo tìm kiếm, trạng thái Bước 3, Bước 2, loại Source, đoạn hoặc mã `SR_xxx`; bảng có `.th-col-resizer` + `.v-split-resizer`, chip `SR_xxx` bấm để nhảy thẳng sang hồ sơ yêu cầu tương ứng và khung đọc đầy đủ lời thoại/ghi chú/lý do bước 2 bên dưới.
+- Đổi tên nhãn sidebar và tiêu đề trợ giúp tab `clip-splitter` thành **Gold Source** (`src/index.html`, `src/workflowHelp.js`); tạo `doc/workflows/silver-source.html`, cập nhật `doc/workflows/clip-splitter.html`, `source-suggester.html`, `premiere-gen.html`, `rules.html` và `.agents/AGENTS.md`.
+- Kiểm thử: **102 test Python đạt** (gồm 4 test mới trong `python/test_silver_source.py`), **85 test JavaScript đạt + 1 smoke bỏ qua** (gồm 3 test mới trong `src/testSilverSource.js`); kiểm tra đọc thực tế thư mục `2_CSV_PhanTich` của `02_X_I_B_TestAI` (58 yêu cầu, 406 dòng đối chiếu), cú pháp Python/JS và `git diff --check` đạt. Chưa mở trực tiếp cửa sổ Electron GUI thật.
+- Bước dùng: đóng hẳn app nếu đang mở để nạp cả backend Python/IPC mới (`npm start`), mở tab **Silver Source**, bấm **📂 Chọn thư mục CSV** trỏ tới `2_CSV_PhanTich` để tự nạp cả `3_YeuCauSource.csv` và `3_DoiChieuDoBaoPhu.csv`. `doc/aaa/` giữ nguyên ngoài commit.
+
+## Sửa ba nút không phản hồi khi Pause (2026-11-13)
 
 - User báo bấm Xuất không thấy gì rồi xác nhận cả Nạp/Lưu kho/Xuất đều không phản hồi ở paused 296/406; yêu cầu continue. Code cũ giữ isSuggesting=true lúc paused nên cả ba nút bị khóa, CSS khiến vẫn trông như bấm được. Ảnh cũng còn banner/nút bản cũ, chưa có nút nháp riêng; tiến trình Electron đang chạy từ trước bản 6a52262. Không đóng/reload app đang chạy hoặc đổi dữ liệu của user trong task.
 - Đã tách request đang chạy khỏi phiên đang giữ Pause. Khi phase paused thật, Nạp và Lưu kho mở theo điều kiện dữ liệu; trong pausing còn request thì khóa. Cập nhật updateStats ngay ở chuyển phase để không để Learn bị khóa sót. Nút bận làm mờ/tooltip, có nhãn xử lý khi mở file/lưu kho/xuất.
